@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "../context/AuthContext";
 import type { Room } from "../types";
-import { DUMMY_ROOMS } from "../data/dummy";
 import { PlusIcon, PencilIcon, CheckIcon, XIcon, LogOutIcon, SettingsIcon } from "lucide-react";
 
 interface SidebarProps {
@@ -65,7 +64,10 @@ export default function Sidebar({ rooms, onRoomsChange }: SidebarProps) {
             autoFocus
             value={newRoomName}
             onChange={(e) => setNewRoomName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") createRoom(); if (e.key === "Escape") { setNewRoomMode(false); setNewRoomName(""); } }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") createRoom();
+              if (e.key === "Escape") { setNewRoomMode(false); setNewRoomName(""); }
+            }}
             placeholder="Room name"
             className="w-full px-2 py-1 text-sm bg-background border border-input rounded outline-none focus:ring-2 focus:ring-ring"
           />
@@ -78,23 +80,29 @@ export default function Sidebar({ rooms, onRoomsChange }: SidebarProps) {
 
       <nav className="flex-1 overflow-y-auto py-2">
         {rooms.length === 0 && (
-          <p className="px-4 py-3 text-xs text-muted-foreground">No rooms yet. Create one.</p>
+          <p className="px-4 py-3 text-xs text-muted-foreground">No rooms yet. Tap + to create one.</p>
         )}
         {rooms.map((room) => {
           const isActive = location === `/rooms/${room.id}`;
           return (
-            <div key={room.id} className={`group flex items-center gap-1 mx-2 mb-0.5 rounded-md ${isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/60"}`}>
+            <div
+              key={room.id}
+              className={`group flex items-center gap-1 mx-2 mb-0.5 rounded-md ${isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/60"}`}
+            >
               {editingId === room.id ? (
                 <div className="flex items-center gap-1 flex-1 px-2 py-1.5">
                   <input
                     autoFocus
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") commitEdit(room.id); if (e.key === "Escape") cancelEdit(); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitEdit(room.id);
+                      if (e.key === "Escape") cancelEdit();
+                    }}
                     className="flex-1 text-sm bg-background border border-input rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-ring"
                   />
-                  <button onClick={() => commitEdit(room.id)} className="text-primary"><CheckIcon size={13} /></button>
-                  <button onClick={cancelEdit} className="text-muted-foreground"><XIcon size={13} /></button>
+                  <button onClick={() => commitEdit(room.id)} className="text-primary p-0.5"><CheckIcon size={13} /></button>
+                  <button onClick={cancelEdit} className="text-muted-foreground p-0.5"><XIcon size={13} /></button>
                 </div>
               ) : (
                 <>
@@ -108,8 +116,9 @@ export default function Sidebar({ rooms, onRoomsChange }: SidebarProps) {
                   </Link>
                   <button
                     onClick={() => startEdit(room)}
-                    className="opacity-0 group-hover:opacity-100 p-1 mr-1 text-muted-foreground hover:text-foreground transition-opacity"
-                    title="Rename"
+                    className="p-1 mr-1 text-muted-foreground hover:text-foreground opacity-40 group-hover:opacity-100 transition-opacity"
+                    title="Rename room"
+                    aria-label="Rename room"
                   >
                     <PencilIcon size={12} />
                   </button>
@@ -121,7 +130,14 @@ export default function Sidebar({ rooms, onRoomsChange }: SidebarProps) {
       </nav>
 
       <div className="border-t border-sidebar-border px-3 py-2 space-y-1">
-        <Link href="/settings" className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${location === "/settings" ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"}`}>
+        <Link
+          href="/settings"
+          className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${
+            location === "/settings"
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
+          }`}
+        >
           <SettingsIcon size={14} />
           Settings
         </Link>
@@ -131,7 +147,9 @@ export default function Sidebar({ rooms, onRoomsChange }: SidebarProps) {
         >
           <LogOutIcon size={14} />
           <span>Sign out</span>
-          {user && <span className="ml-auto text-xs text-muted-foreground truncate max-w-20">{user.email}</span>}
+          {user && (
+            <span className="ml-auto text-xs text-muted-foreground truncate max-w-[5rem]">{user.email}</span>
+          )}
         </button>
       </div>
     </aside>

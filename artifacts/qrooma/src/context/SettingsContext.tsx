@@ -13,7 +13,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(() => {
     const stored = localStorage.getItem("qrooma_settings");
     if (stored) {
-      try { return JSON.parse(stored); } catch { /* ignore */ }
+      try {
+        const parsed = JSON.parse(stored) as Settings;
+        if (parsed.defaultMode === "debate" || parsed.defaultMode === "collaborate" || parsed.defaultMode === "critique") {
+          parsed.defaultMode = "structured-debate";
+        }
+        return { ...DEFAULT_SETTINGS, ...parsed };
+      } catch { /* ignore */ }
     }
     return DEFAULT_SETTINGS;
   });

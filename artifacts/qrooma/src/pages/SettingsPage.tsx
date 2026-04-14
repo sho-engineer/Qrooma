@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { useSettings } from "../context/SettingsContext";
-import type { AgentSideConfig, Provider } from "../types";
+import type { AgentSideConfig, Provider, DefaultMode } from "../types";
 
 const OPENAI_MODELS = ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"];
 const ANTHROPIC_MODELS = ["claude-3-5-sonnet-20241022", "claude-3-opus-20240229", "claude-3-haiku-20240307"];
@@ -18,6 +17,19 @@ const PROVIDER_LABELS: Record<Provider, string> = {
   google: "Google",
 };
 
+const MODES: { value: DefaultMode; label: string; description: string }[] = [
+  {
+    value: "structured-debate",
+    label: "Structured Debate",
+    description: "Each agent takes a distinct position and argues it. Trade-offs surface through disagreement.",
+  },
+  {
+    value: "free-talk",
+    label: "Free Talk",
+    description: "Agents respond freely without role constraints. Good for open exploration and brainstorming.",
+  },
+];
+
 function ApiKeyField({
   label,
   value,
@@ -29,25 +41,18 @@ function ApiKeyField({
   onChange: (v: string) => void;
   placeholder: string;
 }) {
-  const [show, setShow] = useState(false);
   return (
     <div>
       <label className="block text-sm font-medium text-foreground mb-1">{label}</label>
       <div className="flex gap-2">
         <input
-          type={show ? "text" : "password"}
+          type="password"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          autoComplete="off"
           className="flex-1 px-3 py-2 text-sm bg-background border border-input rounded-md outline-none focus:ring-2 focus:ring-ring font-mono placeholder:font-sans placeholder:text-muted-foreground"
         />
-        <button
-          type="button"
-          onClick={() => setShow((s) => !s)}
-          className="px-3 py-2 text-xs border border-border rounded-md text-muted-foreground hover:bg-accent transition-colors"
-        >
-          {show ? "Hide" : "Show"}
-        </button>
       </div>
     </div>
   );
@@ -101,20 +106,23 @@ function SideConfig({
 
 export default function SettingsPage() {
   const { settings, updateSettings } = useSettings();
-  const [saved, setSaved] = useState(false);
-
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
-      <h2 className="text-lg font-semibold mb-6">Settings</h2>
+      <h2 className="text-lg font-semibold mb-1">Settings</h2>
+      <p className="text-xs text-muted-foreground mb-6">Changes are saved automatically.</p>
 
       <div className="max-w-xl space-y-8">
+
         <section>
-          <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wide text-xs text-muted-foreground">API Keys</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">API Keys</h3>
+          <div className="mb-3 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-md dark:bg-amber-950/30 dark:border-amber-800">
+            <p className="text-xs text-amber-800 dark:text-amber-400 font-medium mb-0.5">Temporary storage</p>
+            <p className="text-xs text-amber-700 dark:text-amber-500">
+              API keys are currently stored in your browser's localStorage. This is a placeholder implementation.
+              The final spec uses encrypted server-side storage per account — keys will never be exposed to the client.
+            </p>
+          </div>
           <div className="space-y-4">
             <ApiKeyField
               label="OpenAI API Key"
@@ -134,6 +142,29 @@ export default function SettingsPage() {
               onChange={(v) => updateSettings({ googleApiKey: v })}
               placeholder="AIza..."
             />
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Default Mode</h3>
+          <div className="space-y-2">
+            {MODES.map((mode) => (
+              <button
+                key={mode.value}
+                onClick={() => updateSettings({ defaultMode: mode.value })}
+                className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                  settings.defaultMode === mode.value
+                    ? "bg-primary/5 border-primary text-foreground"
+                    : "bg-background border-border text-foreground hover:bg-accent"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${settings.defaultMode === mode.value ? "bg-primary" : "bg-border"}`} />
+                  <span className="text-sm font-medium">{mode.label}</span>
+                </div>
+                <p className="text-xs text-muted-foreground pl-4">{mode.description}</p>
+              </button>
+            ))}
           </div>
         </section>
 
@@ -158,36 +189,6 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <section>
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Default Mode</h3>
-          <div className="flex gap-2">
-            {(["debate", "collaborate", "critique"] as const).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => updateSettings({ defaultMode: mode })}
-                className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                  settings.defaultMode === mode
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-foreground border-border hover:bg-accent"
-                }`}
-              >
-                {mode.charAt(0).toUpperCase() + mode.slice(1)}
-              </button>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {settings.defaultMode === "debate" && "Agents take opposing positions to surface trade-offs."}
-            {settings.defaultMode === "collaborate" && "Agents build on each other's ideas constructively."}
-            {settings.defaultMode === "critique" && "Agents critically evaluate ideas to find weaknesses."}
-          </p>
-        </section>
-
-        <button
-          onClick={handleSave}
-          className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
-        >
-          {saved ? "Saved!" : "Save settings"}
-        </button>
       </div>
     </div>
   );

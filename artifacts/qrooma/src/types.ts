@@ -15,6 +15,7 @@ export interface Message {
   agentId?: AgentId;
   content: string;
   createdAt: string;
+  runId?: string;
 }
 
 export type AgentId = "gpt" | "claude" | "gemini";
@@ -41,6 +42,8 @@ export interface AgentSideConfig {
   model: string;
 }
 
+export type DefaultMode = "structured-debate" | "free-talk";
+
 export interface Settings {
   openaiApiKey: string;
   anthropicApiKey: string;
@@ -48,5 +51,5 @@ export interface Settings {
   sideA: AgentSideConfig;
   sideB: AgentSideConfig;
   sideC: AgentSideConfig;
-  defaultMode: "debate" | "collaborate" | "critique";
+  defaultMode: DefaultMode;
 }
