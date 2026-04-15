@@ -1,5 +1,6 @@
 import { MessageBubble } from './MessageBubble'
 import { ConclusionCard } from './ConclusionCard'
+import { ScrollAnchor } from './ScrollAnchor'
 import type { Database, ConclusionCard as ConclusionCardType, Mode } from '@/types/database'
 
 type Message = Database['public']['Tables']['messages']['Row']
@@ -155,6 +156,7 @@ export function MessageTimeline({ messages, runs }: Props) {
           </div>
         )
       })}
+      <ScrollAnchor />
     </div>
   )
 }

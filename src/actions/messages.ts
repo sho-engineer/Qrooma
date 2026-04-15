@@ -117,40 +117,52 @@ export async function retryRun(runId: string): Promise<{ error?: string }> {
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Unauthenticated' }
 
-  // Fetch the original run and its trigger message
+  // Fetch the original run (owned by this user)
   const { data: run, error: runError } = await supabase
     .from('runs')
-    .select('*, rooms!inner(user_id), room_settings(*)')
+    .select('*')
     .eq('id', runId)
-    .eq('rooms.user_id', user.id)
+    .eq('user_id', user.id)
     .single()
 
   if (runError || !run) return { error: 'Run not found' }
+  if (!run.trigger_message_id) return { error: 'Original message not found' }
 
   // Fetch the trigger message content
   const { data: triggerMsg } = await supabase
     .from('messages')
     .select('content')
-    .eq('id', run.trigger_message_id ?? '')
+    .eq('id', run.trigger_message_id)
     .single()
 
-  if (!triggerMsg || !run.trigger_message_id) return { error: 'Original message not found' }
+  if (!triggerMsg) return { error: 'Original message not found' }
 
-  // Reset run status
-  await supabase
-    .from('runs')
-    .update({ status: 'queued', error_message: null, conclusion: null, trigger_run_id: null })
-    .eq('id', runId)
+  // Fetch room settings separately (no direct FK from runs → room_settings)
+  const { data: settings } = await supabase
+    .from('room_settings')
+    .select('*')
+    .eq('room_id', run.room_id)
+    .single()
 
-  // Delete previous AI messages and steps for this run
-  await supabase.from('messages').delete().eq('run_id', runId).eq('role', 'ai')
-  await supabase.from('run_steps').delete().eq('run_id', runId)
-
-  const settings = (run as any).room_settings
   if (!settings) return { error: 'Room settings not found' }
 
+  // Create a NEW run — do NOT patch the existing run; preserve history
+  const { data: newRun, error: newRunError } = await supabase
+    .from('runs')
+    .insert({
+      room_id: run.room_id,
+      user_id: user.id,
+      status: 'queued',
+      mode: run.mode,
+      trigger_message_id: run.trigger_message_id,
+    })
+    .select()
+    .single()
+
+  if (newRunError || !newRun) return { error: 'Failed to create retry run' }
+
   const taskPayload = {
-    runId,
+    runId: newRun.id,
     roomId: run.room_id,
     userId: user.id,
     userMessage: triggerMsg.content,
@@ -167,13 +179,16 @@ export async function retryRun(runId: string): Promise<{ error?: string }> {
   try {
     const taskId = run.mode === 'structured_debate' ? 'structured-debate' : 'free-talk'
     const handle = await tasks.trigger(taskId, taskPayload)
-    await supabase.from('runs').update({ trigger_run_id: handle.id }).eq('id', runId)
+    await supabase.from('runs').update({ trigger_run_id: handle.id }).eq('id', newRun.id)
   } catch (err) {
     await supabase
       .from('runs')
-      .update({ status: 'failed', error_message: 'Retry failed' })
-      .eq('id', runId)
-    return { error: 'Failed to retry run' }
+      .update({
+        status: 'failed',
+        error_message: err instanceof Error ? err.message : 'Failed to start retry run',
+      })
+      .eq('id', newRun.id)
+    return { error: 'Failed to start retry run' }
   }
 
   revalidatePath(`/rooms/${run.room_id}`)

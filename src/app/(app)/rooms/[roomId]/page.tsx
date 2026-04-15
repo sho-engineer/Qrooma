@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { MessageTimeline } from '@/components/chat/MessageTimeline'
 import { MessageInput } from '@/components/chat/MessageInput'
 import { RunStatusBanner } from '@/components/chat/RunStatusBanner'
+import { RoomRealtime } from '@/components/chat/RoomRealtime'
 import type { RunStatus, Mode } from '@/types/database'
 
 interface Props {
@@ -127,6 +128,9 @@ export default async function RoomDetailPage({ params }: Props) {
           mode={latestFailedRun.mode}
         />
       )}
+
+      {/* Realtime subscription: refreshes page on new AI messages */}
+      <RoomRealtime roomId={roomId} />
 
       {/* Message timeline */}
       <MessageTimeline messages={messages ?? []} runs={runs ?? []} />

@@ -59,15 +59,17 @@ export function RunStatusBanner({ runId, initialStatus, errorMessage, mode }: Pr
 
   const handleRetry = useCallback(async () => {
     setRetrying(true)
-    setStatus('queued')
     setErrMsg(null)
     const result = await retryRun(runId)
     if (result.error) {
       setStatus('failed')
       setErrMsg(result.error)
+      setRetrying(false)
+    } else {
+      // A new run was created — refresh page to mount the new RunStatusBanner
+      router.refresh()
     }
-    setRetrying(false)
-  }, [runId])
+  }, [runId, router])
 
   if (status === 'done') return null
 
