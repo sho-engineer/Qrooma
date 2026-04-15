@@ -1,53 +1,154 @@
-# Workspace
+# Qrooma
 
-## Overview
+Async AI team room — bring your own API keys (BYOK).
+A group-chat UI where ChatGPT, Claude, and Gemini discuss topics asynchronously.
+The current build is a **UI-only MVP** driven by dummy data, designed to connect to Supabase Auth, Supabase DB, and Trigger.dev in the next phase.
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+---
 
 ## Stack
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+| Layer | Technology |
+|---|---|
+| Frontend | React 18 + Vite + TypeScript |
+| Styling | Tailwind CSS v4 (CSS variables) |
+| Routing | Wouter |
+| Data fetching | TanStack Query (wired, not yet used for real fetches) |
+| Auth (temp) | localStorage |
+| Settings (temp) | localStorage |
 
-## Artifacts
+---
 
-### Qrooma (`artifacts/qrooma`) — React + Vite — previewPath: `/`
-MVP UI for the async AI team room app (BYOK).
+## Artifact
 
-**Screens:**
-- `/` → Auth (login / signup)
-- `/rooms` → Room list
-- `/rooms/:id` → Room detail (chat timeline, run status, conclusion card)
-- `/settings` → API keys + agent model config
+- **Kind**: web  
+- **Dir**: `artifacts/qrooma/`  
+- **Preview path**: `/`
 
-**Key files:**
-- `src/types.ts` — shared types
-- `src/data/dummy.ts` — all dummy data, AGENTS config
-- `src/context/AuthContext.tsx` — localStorage auth (swap for Supabase later)
-- `src/context/SettingsContext.tsx` — settings persistence
-- `src/pages/` — AuthPage, RoomsPage, RoomDetailPage, SettingsPage
-- `src/components/Sidebar.tsx` — left nav with rename + room creation
-- `src/components/AgentAvatar.tsx` — colored avatar per AI agent
+---
 
-**Backend integration notes:**
-- Auth: replace `AuthContext` signIn/signUp with Supabase Auth
-- Rooms/messages: replace dummy data with Supabase or API calls
-- Agent runs: wire `RoomDetailPage` run button to Trigger.dev jobs
+## Screens
 
-## Key Commands
+| Route | Screen | Notes |
+|---|---|---|
+| `/` | Auth | Log in / Sign up. Any email+password works (no validation). |
+| `/rooms` | Room List | Cards with last-message preview and relative time. |
+| `/rooms/:id` | Room Detail | Chat timeline, run separators, Conclusion card, Re-run. |
+| `/settings` | Settings | API keys, Default Mode, Agent configuration (auto-save). |
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
-- `pnpm --filter @workspace/qrooma run dev` — run Qrooma frontend locally
+---
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+## Component Structure
+
+```
+src/
+├── App.tsx                        # Router + AuthProvider + SettingsProvider
+├── types.ts                       # All shared TypeScript types
+├── data/
+│   └── dummy.ts                   # AGENTS, DUMMY_ROOMS, DUMMY_MESSAGES,
+│                                  # DUMMY_CONCLUSIONS, DEFAULT_SETTINGS
+├── context/
+│   ├── AuthContext.tsx            # User auth state — swap signIn/signUp for Supabase Auth
+│   └── SettingsContext.tsx        # Settings state — auto-saves to localStorage
+├── pages/
+│   ├── AuthPage.tsx               # Login / Signup form
+│   ├── RoomsPage.tsx              # Room list grid
+│   ├── RoomDetailPage.tsx         # Orchestrates all room-detail sub-components
+│   ├── SettingsPage.tsx           # API key fields, mode picker, agent config
+│   └── NotFoundPage.tsx           # 404 fallback
+└── components/
+    ├── Sidebar.tsx                # Left nav — rooms list, rename, new room, sign out
+    ├── AgentAvatar.tsx            # Colored circle avatar for each agent
+    ├── RoomHeader.tsx             # Status badge + mode + models + Re-run button
+    ├── MessageBubble.tsx          # User bubble (right) or agent bubble (left)
+    ├── ConclusionCard.tsx         # Collapsible conclusion accordion
+    ├── MessageInput.tsx           # Textarea + send button + hint text
+    ├── EmptyState.tsx             # Empty room prompt
+    └── ErrorState.tsx             # Run-failed error banner with retry
+```
+
+---
+
+## Key UI States
+
+| State | Where | Behaviour |
+|---|---|---|
+| Loading (app boot) | `App.tsx` | Spinner while auth state resolves from localStorage |
+| Empty room | `EmptyState.tsx` | Icon + prompt, shown when room has no messages |
+| Running | `RoomHeader` + `ThinkingIndicator` | Yellow badge + bouncing dots while agents respond |
+| Completed | `RoomHeader` | Green badge, Re-run button shown |
+| Error | `RoomHeader` + `ErrorState` | Red badge + error banner with Retry |
+| Conclusion collapsed | `ConclusionCard` | Default closed; shows run count |
+| Conclusion expanded | `ConclusionCard` | Summary + key points + timestamp |
+
+---
+
+## Run Flow (dummy simulation)
+
+1. User types a message → presses Enter or Send  
+2. `RoomDetailPage.sendMessage()` creates a user `Message` with a new `runId`  
+3. `triggerAgentReplies()` fires 3 staggered `setTimeout` calls (one per agent)  
+4. Each callback appends an assistant `Message` with the same `runId`  
+5. After the last callback, `runStatus` → `"completed"`  
+6. Re-run button repeats step 3–5 with a new `runId`
+
+**Production replacement**: replace `triggerAgentReplies` with a Trigger.dev job trigger and stream responses via Supabase Realtime.
+
+---
+
+## Dummy Data (data/dummy.ts)
+
+| Room | Messages | Runs | Conclusion |
+|---|---|---|---|
+| room-1: Product Roadmap Q3 | 8 | 2 | Yes |
+| room-2: Pricing Strategy | 4 | 1 | Yes |
+| room-3: Tech Stack Decision | 4 | 1 | Yes |
+
+All messages are realistic English business discussions.
+
+---
+
+## Temporary / Placeholder Implementations
+
+| Item | Current | Production replacement |
+|---|---|---|
+| **Auth** | localStorage, no password validation | Supabase Auth → swap `AuthContext.signIn/signUp` |
+| **Room data** | Hardcoded in `dummy.ts` | Supabase DB → TanStack Query |
+| **Message data** | Hardcoded in `dummy.ts` | Supabase DB + Realtime stream |
+| **Agent replies** | `setTimeout` + random strings | Trigger.dev job → parallel LLM calls |
+| **Conclusion** | Fixed text in `dummy.ts` | Generated by agents post-run |
+| **API key storage** | localStorage (amber warning shown in UI) | Encrypted server-side storage per account |
+| **Re-run** | Regenerates random replies | Re-triggers Trigger.dev job with last user message |
+| **Settings persistence** | localStorage | Supabase DB (per-account) |
+
+---
+
+## Production Connection Points
+
+```
+AuthContext.tsx
+  signIn(email, password)   →  supabase.auth.signInWithPassword()
+  signUp(email, password)   →  supabase.auth.signUp()
+
+RoomDetailPage.tsx
+  DUMMY_MESSAGES            →  useQuery(["messages", roomId], fetchMessages)
+  triggerAgentReplies()     →  triggerClient.sendEvent({ name: "run.start", payload: { roomId, runId } })
+                               + supabase.channel(roomId).on("INSERT", appendMessage)
+
+SettingsContext.tsx
+  localStorage              →  supabase.from("settings").upsert({ userId, ...settings })
+
+data/dummy.ts (DUMMY_ROOMS) →  useQuery(["rooms"], fetchRooms)
+```
+
+---
+
+## UI Conventions
+
+- **Mode names**: always `Structured Debate` or `Free Talk` (no abbreviations)
+- **API key copy**: "Currently stored in your browser (temporary). Final spec: encrypted server-side storage per account — keys never exposed to the client."
+- **Auto-save**: Settings save on every change — no Save button
+- **Scroll**: initial view starts at top; auto-scrolls to bottom only on new messages
+- **Run separator**: labeled `RUN 2`, `RUN 3`, etc. between run groups
+- **Agent initials**: G (ChatGPT), C (Claude), Gm (Gemini)
+- **Agent colors**: ChatGPT `#10a37f`, Claude `#d97706`, Gemini `#4285f4`

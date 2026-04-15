@@ -36,7 +36,7 @@ export default function AuthPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Qrooma</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Async AI team, your API keys</p>
+          <p className="mt-1 text-sm text-muted-foreground">Async AI team room — bring your own API keys</p>
         </div>
 
         <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
@@ -128,9 +128,14 @@ export default function AuthPage() {
           </form>
         </div>
 
-        <p className="mt-4 text-xs text-center text-muted-foreground">
-          Your API keys are stored in your browser only.
-        </p>
+        <div className="mt-4 px-1 space-y-1">
+          <p className="text-xs text-center text-muted-foreground">
+            API keys are stored in your browser for now (temporary implementation).
+          </p>
+          <p className="text-xs text-center text-muted-foreground">
+            Final spec: encrypted server-side storage — keys never exposed to the client.
+          </p>
+        </div>
       </div>
     </div>
   );
