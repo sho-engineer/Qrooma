@@ -16,6 +16,21 @@ const MODE_LABELS: Record<string, string> = {
   "free-talk": "Free Talk",
 };
 
+// Pools are slightly different per mode to hint at different agent behaviour
+const DEBATE_POOL = [
+  (name: string) => `${name} disagrees with the framing here. The underlying assumption is that speed matters more than certainty — but in this context, a wrong fast decision costs more than a slow right one. I'd push back and redefine the success criterion first.`,
+  (name: string) => `From ${name}'s perspective: the risk is asymmetric. The downside of moving too fast is higher than the downside of moving too slowly. I'd argue for a staged approach with explicit review gates at each step.`,
+  (name: string) => `${name} here. The strongest counter-argument is opportunity cost. Every week spent debating is a week the competition is executing. Set a 72-hour decision window and commit to whichever option has the best evidence by then.`,
+  (name: string) => `${name} taking a different angle: the data is ambiguous enough that either option can be justified post-hoc. That's a signal the framing is wrong — restate the question as a testable hypothesis before committing resources.`,
+];
+
+const FREETALK_POOL = [
+  (name: string) => `${name} building on that — one thing worth adding is the second-order effect. The immediate impact is clear, but three months out, the compounding benefit shows up in user trust and team morale, which are harder to measure but easier to lose.`,
+  (name: string) => `${name} here. I'd add a practical constraint to consider: the team's current bandwidth. Even a well-reasoned direction stalls if there's no capacity to execute. Worth stress-testing the plan against current sprint commitments.`,
+  (name: string) => `${name} agreeing with the direction and adding nuance: the key variable is timing. Doing the right thing at the wrong moment — too early or too late in the cycle — produces the same outcome as doing the wrong thing. Sequence matters as much as strategy.`,
+  (name: string) => `${name} wants to zoom out for a moment. The tactics being discussed are sound, but the strategic question underneath is: what does success look like in 12 months, and which path makes it most reachable? Anchoring to that north star simplifies the near-term trade-offs.`,
+];
+
 export default function RoomDetailPage() {
   const { id: roomId } = useParams<{ id: string }>();
   const { settings } = useSettings();
@@ -38,6 +53,15 @@ export default function RoomDetailPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const isFirstMount = useRef(true);
 
+  // Reset state when room changes
+  useEffect(() => {
+    const msgs = DUMMY_MESSAGES.filter((m) => m.roomId === roomId);
+    setMessages(msgs);
+    setRunStatus(msgs.length > 0 ? "completed" : "idle");
+    setRunCount(new Set(msgs.map((m) => m.runId).filter(Boolean)).size);
+    isFirstMount.current = true;
+  }, [roomId]);
+
   useEffect(() => {
     if (isFirstMount.current) {
       topRef.current?.scrollIntoView();
@@ -49,16 +73,11 @@ export default function RoomDetailPage() {
 
   function triggerAgentReplies(currentRunId: string) {
     setRunStatus("running");
+    const pool = settings.defaultMode === "free-talk" ? FREETALK_POOL : DEBATE_POOL;
     let delay = 900;
     AGENTS.forEach((agent) => {
       setTimeout(() => {
-        const pool = [
-          `As ${agent.name}, I think this is a meaningful question. My analysis points to a structured approach — gather data first, then decide. Rushing to conclusions without evidence leads to costly reversals.`,
-          `From ${agent.name}'s perspective: there are genuine trade-offs here. I'd carefully weigh short-term cost against long-term flexibility before making a commitment that's hard to undo.`,
-          `${agent.name} here. The key lever is alignment. Without clear team buy-in, even the best-reasoned strategy will stall at execution. I'd recommend a short alignment check before committing to direction.`,
-          `${agent.name} taking a different angle: the framing matters. How you define success changes which option looks best. Let's agree on the success metric before debating solutions.`,
-        ];
-        const content = pool[Math.floor(Math.random() * pool.length)];
+        const fn = pool[Math.floor(Math.random() * pool.length)];
         setMessages((prev) => [
           ...prev,
           {
@@ -66,13 +85,13 @@ export default function RoomDetailPage() {
             roomId,
             role: "assistant",
             agentId: agent.id,
-            content,
+            content: fn(agent.name),
             createdAt: new Date().toISOString(),
             runId: currentRunId,
           },
         ]);
       }, delay);
-      delay += 1000;
+      delay += 1100;
     });
     setTimeout(() => setRunStatus("completed"), delay + 300);
   }
@@ -125,7 +144,9 @@ export default function RoomDetailPage() {
 
         {groupedMessages.map((group, groupIdx) => (
           <div key={group.runId}>
-            {groupIdx > 0 && <RunSeparator label={`Run ${groupIdx + 1}`} />}
+            {groupIdx > 0 && (
+              <RunSeparator index={groupIdx + 1} firstMsgTime={group.messages[0]?.createdAt} />
+            )}
             <div className="space-y-4">
               {group.messages.map((msg) => (
                 <MessageBubble key={msg.id} message={msg} />
@@ -168,27 +189,51 @@ function groupByRun(messages: Message[]) {
   return groups;
 }
 
-function RunSeparator({ label }: { label: string }) {
+function RunSeparator({ index, firstMsgTime }: { index: number; firstMsgTime?: string }) {
+  const timeLabel = firstMsgTime
+    ? new Date(firstMsgTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : null;
+
   return (
-    <div className="flex items-center gap-3 my-6">
-      <div className="flex-1 h-px bg-border" />
-      <span className="text-[11px] font-medium text-muted-foreground/70 tracking-wide uppercase whitespace-nowrap">
-        {label}
-      </span>
-      <div className="flex-1 h-px bg-border" />
+    <div className="flex items-center gap-3 my-8">
+      <div className="flex-1 h-px bg-border/60" />
+      <div className="flex items-center gap-1.5 shrink-0">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-medium">
+          Run {index}
+        </span>
+        {timeLabel && (
+          <span className="text-[11px] text-muted-foreground/50">{timeLabel}</span>
+        )}
+      </div>
+      <div className="flex-1 h-px bg-border/60" />
     </div>
   );
 }
 
 function ThinkingIndicator() {
   return (
-    <div className="flex items-center gap-2 text-muted-foreground text-xs mt-4 px-1">
-      <div className="flex gap-0.5">
-        <span className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full animate-bounce [animation-delay:0ms]" />
-        <span className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full animate-bounce [animation-delay:150ms]" />
-        <span className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full animate-bounce [animation-delay:300ms]" />
+    <div className="flex items-center gap-3 mt-5 px-1">
+      <div className="flex items-center gap-1.5">
+        {[
+          { initial: "G", color: "#10a37f" },
+          { initial: "C", color: "#d97706" },
+          { initial: "Gm", color: "#4285f4" },
+        ].map((a, i) => (
+          <div key={a.initial} className="flex items-center gap-1">
+            <span
+              className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[9px] font-bold"
+              style={{ backgroundColor: a.color }}
+            >
+              {a.initial}
+            </span>
+            <span
+              className="w-1 h-1 rounded-full bg-muted-foreground/50 animate-bounce"
+              style={{ animationDelay: `${i * 120}ms` }}
+            />
+          </div>
+        ))}
       </div>
-      Agents are thinking…
+      <span className="text-xs text-muted-foreground">Agents are thinking…</span>
     </div>
   );
 }
