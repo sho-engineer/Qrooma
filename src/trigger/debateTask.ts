@@ -73,8 +73,15 @@ async function saveMessage(
   })
 }
 
-function stripJsonFences(raw: string): string {
-  return raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+function extractJson(raw: string): string {
+  // 1. Strip markdown code fences
+  let s = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+  // 2. If it already starts with { it's likely clean JSON
+  if (s.startsWith('{')) return s
+  // 3. Try to extract the first {...} block (handles leading/trailing prose)
+  const match = s.match(/\{[\s\S]*\}/)
+  if (match) return match[0]
+  return s
 }
 
 const JUDGE_SCHEMA = `{
@@ -223,13 +230,13 @@ ${JUDGE_SCHEMA}`
         { role: 'user', content: judgePrompt },
       ])
 
-      const judgeJson = stripJsonFences(judgeRaw)
+      const judgeJson = extractJson(judgeRaw)
       let conclusion: ConclusionCard
       try {
         conclusion = JSON.parse(judgeJson)
       } catch {
         logger.error('Failed to parse judge JSON', { raw: judgeRaw })
-        throw new Error(`Judge returned invalid JSON. Raw: ${judgeRaw.slice(0, 200)}`)
+        throw new Error(`Judge returned invalid JSON. Raw: ${judgeRaw.slice(0, 300)}`)
       }
 
       await saveStep(db, runId, 'judge', 'judge', judgeRaw)

@@ -31,7 +31,7 @@ create table public.room_settings (
   side_a_model             text not null default 'gpt-4o',
   side_b_provider          text not null default 'anthropic'
                              check (side_b_provider in ('openai', 'anthropic', 'google')),
-  side_b_model             text not null default 'claude-opus-4-5',
+  side_b_model             text not null default 'claude-sonnet-4-6',
   side_c_provider          text not null default 'google'
                              check (side_c_provider in ('openai', 'anthropic', 'google')),
   side_c_model             text not null default 'gemini-1.5-pro',

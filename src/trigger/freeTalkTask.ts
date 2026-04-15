@@ -44,8 +44,12 @@ async function getDecryptedKey(
   return decrypt(data.encrypted_key)
 }
 
-function stripJsonFences(raw: string): string {
-  return raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+function extractJson(raw: string): string {
+  let s = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+  if (s.startsWith('{')) return s
+  const match = s.match(/\{[\s\S]*\}/)
+  if (match) return match[0]
+  return s
 }
 
 const JUDGE_SCHEMA = `{
@@ -181,13 +185,13 @@ ${JUDGE_SCHEMA}`
         { role: 'user', content: judgePrompt },
       ])
 
-      const judgeJson = stripJsonFences(judgeRaw)
+      const judgeJson = extractJson(judgeRaw)
       let conclusion: ConclusionCard
       try {
         conclusion = JSON.parse(judgeJson)
       } catch {
         logger.error('Failed to parse judge JSON', { raw: judgeRaw })
-        throw new Error(`Judge returned invalid JSON. Raw: ${judgeRaw.slice(0, 200)}`)
+        throw new Error(`Judge returned invalid JSON. Raw: ${judgeRaw.slice(0, 300)}`)
       }
 
       await db.from('run_steps').insert({
