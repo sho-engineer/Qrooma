@@ -6,6 +6,45 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+/** Simple rich-text renderer: handles bullet lists and paragraph breaks */
+function RichContent({ text }: { text: string }) {
+  const paragraphs = text.split(/\n\n+/);
+
+  return (
+    <div className="space-y-2">
+      {paragraphs.map((para, pi) => {
+        const lines = para.split("\n");
+        const isList = lines.every((l) => l.trim().startsWith("•") || l.trim() === "");
+        if (isList) {
+          const items = lines.filter((l) => l.trim().startsWith("•")).map((l) =>
+            l.replace(/^•\s*/, "").trim()
+          );
+          return (
+            <ul key={pi} className="space-y-1 pl-1">
+              {items.map((item, ii) => (
+                <li key={ii} className="flex items-start gap-2">
+                  <span className="mt-1.5 w-1 h-1 rounded-full bg-current shrink-0 opacity-50" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        return (
+          <p key={pi}>
+            {lines.map((line, li) => (
+              <span key={li}>
+                {line}
+                {li < lines.length - 1 && <br />}
+              </span>
+            ))}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 interface Props {
   message: Message;
 }
@@ -33,7 +72,7 @@ export default function MessageBubble({ message }: Props) {
           </p>
         )}
         <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm text-foreground leading-relaxed">
-          {message.content}
+          <RichContent text={message.content} />
         </div>
         <p className="text-xs text-muted-foreground mt-1 pl-1">
           {formatTime(message.createdAt)}

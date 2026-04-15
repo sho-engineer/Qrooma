@@ -1,15 +1,10 @@
 import { useState } from "react";
 import { ChevronDownIcon, ChevronUpIcon, SparklesIcon } from "lucide-react";
-
-interface Conclusion {
-  summary: string;
-  keyPoints: string[];
-  generatedAt: string;
-}
+import type { ConclusionData } from "../types";
 
 interface Props {
   runCount: number;
-  conclusion: Conclusion | null;
+  conclusion: ConclusionData | null;
 }
 
 function formatDate(iso: string): string {
@@ -54,7 +49,7 @@ export default function ConclusionCard({ runCount, conclusion }: Props) {
                 <p className="text-sm text-foreground leading-relaxed">{conclusion.summary}</p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Key points</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Key points</p>
                 <ul className="space-y-2">
                   {conclusion.keyPoints.map((pt, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed">
@@ -64,16 +59,22 @@ export default function ConclusionCard({ runCount, conclusion }: Props) {
                   ))}
                 </ul>
               </div>
-              <div className="px-4 py-2">
-                <p className="text-xs text-muted-foreground/60 italic">
-                  Generated {formatDate(conclusion.generatedAt)} · Placeholder — will be produced by agents in production
+              <div className="px-4 py-2 flex items-center justify-between">
+                <p className="text-xs text-muted-foreground/50 italic">
+                  Generated {formatDate(conclusion.generatedAt)}
                 </p>
+                <span className="text-[10px] text-muted-foreground/40 bg-muted px-1.5 py-0.5 rounded">
+                  placeholder
+                </span>
               </div>
             </>
           ) : (
-            <div className="px-4 py-4">
-              <p className="text-sm text-muted-foreground italic text-center">
-                Conclusion will appear here after the first run completes.
+            <div className="px-4 py-5 text-center">
+              <p className="text-sm text-muted-foreground">
+                No conclusion yet —{" "}
+                {runCount === 0
+                  ? "start a discussion to generate one."
+                  : "will appear after a completed run."}
               </p>
             </div>
           )}

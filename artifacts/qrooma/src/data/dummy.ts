@@ -1,4 +1,4 @@
-import type { Room, Message, AgentInfo, Settings } from "../types";
+import type { Room, Message, AgentInfo, Settings, ConclusionData } from "../types";
 
 export const AGENTS: AgentInfo[] = [
   { id: "gpt",    name: "ChatGPT",  provider: "openai",    color: "#10a37f", initial: "G"  },
@@ -13,6 +13,7 @@ export const DUMMY_ROOMS: Room[] = [
     createdAt: "2026-04-10T09:00:00Z",
     lastMessage: "Gemini: A middle path — hire one versatile engineer now, then reassess.",
     lastMessageAt: "2026-04-14T08:30:00Z",
+    lastRunStatus: "completed",
   },
   {
     id: "room-2",
@@ -20,6 +21,7 @@ export const DUMMY_ROOMS: Room[] = [
     createdAt: "2026-04-12T14:00:00Z",
     lastMessage: "Claude: Freemium works only if the free tier delivers genuine value.",
     lastMessageAt: "2026-04-13T16:50:00Z",
+    lastRunStatus: "completed",
   },
   {
     id: "room-3",
@@ -27,6 +29,7 @@ export const DUMMY_ROOMS: Room[] = [
     createdAt: "2026-04-13T11:00:00Z",
     lastMessage: "Gemini: Long-term maintainability and ecosystem depth favor Next.js.",
     lastMessageAt: "2026-04-13T12:15:00Z",
+    lastRunStatus: "completed",
   },
   {
     id: "room-4",
@@ -34,13 +37,23 @@ export const DUMMY_ROOMS: Room[] = [
     createdAt: "2026-04-14T10:00:00Z",
     lastMessage: "Gemini: 'Think together. Decide faster.' — tight and memorable.",
     lastMessageAt: "2026-04-14T10:18:00Z",
+    lastRunStatus: "completed",
   },
   {
     id: "room-5",
     name: "Q4 Budget Planning",
     createdAt: "2026-04-15T09:00:00Z",
-    lastMessage: "Claude: A 60/30/10 allocation gives flexibility without sacrificing focus.",
+    lastMessage: "Gemini: A 60/30/10 allocation gives flexibility without sacrificing focus.",
     lastMessageAt: "2026-04-15T09:45:00Z",
+    lastRunStatus: "completed",
+  },
+  {
+    id: "room-6",
+    name: "Launch Timeline Estimate",
+    createdAt: "2026-04-15T14:00:00Z",
+    lastMessage: "ChatGPT: 6 to 9 months is realistic for a typical B2B SaaS launch—",
+    lastMessageAt: "2026-04-15T14:30:00Z",
+    lastRunStatus: "error",          // ← demo: failed run, Re-run to recover
   },
 ];
 
@@ -133,7 +146,6 @@ export const DUMMY_MESSAGES: Message[] = [
   },
 
   // ── room-4: Marketing Copy Review ── 1 run (Free Talk) ────────────────────
-  // Free Talk: agents build on each other's ideas collaboratively instead of debating positions
   {
     id: "m4-1", roomId: "room-4", role: "user",
     content: "Help me improve this headline: 'Qrooma — AI team room'. It feels flat.",
@@ -151,7 +163,7 @@ export const DUMMY_MESSAGES: Message[] = [
   },
   {
     id: "m4-4", roomId: "room-4", role: "assistant", agentId: "gemini",
-    content: "Both directions are solid. I'd synthesize toward something that's short enough for a nav bar but memorable:\n\n• 'Think together. Decide faster.'\n• 'Your AI team. Your API keys.'\n• 'Better decisions, three voices at once.'\n\nIf BYOK is a key differentiator for your audience, the second variant leans into trust and ownership. If the value is speed, go with the first.",
+    content: "Both directions are solid. I'd synthesize toward something short enough for a nav bar but memorable:\n\n• 'Think together. Decide faster.'\n• 'Your AI team. Your API keys.'\n• 'Better decisions, three voices at once.'\n\nIf BYOK is the key differentiator, the second variant leans into trust and ownership. If the value is speed, go with the first.",
     createdAt: "2026-04-14T10:18:00Z", runId: "run-1",
   },
 
@@ -213,16 +225,26 @@ export const DUMMY_MESSAGES: Message[] = [
   },
   {
     id: "m5-12", roomId: "room-5", role: "assistant", agentId: "gemini",
-    content: "Both directions are valid. I'd prioritize by impact-per-sprint: (1) activation flow simplification — highest leverage, (2) re-engagement emails — quick win, (3) habit-forming features like saved rooms and history — medium-term. A 60/30/10 allocation gives the flexibility to pursue all three in sequence.",
+    content: "Both directions are valid. I'd prioritize by impact-per-sprint:\n\n• Activation flow simplification — highest leverage\n• Re-engagement emails — quick win (8–12 pts)\n• Habit-forming features like saved rooms — medium-term\n\nA 60/30/10 allocation gives the flexibility to pursue all three in sequence.",
     createdAt: "2026-04-15T09:45:00Z", runId: "run-c",
   },
+
+  // ── room-6: Launch Timeline Estimate ── 1 run, FAILED (error demo) ─────────
+  // Only ChatGPT responded before the run failed (Claude + Gemini API key error)
+  {
+    id: "m6-1", roomId: "room-6", role: "user",
+    content: "How long will it realistically take to go from MVP to public launch?",
+    createdAt: "2026-04-15T14:25:00Z", runId: "run-1",
+  },
+  {
+    id: "m6-2", roomId: "room-6", role: "assistant", agentId: "gpt",
+    content: "6 to 9 months is a realistic range for a typical B2B SaaS product — assuming a functional MVP and a small but capable team. The bottleneck is rarely the product itself: it's the feedback loops between user testing, positioning, and iteration. Budget for at least 2–3 fast learning cycles before locking in your go-to-market strategy.",
+    createdAt: "2026-04-15T14:27:00Z", runId: "run-1",
+  },
+  // ← Claude and Gemini did NOT respond — run failed here
 ];
 
-export const DUMMY_CONCLUSIONS: Record<string, {
-  summary: string;
-  keyPoints: string[];
-  generatedAt: string;
-}> = {
+export const DUMMY_CONCLUSIONS: Record<string, ConclusionData> = {
   "room-1": {
     summary: "The team converges on a phased Q3 approach: performance optimization first, then mobile improvements, followed by enterprise integrations. On hiring, a single senior engineer is the measured starting point — with a headcount review after Q3 milestones.",
     keyPoints: [
@@ -253,26 +275,42 @@ export const DUMMY_CONCLUSIONS: Record<string, {
     generatedAt: "2026-04-13T12:16:00Z",
   },
   "room-4": {
-    summary: "The team explored several headline directions and converged on two strong candidates: 'Think together. Decide faster.' (emphasizes speed and collaboration) and 'Your AI team. Your API keys.' (emphasizes trust and BYOK). Both are short enough for a nav bar and benefit from A/B testing.",
+    summary: "The team converged on two strong headline candidates: 'Think together. Decide faster.' (emphasizes speed and collaboration) and 'Your AI team. Your API keys.' (emphasizes BYOK trust). Both are nav-bar-length and benefit from A/B testing.",
     keyPoints: [
-      "'Think together. Decide faster.' — best if the value prop is speed and collaboration",
-      "'Your AI team. Your API keys.' — best if BYOK trust is the primary differentiator",
-      "Avoid functional descriptions like 'AI team room' — they describe rather than sell",
+      "'Think together. Decide faster.' — best if the value prop is speed",
+      "'Your AI team. Your API keys.' — best if BYOK trust is the differentiator",
+      "Avoid functional descriptions like 'AI team room' — they describe, not sell",
       "The 'three perspectives' angle differentiates from single-model AI tools",
     ],
     generatedAt: "2026-04-14T10:19:00Z",
   },
   "room-5": {
-    summary: "With 38% Day-30 retention, the team recommends a product-first allocation before scaling marketing spend. A 60/30/10 split (product/ops/marketing) with a 6-week reallocation trigger is the most defensible starting point.",
+    summary: "With 38% Day-30 retention, the team recommends a product-first allocation before scaling marketing. A 60/30/10 split (product/ops/marketing) with a 6-week reallocation trigger is the most defensible starting point.",
     keyPoints: [
       "38% retention is borderline — do not scale performance marketing yet",
       "Prioritize activation flow simplification for the highest retention leverage",
-      "Re-engagement emails are a quick win: 8–12 point lift with minimal product work",
-      "Use a 60/30/10 budget split with a built-in review at 6 weeks",
+      "Re-engagement emails are a quick win: 8–12 point lift with minimal work",
+      "Use a 60/30/10 budget split with a built-in review trigger at 6 weeks",
     ],
     generatedAt: "2026-04-15T09:46:00Z",
   },
+  // room-6 has no conclusion — run failed before all agents responded
 };
+
+// Reply pools — mode-specific phrasing for demo runs
+export const DEBATE_POOL = [
+  (name: string) => `${name} disagrees with the framing here. The underlying assumption is that speed matters more than certainty — but in this context, a wrong fast decision costs more than a slow right one. I'd push back and redefine the success criterion first.`,
+  (name: string) => `From ${name}'s perspective: the risk is asymmetric. The downside of moving too fast is higher than the downside of moving too slowly. I'd argue for a staged approach with explicit review gates at each step.`,
+  (name: string) => `${name} here. The strongest counter-argument is opportunity cost. Every week spent debating is a week the competition is executing. Set a 72-hour decision window and commit to whichever option has the best evidence by then.`,
+  (name: string) => `${name} taking a different angle: the data is ambiguous enough that either option can be justified post-hoc. That's a signal the framing is wrong — restate the question as a testable hypothesis before committing resources.`,
+];
+
+export const FREETALK_POOL = [
+  (name: string) => `${name} building on that — one thing worth adding is the second-order effect. The immediate impact is clear, but three months out, the compounding benefit shows up in user trust and team morale, which are harder to measure but easier to lose.`,
+  (name: string) => `${name} here. I'd add a practical constraint to consider: the team's current bandwidth. Even a well-reasoned direction stalls if there's no capacity to execute. Worth stress-testing the plan against current sprint commitments.`,
+  (name: string) => `${name} agreeing with the direction and adding nuance: the key variable is timing. Doing the right thing at the wrong moment — too early or too late in the cycle — produces the same outcome as doing the wrong thing. Sequence matters as much as strategy.`,
+  (name: string) => `${name} wants to zoom out for a moment. The tactics being discussed are sound, but the strategic question underneath is: what does success look like in 12 months, and which path makes it most reachable? Anchoring to that north star simplifies the near-term trade-offs.`,
+];
 
 export const DEFAULT_SETTINGS: Settings = {
   openaiApiKey: "",

@@ -6,6 +6,8 @@ export interface Room {
   createdAt: string;
   lastMessage?: string;
   lastMessageAt?: string;
+  /** Latest run status — set by the server in production, faked in dummy data */
+  lastRunStatus?: RunStatus;
 }
 
 export interface Message {
@@ -30,7 +32,7 @@ export interface AgentInfo {
 
 export type RunStatus = "idle" | "running" | "completed" | "error";
 
-export interface ConclusionCard {
+export interface ConclusionData {
   summary: string;
   keyPoints: string[];
   generatedAt: string;

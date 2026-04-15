@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams } from "wouter";
-import { DUMMY_MESSAGES, DUMMY_CONCLUSIONS, AGENTS } from "../data/dummy";
+import { RotateCcwIcon } from "lucide-react";
+import {
+  DUMMY_MESSAGES,
+  DUMMY_CONCLUSIONS,
+  AGENTS,
+  DEBATE_POOL,
+  FREETALK_POOL,
+} from "../data/dummy";
 import { useSettings } from "../context/SettingsContext";
 import { useRooms } from "../context/RoomsContext";
 import type { Message, RunStatus } from "../types";
@@ -16,20 +23,33 @@ const MODE_LABELS: Record<string, string> = {
   "free-talk": "Free Talk",
 };
 
-// Pools are slightly different per mode to hint at different agent behaviour
-const DEBATE_POOL = [
-  (name: string) => `${name} disagrees with the framing here. The underlying assumption is that speed matters more than certainty — but in this context, a wrong fast decision costs more than a slow right one. I'd push back and redefine the success criterion first.`,
-  (name: string) => `From ${name}'s perspective: the risk is asymmetric. The downside of moving too fast is higher than the downside of moving too slowly. I'd argue for a staged approach with explicit review gates at each step.`,
-  (name: string) => `${name} here. The strongest counter-argument is opportunity cost. Every week spent debating is a week the competition is executing. Set a 72-hour decision window and commit to whichever option has the best evidence by then.`,
-  (name: string) => `${name} taking a different angle: the data is ambiguous enough that either option can be justified post-hoc. That's a signal the framing is wrong — restate the question as a testable hypothesis before committing resources.`,
-];
+// ─── group messages by run ────────────────────────────────────────────────────
+interface RunGroup {
+  runId: string;
+  messages: Message[];
+  /** true when this group has no user message (= triggered by Re-run) */
+  isRerun: boolean;
+  /** the user question that started this run (null for Re-runs without a new question) */
+  userQuestion: string | null;
+}
 
-const FREETALK_POOL = [
-  (name: string) => `${name} building on that — one thing worth adding is the second-order effect. The immediate impact is clear, but three months out, the compounding benefit shows up in user trust and team morale, which are harder to measure but easier to lose.`,
-  (name: string) => `${name} here. I'd add a practical constraint to consider: the team's current bandwidth. Even a well-reasoned direction stalls if there's no capacity to execute. Worth stress-testing the plan against current sprint commitments.`,
-  (name: string) => `${name} agreeing with the direction and adding nuance: the key variable is timing. Doing the right thing at the wrong moment — too early or too late in the cycle — produces the same outcome as doing the wrong thing. Sequence matters as much as strategy.`,
-  (name: string) => `${name} wants to zoom out for a moment. The tactics being discussed are sound, but the strategic question underneath is: what does success look like in 12 months, and which path makes it most reachable? Anchoring to that north star simplifies the near-term trade-offs.`,
-];
+function groupByRun(messages: Message[]): RunGroup[] {
+  const groups: RunGroup[] = [];
+  const seen = new Map<string, number>();
+  for (const msg of messages) {
+    const runId = msg.runId ?? "default";
+    if (!seen.has(runId)) {
+      seen.set(runId, groups.length);
+      groups.push({ runId, messages: [], isRerun: msg.role === "assistant", userQuestion: null });
+    }
+    const g = groups[seen.get(runId)!];
+    g.messages.push(msg);
+    if (msg.role === "user" && !g.userQuestion) g.userQuestion = msg.content;
+  }
+  return groups;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function RoomDetailPage() {
   const { id: roomId } = useParams<{ id: string }>();
@@ -40,28 +60,41 @@ export default function RoomDetailPage() {
   const roomName = room?.name ?? "Room";
 
   const initialMessages = DUMMY_MESSAGES.filter((m) => m.roomId === roomId);
+
+  function deriveInitialStatus(): RunStatus {
+    if (room?.lastRunStatus) return room.lastRunStatus;
+    return initialMessages.length > 0 ? "completed" : "idle";
+  }
+
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
-  const [runStatus, setRunStatus] = useState<RunStatus>(
-    initialMessages.length > 0 ? "completed" : "idle"
-  );
+  const [runStatus, setRunStatus] = useState<RunStatus>(deriveInitialStatus);
   const [runCount, setRunCount] = useState(
     new Set(initialMessages.map((m) => m.runId).filter(Boolean)).size
   );
+  /** How many agents have responded in the current in-progress run (0–3) */
+  const [respondedCount, setRespondedCount] = useState(0);
 
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const isFirstMount = useRef(true);
 
-  // Reset state when room changes
+  // Reset when room changes
   useEffect(() => {
     const msgs = DUMMY_MESSAGES.filter((m) => m.roomId === roomId);
     setMessages(msgs);
-    setRunStatus(msgs.length > 0 ? "completed" : "idle");
+    const newRoom = getRoomById(roomId);
+    if (newRoom?.lastRunStatus) {
+      setRunStatus(newRoom.lastRunStatus);
+    } else {
+      setRunStatus(msgs.length > 0 ? "completed" : "idle");
+    }
     setRunCount(new Set(msgs.map((m) => m.runId).filter(Boolean)).size);
+    setRespondedCount(0);
     isFirstMount.current = true;
   }, [roomId]);
 
+  // Scroll: top on room change, bottom on new messages
   useEffect(() => {
     if (isFirstMount.current) {
       topRef.current?.scrollIntoView();
@@ -73,9 +106,10 @@ export default function RoomDetailPage() {
 
   function triggerAgentReplies(currentRunId: string) {
     setRunStatus("running");
+    setRespondedCount(0);
     const pool = settings.defaultMode === "free-talk" ? FREETALK_POOL : DEBATE_POOL;
     let delay = 900;
-    AGENTS.forEach((agent) => {
+    AGENTS.forEach((agent, i) => {
       setTimeout(() => {
         const fn = pool[Math.floor(Math.random() * pool.length)];
         setMessages((prev) => [
@@ -90,10 +124,14 @@ export default function RoomDetailPage() {
             runId: currentRunId,
           },
         ]);
+        setRespondedCount(i + 1);
       }, delay);
-      delay += 1100;
+      delay += 1200;
     });
-    setTimeout(() => setRunStatus("completed"), delay + 300);
+    setTimeout(() => {
+      setRunStatus("completed");
+      setRespondedCount(0);
+    }, delay + 300);
   }
 
   function sendMessage() {
@@ -145,7 +183,12 @@ export default function RoomDetailPage() {
         {groupedMessages.map((group, groupIdx) => (
           <div key={group.runId}>
             {groupIdx > 0 && (
-              <RunSeparator index={groupIdx + 1} firstMsgTime={group.messages[0]?.createdAt} />
+              <RunSeparator
+                index={groupIdx + 1}
+                firstMsgTime={group.messages[0]?.createdAt}
+                isRerun={group.isRerun}
+                userQuestion={group.userQuestion}
+              />
             )}
             <div className="space-y-4">
               {group.messages.map((msg) => (
@@ -155,7 +198,7 @@ export default function RoomDetailPage() {
           </div>
         ))}
 
-        {runStatus === "running" && <ThinkingIndicator />}
+        {runStatus === "running" && <ThinkingIndicator respondedCount={respondedCount} />}
         {runStatus === "error" && <ErrorState onRerun={rerun} />}
 
         <div ref={bottomRef} />
@@ -175,65 +218,105 @@ export default function RoomDetailPage() {
   );
 }
 
-function groupByRun(messages: Message[]) {
-  const groups: { runId: string; messages: Message[] }[] = [];
-  const seen = new Map<string, number>();
-  for (const msg of messages) {
-    const runId = msg.runId ?? "default";
-    if (!seen.has(runId)) {
-      seen.set(runId, groups.length);
-      groups.push({ runId, messages: [] });
-    }
-    groups[seen.get(runId)!].messages.push(msg);
-  }
-  return groups;
+// ─── Run Separator ────────────────────────────────────────────────────────────
+
+interface RunSeparatorProps {
+  index: number;
+  firstMsgTime?: string;
+  isRerun: boolean;
+  userQuestion: string | null;
 }
 
-function RunSeparator({ index, firstMsgTime }: { index: number; firstMsgTime?: string }) {
+function RunSeparator({ index, firstMsgTime, isRerun, userQuestion }: RunSeparatorProps) {
   const timeLabel = firstMsgTime
     ? new Date(firstMsgTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : null;
 
   return (
-    <div className="flex items-center gap-3 my-8">
-      <div className="flex-1 h-px bg-border/60" />
-      <div className="flex items-center gap-1.5 shrink-0">
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-medium">
-          Run {index}
-        </span>
-        {timeLabel && (
-          <span className="text-[11px] text-muted-foreground/50">{timeLabel}</span>
-        )}
+    <div className="my-8">
+      {/* Divider line + pill */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-border/60" />
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isRerun && (
+            <RotateCcwIcon size={10} className="text-muted-foreground/50" />
+          )}
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-medium">
+            {isRerun ? "Re-run" : `Run ${index}`}
+          </span>
+          {timeLabel && (
+            <span className="text-[11px] text-muted-foreground/50">{timeLabel}</span>
+          )}
+        </div>
+        <div className="flex-1 h-px bg-border/60" />
       </div>
-      <div className="flex-1 h-px bg-border/60" />
+
+      {/* Trigger question (for new questions, not re-runs) */}
+      {!isRerun && userQuestion && (
+        <p className="mt-2 text-center text-[11px] text-muted-foreground/50 italic px-8 truncate" title={userQuestion}>
+          "{userQuestion}"
+        </p>
+      )}
+      {isRerun && (
+        <p className="mt-2 text-center text-[11px] text-muted-foreground/50 italic">
+          Same question, new run — agents respond fresh
+        </p>
+      )}
     </div>
   );
 }
 
-function ThinkingIndicator() {
+// ─── Thinking Indicator ───────────────────────────────────────────────────────
+
+function ThinkingIndicator({ respondedCount }: { respondedCount: number }) {
+  const done = AGENTS.slice(0, respondedCount);
+  const pending = AGENTS.slice(respondedCount);
+  const nextAgent = pending[0];
+  const remaining = pending.length;
+
   return (
     <div className="flex items-center gap-3 mt-5 px-1">
-      <div className="flex items-center gap-1.5">
-        {[
-          { initial: "G", color: "#10a37f" },
-          { initial: "C", color: "#d97706" },
-          { initial: "Gm", color: "#4285f4" },
-        ].map((a, i) => (
-          <div key={a.initial} className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
+        {/* Already responded — dimmed */}
+        {done.map((a) => (
+          <span
+            key={a.id}
+            className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[9px] font-bold opacity-30"
+            style={{ backgroundColor: a.color }}
+            title={`${a.name} responded`}
+          >
+            {a.initial}
+          </span>
+        ))}
+
+        {/* Currently responding — animated dots */}
+        {nextAgent && (
+          <div className="flex items-center gap-1.5">
             <span
               className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[9px] font-bold"
-              style={{ backgroundColor: a.color }}
+              style={{ backgroundColor: nextAgent.color }}
             >
-              {a.initial}
+              {nextAgent.initial}
             </span>
-            <span
-              className="w-1 h-1 rounded-full bg-muted-foreground/50 animate-bounce"
-              style={{ animationDelay: `${i * 120}ms` }}
-            />
+            <div className="flex gap-0.5">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce"
+                  style={{ animationDelay: `${i * 150}ms` }}
+                />
+              ))}
+            </div>
           </div>
-        ))}
+        )}
       </div>
-      <span className="text-xs text-muted-foreground">Agents are thinking…</span>
+
+      <span className="text-xs text-muted-foreground">
+        {remaining === 3 && "Agents are thinking…"}
+        {remaining === 2 && `${pending[0]?.name} and 1 more responding…`}
+        {remaining === 1 && `${nextAgent?.name} is responding…`}
+        {remaining === 0 && "Finishing up…"}
+      </span>
     </div>
   );
 }

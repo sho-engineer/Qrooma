@@ -34,12 +34,25 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
+
+        {/* Logo / tagline */}
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Qrooma</h1>
           <p className="mt-1 text-sm text-muted-foreground">Async AI team room — bring your own API keys</p>
         </div>
 
+        {/* Demo banner */}
+        <div className="mb-4 px-3.5 py-2.5 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/30 dark:border-blue-800">
+          <p className="text-xs font-semibold text-blue-800 dark:text-blue-400 mb-0.5">Demo mode</p>
+          <p className="text-xs text-blue-700 dark:text-blue-500 leading-relaxed">
+            Any email and password works. Auth is not validated in this UI prototype.{" "}
+            <span className="opacity-70">Supabase Auth replaces this in production.</span>
+          </p>
+        </div>
+
+        {/* Card */}
         <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+          {/* Tab toggle */}
           <div className="flex gap-2 mb-6 p-1 bg-muted rounded-md">
             <button
               type="button"
@@ -128,12 +141,11 @@ export default function AuthPage() {
           </form>
         </div>
 
+        {/* API key footnote */}
         <div className="mt-4 px-1 space-y-1">
-          <p className="text-xs text-center text-muted-foreground">
-            API keys are stored in your browser for now (temporary implementation).
-          </p>
-          <p className="text-xs text-center text-muted-foreground">
-            Final spec: encrypted server-side storage — keys never exposed to the client.
+          <p className="text-xs text-center text-muted-foreground leading-relaxed">
+            API keys are stored in your browser for this prototype.{" "}
+            <span className="opacity-60">Final spec: encrypted server-side storage — keys never exposed to the client.</span>
           </p>
         </div>
       </div>

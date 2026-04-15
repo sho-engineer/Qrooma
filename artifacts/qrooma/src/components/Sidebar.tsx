@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "../context/AuthContext";
 import { useRooms } from "../context/RoomsContext";
-import { PlusIcon, PencilIcon, CheckIcon, XIcon, LogOutIcon, SettingsIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, CheckIcon, XIcon, LogOutIcon, SettingsIcon, AlertTriangleIcon } from "lucide-react";
 
 export default function Sidebar() {
   const [location] = useLocation();
@@ -39,6 +39,7 @@ export default function Sidebar() {
 
   return (
     <aside className="flex flex-col w-60 shrink-0 border-r border-border bg-sidebar h-full">
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border">
         <span className="text-sm font-semibold text-sidebar-foreground">Qrooma</span>
         <button
@@ -50,6 +51,7 @@ export default function Sidebar() {
         </button>
       </div>
 
+      {/* Inline new-room form */}
       {newRoomMode && (
         <div className="px-3 py-2 border-b border-sidebar-border">
           <input
@@ -77,12 +79,14 @@ export default function Sidebar() {
         </div>
       )}
 
+      {/* Room list */}
       <nav className="flex-1 overflow-y-auto py-2">
         {rooms.length === 0 && (
           <p className="px-4 py-3 text-xs text-muted-foreground">No rooms yet. Tap + to create one.</p>
         )}
         {rooms.map((room) => {
           const isActive = location === `/rooms/${room.id}`;
+          const hasError = room.lastRunStatus === "error";
           return (
             <div
               key={room.id}
@@ -112,11 +116,22 @@ export default function Sidebar() {
               ) : (
                 <>
                   <Link href={`/rooms/${room.id}`} className="flex-1 min-w-0 px-2 py-1.5">
-                    <span className={`block text-sm truncate ${isActive ? "text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground"}`}>
-                      {room.name}
-                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {hasError && (
+                        <AlertTriangleIcon size={10} className="text-destructive shrink-0" />
+                      )}
+                      <span className={`block text-sm truncate ${
+                        isActive ? "text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground"
+                      }`}>
+                        {room.name}
+                      </span>
+                    </div>
                     {room.lastMessage && (
-                      <span className="block text-xs text-muted-foreground truncate">{room.lastMessage}</span>
+                      <span className={`block text-xs truncate mt-0.5 ${
+                        hasError ? "text-destructive/60" : "text-muted-foreground"
+                      }`}>
+                        {room.lastMessage}
+                      </span>
                     )}
                   </Link>
                   <button
@@ -133,6 +148,7 @@ export default function Sidebar() {
         })}
       </nav>
 
+      {/* Footer */}
       <div className="border-t border-sidebar-border px-3 py-2 space-y-1">
         <Link
           href="/settings"
