@@ -1,26 +1,34 @@
 import { getSavedProviders } from '@/actions/apiKeys'
 import { ApiKeyForm } from '@/components/settings/ApiKeyForm'
+import { DefaultModeSelector } from '@/components/settings/DefaultModeSelector'
+import { ModelSelector } from '@/components/settings/ModelSelector'
+import { getOrCreateUserDefaults } from '@/actions/userDefaults'
+import { SettingsActions } from './SettingsActions'
 
 export default async function SettingsPage() {
-  const savedProviders = await getSavedProviders()
+  const [savedProviders, defaults] = await Promise.all([
+    getSavedProviders(),
+    getOrCreateUserDefaults(),
+  ])
 
   return (
-    <div className="p-6 max-w-2xl">
+    <div className="p-6 max-w-2xl overflow-y-auto h-full">
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Settings</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Configure your AI provider API keys. Keys are encrypted and stored securely server-side.
+          Configure API keys and default settings for new rooms.
         </p>
       </div>
 
-      <section className="space-y-4">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+      <div className="space-y-8">
+        {/* API Keys */}
+        <section>
+          <h3 className="text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">
             API Keys (BYOK)
           </h3>
           <p className="text-xs text-gray-400 mb-4">
-            Your API keys are encrypted (AES-256) before storage. They are never sent to the client
-            and are decrypted server-side only when running AI tasks.
+            Keys are encrypted (AES-256-GCM) and stored server-side only. Never sent to the
+            client.
           </p>
           <div className="space-y-3">
             <ApiKeyForm
@@ -42,8 +50,11 @@ export default async function SettingsPage() {
               saved={savedProviders.includes('google')}
             />
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* Default Mode + AI Sides — client components need callbacks via wrapper */}
+        <SettingsActions defaults={defaults} />
+      </div>
     </div>
   )
 }
