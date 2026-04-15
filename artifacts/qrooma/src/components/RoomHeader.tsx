@@ -2,6 +2,7 @@ import { RotateCcwIcon } from "lucide-react";
 import type { RunStatus } from "../types";
 
 interface Props {
+  roomName: string;
   runStatus: RunStatus;
   modeLabel: string;
   activeModels: string[];
@@ -9,12 +10,33 @@ interface Props {
   onRerun: () => void;
 }
 
-export default function RoomHeader({ runStatus, modeLabel, activeModels, hasMessages, onRerun }: Props) {
+export default function RoomHeader({
+  roomName,
+  runStatus,
+  modeLabel,
+  activeModels,
+  hasMessages,
+  onRerun,
+}: Props) {
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0 gap-3">
-      <div className="flex items-center gap-2 min-w-0 flex-wrap">
+    <div className="shrink-0 border-b border-border bg-card">
+      <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
+        <h1 className="text-sm font-semibold text-foreground truncate">{roomName}</h1>
+        {hasMessages && (
+          <button
+            onClick={onRerun}
+            disabled={runStatus === "running"}
+            className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium border border-border rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-40 shrink-0 ml-3"
+            title="Re-run with last question"
+          >
+            <RotateCcwIcon size={12} />
+            Re-run
+          </button>
+        )}
+      </div>
+      <div className="flex items-center gap-2 px-4 pb-2 flex-wrap">
         <RunStatusBadge status={runStatus} />
-        <span className="text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5 whitespace-nowrap">
+        <span className="text-xs text-muted-foreground border border-border/60 rounded px-1.5 py-0.5 whitespace-nowrap">
           {modeLabel}
         </span>
         <span
@@ -24,18 +46,6 @@ export default function RoomHeader({ runStatus, modeLabel, activeModels, hasMess
           {activeModels.join(" · ")}
         </span>
       </div>
-
-      {hasMessages && (
-        <button
-          onClick={onRerun}
-          disabled={runStatus === "running"}
-          className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium border border-border rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-40 shrink-0"
-          title="Re-run with last question"
-        >
-          <RotateCcwIcon size={12} />
-          Re-run
-        </button>
-      )}
     </div>
   );
 }

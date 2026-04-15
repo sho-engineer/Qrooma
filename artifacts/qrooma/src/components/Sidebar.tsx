@@ -1,30 +1,27 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "../context/AuthContext";
-import type { Room } from "../types";
+import { useRooms } from "../context/RoomsContext";
 import { PlusIcon, PencilIcon, CheckIcon, XIcon, LogOutIcon, SettingsIcon } from "lucide-react";
 
-interface SidebarProps {
-  rooms: Room[];
-  onRoomsChange: (rooms: Room[]) => void;
-}
-
-export default function Sidebar({ rooms, onRoomsChange }: SidebarProps) {
+export default function Sidebar() {
   const [location] = useLocation();
   const { user, signOut } = useAuth();
+  const { rooms, addRoom, updateRoom } = useRooms();
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [newRoomMode, setNewRoomMode] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
 
-  function startEdit(room: Room) {
-    setEditingId(room.id);
-    setEditValue(room.name);
+  function startEdit(id: string, name: string) {
+    setEditingId(id);
+    setEditValue(name);
   }
 
-  function commitEdit(roomId: string) {
+  function commitEdit(id: string) {
     if (!editValue.trim()) { cancelEdit(); return; }
-    onRoomsChange(rooms.map((r) => r.id === roomId ? { ...r, name: editValue.trim() } : r));
+    updateRoom(id, { name: editValue.trim() });
     cancelEdit();
   }
 
@@ -35,12 +32,7 @@ export default function Sidebar({ rooms, onRoomsChange }: SidebarProps) {
 
   function createRoom() {
     if (!newRoomName.trim()) { setNewRoomMode(false); return; }
-    const room: Room = {
-      id: `room-${Date.now()}`,
-      name: newRoomName.trim(),
-      createdAt: new Date().toISOString(),
-    };
-    onRoomsChange([room, ...rooms]);
+    addRoom(newRoomName.trim());
     setNewRoomName("");
     setNewRoomMode(false);
   }
@@ -72,8 +64,15 @@ export default function Sidebar({ rooms, onRoomsChange }: SidebarProps) {
             className="w-full px-2 py-1 text-sm bg-background border border-input rounded outline-none focus:ring-2 focus:ring-ring"
           />
           <div className="flex gap-1 mt-1">
-            <button onClick={createRoom} className="flex-1 py-0.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90">Create</button>
-            <button onClick={() => { setNewRoomMode(false); setNewRoomName(""); }} className="flex-1 py-0.5 text-xs text-muted-foreground border border-border rounded hover:bg-accent">Cancel</button>
+            <button onClick={createRoom} className="flex-1 py-0.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90">
+              Create
+            </button>
+            <button
+              onClick={() => { setNewRoomMode(false); setNewRoomName(""); }}
+              className="flex-1 py-0.5 text-xs text-muted-foreground border border-border rounded hover:bg-accent"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
@@ -87,7 +86,9 @@ export default function Sidebar({ rooms, onRoomsChange }: SidebarProps) {
           return (
             <div
               key={room.id}
-              className={`group flex items-center gap-1 mx-2 mb-0.5 rounded-md ${isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/60"}`}
+              className={`group flex items-center gap-1 mx-2 mb-0.5 rounded-md ${
+                isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/60"
+              }`}
             >
               {editingId === room.id ? (
                 <div className="flex items-center gap-1 flex-1 px-2 py-1.5">
@@ -101,8 +102,12 @@ export default function Sidebar({ rooms, onRoomsChange }: SidebarProps) {
                     }}
                     className="flex-1 text-sm bg-background border border-input rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-ring"
                   />
-                  <button onClick={() => commitEdit(room.id)} className="text-primary p-0.5"><CheckIcon size={13} /></button>
-                  <button onClick={cancelEdit} className="text-muted-foreground p-0.5"><XIcon size={13} /></button>
+                  <button onClick={() => commitEdit(room.id)} className="text-primary p-0.5">
+                    <CheckIcon size={13} />
+                  </button>
+                  <button onClick={cancelEdit} className="text-muted-foreground p-0.5">
+                    <XIcon size={13} />
+                  </button>
                 </div>
               ) : (
                 <>
@@ -115,10 +120,9 @@ export default function Sidebar({ rooms, onRoomsChange }: SidebarProps) {
                     )}
                   </Link>
                   <button
-                    onClick={() => startEdit(room)}
+                    onClick={() => startEdit(room.id, room.name)}
                     className="p-1 mr-1 text-muted-foreground hover:text-foreground opacity-40 group-hover:opacity-100 transition-opacity"
-                    title="Rename room"
-                    aria-label="Rename room"
+                    title="Rename"
                   >
                     <PencilIcon size={12} />
                   </button>
@@ -148,7 +152,9 @@ export default function Sidebar({ rooms, onRoomsChange }: SidebarProps) {
           <LogOutIcon size={14} />
           <span>Sign out</span>
           {user && (
-            <span className="ml-auto text-xs text-muted-foreground truncate max-w-[5rem]">{user.email}</span>
+            <span className="ml-auto text-xs text-muted-foreground truncate max-w-[5rem]">
+              {user.email}
+            </span>
           )}
         </button>
       </div>

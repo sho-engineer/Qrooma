@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useParams } from "wouter";
 import { DUMMY_MESSAGES, DUMMY_CONCLUSIONS, AGENTS } from "../data/dummy";
 import { useSettings } from "../context/SettingsContext";
+import { useRooms } from "../context/RoomsContext";
 import type { Message, RunStatus } from "../types";
 import RoomHeader from "../components/RoomHeader";
 import MessageBubble from "../components/MessageBubble";
@@ -18,6 +19,10 @@ const MODE_LABELS: Record<string, string> = {
 export default function RoomDetailPage() {
   const { id: roomId } = useParams<{ id: string }>();
   const { settings } = useSettings();
+  const { getRoomById } = useRooms();
+
+  const room = getRoomById(roomId);
+  const roomName = room?.name ?? "Room";
 
   const initialMessages = DUMMY_MESSAGES.filter((m) => m.roomId === roomId);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -105,6 +110,7 @@ export default function RoomDetailPage() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <RoomHeader
+        roomName={roomName}
         runStatus={runStatus}
         modeLabel={modeLabel}
         activeModels={activeModels}
@@ -129,7 +135,7 @@ export default function RoomDetailPage() {
         ))}
 
         {runStatus === "running" && <ThinkingIndicator />}
-        {runStatus === "error" && <ErrorState onRetry={rerun} />}
+        {runStatus === "error" && <ErrorState onRerun={rerun} />}
 
         <div ref={bottomRef} />
       </div>
