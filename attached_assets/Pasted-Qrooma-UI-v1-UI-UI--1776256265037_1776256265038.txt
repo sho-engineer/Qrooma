@@ -1,0 +1,244 @@
+Qrooma の UI 基準資料 v1 を共有します。
+今後の UI 調整はこの内容を正本として扱ってください。今回は新機能追加ではなく、UI の最終化と本実装接続しやすい状態への整理を目的にします。
+
+Qrooma — UI基準資料 v1
+
+0. 目的
+
+この文書は、Qrooma の UI / UX に関する正本です。
+Replit 側ではこの文書を基準に UI を整え、Claude 側の本実装ではこの文書に沿って接続します。
+
+役割：
+	•	画面構成の基準
+	•	表記ルールの基準
+	•	UI状態の基準
+	•	Replit が担う範囲の明確化
+	•	本実装接続時に壊してはいけない UX の明確化
+
+1. プロダクト前提
+	•	正式名称: Qrooma
+	•	概要: BYOK（Bring Your Own Key）型の非同期 AI チームルームアプリ
+	•	現状: UI-only MVP（ダミーデータ駆動）
+	•	次フェーズ: Claude 側で Supabase Auth / Supabase DB / Trigger.dev を使う本実装を進める
+	•	送信フロー: メッセージ送信 = 自動で Run 開始
+	•	モード表記: 必ず Structured Debate / Free Talk
+	•	API key: 現状は localStorage 仮実装。最終仕様は encrypted server-side storage（クライアント非公開）
+
+2. 技術スタック
+	•	フロントエンド: React 18 + Vite + TypeScript
+	•	スタイル: Tailwind CSS v4（CSS variables）
+	•	ルーティング: Wouter
+	•	データフェッチ: TanStack Query（配線済み、未使用）
+	•	認証（仮）: localStorage
+	•	設定（仮）: localStorage
+
+3. 画面構成
+	•	/ = Auth
+	•	/rooms = Rooms
+	•	/rooms/:id = Room Detail
+	•	/settings = Settings
+
+4. 画面遷移の基準
+	•	未ログイン時は / に誘導
+	•	ログイン後は /rooms へ遷移
+	•	/rooms からルームを選択すると /rooms/:id
+	•	Settings はサイドバーから遷移
+	•	Auth 画面以外ではサイドバーを常時表示する
+
+5. /rooms と Sidebar の役割
+
+/rooms
+	•	ルーム一覧を俯瞰するページ
+	•	作成済みルームの確認
+	•	新規ルーム作成の起点
+	•	どの部屋に入るかを決める場所
+
+Sidebar
+	•	常時アクセス用の軽量ナビ
+	•	現在の作業中ルームの切り替え
+	•	Settings への遷移
+	•	Sign out 導線
+
+方針:
+	•	/rooms は一覧ページ
+	•	Sidebar は常時ナビ
+
+6. 表記ルール
+
+mode 名称
+
+必ず以下に統一
+	•	Structured Debate
+	•	Free Talk
+
+他の表記は使わない
+	•	Debate
+	•	Collaborate
+	•	Critique
+	•	Structured
+	•	Free
+
+API key 文言
+
+以下の文言に統一
+“currently stored in your browser’s localStorage. This is a placeholder implementation. The final spec uses encrypted server-side storage per account — keys will never be exposed to the client.”
+
+自動保存文言
+
+以下に統一
+“Changes are saved automatically.”
+
+送信ヒント
+
+以下に統一
+“Sending starts a new run automatically.”
+
+7. Run status の基準
+
+UI表示
+	•	Idle
+	•	Running
+	•	Completed
+	•	Error
+
+DB 側の想定値
+	•	queued
+	•	running
+	•	done
+	•	failed
+
+方針:
+	•	Replit 側では UI 表示ラベルとして扱う
+	•	Claude 側の本実装では DB 値に接続する
+	•	UI と DB 値は混同しない
+
+8. Re-run の定義
+
+UI上は Re-run と表示してよいですが、意味は以下で固定します。
+	•	Re-run = 同じ trigger_message_id を起点に、新しい run を作る
+	•	既存 run を上書きしない
+	•	過去 run の履歴は残す
+
+方針:
+	•	Replit 側ではこの意味に沿った見せ方をする
+	•	既存 run を消して再利用する UI は前提にしない
+
+9. Room Detail の基準
+
+必須要素
+	•	ルーム名
+	•	mode 表示
+	•	model 表示
+	•	メッセージタイムライン
+	•	user message 入力欄
+	•	run status 表示
+	•	Re-run 導線
+	•	Conclusion Card
+	•	Empty State
+	•	Error State
+
+タイムライン
+	•	user は右寄せ
+	•	AI は左寄せ
+	•	AI は Side A / B / C が識別できる
+	•	run ごとに区切る
+	•	Run 2 以降は視覚的にまとまりが分かるようにする
+
+結論カード
+	•	初期状態は折りたたみ
+	•	完了後に表示
+	•	内容がないときはプレースホルダ文言を表示
+
+スクロール
+	•	初期表示はトップ固定
+	•	新着メッセージ追加時のみ最下部へ寄せる
+
+10. 状態UIの基準
+
+Empty State
+
+メッセージがない場合は、初回投稿を促す状態を出す
+例:
+	•	Start the discussion
+	•	Post a topic to let your AI team begin
+
+Error State
+	•	Error バッジ
+	•	エラーバナー
+	•	Re-run / Retry 導線
+	•	失敗したことが分かるテキスト
+
+Loading / Running
+	•	Running 状態が分かる視覚表現
+	•	「Agents are thinking…」等の補助文言可
+
+11. Settings の基準
+	•	Save ボタンは不要
+	•	自動保存前提
+	•	API key は password type
+	•	保存済み値は見せない
+	•	provider / model は Side A / B / C ごとに分ける
+	•	Default Mode は Structured Debate / Free Talk の2択
+
+12. 仮実装として許容するもの
+
+以下は UI-only MVP として残してよい
+	•	localStorage 認証
+	•	localStorage 設定保存
+	•	ダミールーム
+	•	ダミーメッセージ
+	•	ダミー Conclusion
+	•	ダミー Re-run
+	•	ダミー Run status 変化
+
+13. 本実装時に差し替わる前提
+
+以下は Claude 側で差し替える前提
+	•	Auth → Supabase Auth
+	•	Rooms / Messages / Runs / RunSteps → Supabase DB
+	•	API key 保存 → encrypted server-side storage
+	•	Re-run → Trigger.dev 経由の実行
+	•	AI 返信 → 実際の OpenAI / Anthropic / Google 呼び出し
+	•	status → DB の queued / running / done / failed と接続
+
+14. Realtime の期待値
+
+MVP時点では以下でよい
+	•	runs 更新の反映を優先
+	•	messages の逐次反映は段階対応でも可
+
+つまり、
+	•	status 変化は見えることを優先
+	•	メッセージの完全リアルタイム化は後追いでもよい
+
+15. Replit が今回やること
+
+この資料を前提に、次を整えてください。
+	1.	表記ゆれの最終解消
+	2.	Room Detail の見やすさ改善
+	3.	run 区切りの見せ方整理
+	4.	Re-run の見せ方整理
+	5.	Empty / Error / Running 状態の見た目整理
+	6.	/rooms と Sidebar の役割に沿ったUI整理
+	7.	本実装に差し替えやすい軽いコンポーネント整理
+
+16. 今回やらないこと
+	•	バックエンド実装
+	•	Supabase 接続
+	•	Trigger.dev 接続
+	•	認証本実装
+	•	新機能追加
+	•	課金
+	•	通知
+	•	添付
+	•	共有
+	•	検索
+
+17. 返してほしいもの
+	1.	この UI 基準資料に対して、現在の UI がどこまで一致しているか
+	2.	修正した点一覧
+	3.	まだ仮実装のまま残る点一覧
+	4.	最新スクリーンショット
+	5.	app URL
+
+この資料を基準に、Qrooma の UI 完成版に近づけてください。
