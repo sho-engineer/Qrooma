@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { renameRoom, deleteRoom } from '@/actions/rooms'
 import { CreateRoomDialog } from './CreateRoomDialog'
+import { useT } from '@/components/LocaleProvider'
 
 interface Room {
   id: string
@@ -36,6 +37,7 @@ function SidebarRoomItem({ room }: { room: Room }) {
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState(room.name)
   const [isPending, startTransition] = useTransition()
+  const t = useT()
 
   function handleRename(e: React.FormEvent) {
     e.preventDefault()
@@ -48,7 +50,7 @@ function SidebarRoomItem({ room }: { room: Room }) {
   function handleDelete(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm(`Delete "${room.name}"?`)) return
+    if (!confirm(t.deleteRoomConfirm(room.name))) return
     startTransition(async () => {
       await deleteRoom(room.id)
     })
@@ -91,19 +93,18 @@ function SidebarRoomItem({ room }: { room: Room }) {
         {room.name}
       </Link>
 
-      {/* Action buttons — only visible on hover */}
       <div className="hidden group-hover:flex items-center pr-1 gap-0.5">
         <button
           onClick={(e) => { e.preventDefault(); setEditing(true) }}
           className="p-1 text-gray-400 hover:text-gray-600 rounded text-xs"
-          title="Rename"
+          title={t.rename}
         >
           ✎
         </button>
         <Link
           href={`/rooms/${room.id}/settings`}
           className="p-1 text-gray-400 hover:text-gray-600 rounded text-xs"
-          title="Settings"
+          title={t.settings}
         >
           ⚙
         </Link>
@@ -111,7 +112,7 @@ function SidebarRoomItem({ room }: { room: Room }) {
           onClick={handleDelete}
           disabled={isPending}
           className="p-1 text-gray-400 hover:text-red-500 rounded text-xs disabled:opacity-50"
-          title="Delete"
+          title={t.deleteLabel}
         >
           ✕
         </button>

@@ -9,6 +9,8 @@ export interface DebateTaskPayload {
   roomId: string
   userId: string
   userMessage: string
+  /** Language detected from the user's first message. Used to lock all AI responses. */
+  discussionLanguage?: string
   settings: {
     side_a_provider: Provider
     side_a_model: string
@@ -17,6 +19,12 @@ export interface DebateTaskPayload {
     side_c_provider: Provider
     side_c_model: string
   }
+}
+
+/** Prepend to every system prompt so all sides respond in the same language. */
+function langInstruction(lang: string): string {
+  if (lang === 'Japanese') return '必ず日本語で回答してください。\n\n'
+  return ''
 }
 
 // Service role client bypasses RLS - intentional for background worker
@@ -97,7 +105,8 @@ export const structuredDebateTask = task({
   id: 'structured-debate',
   maxDuration: 300,
   run: async (payload: DebateTaskPayload) => {
-    const { runId, roomId, userId, userMessage, settings } = payload
+    const { runId, roomId, userId, userMessage, settings, discussionLanguage = 'English' } = payload
+    const lang = langInstruction(discussionLanguage)
     const db = getDb()
 
     logger.log('Starting structured debate', { runId, roomId })
@@ -142,7 +151,7 @@ export const structuredDebateTask = task({
           const content = await callSide(cfg, [
             {
               role: 'system',
-              content: `You are AI Side ${cfg.side.toUpperCase()} in a structured debate. Give a clear, well-reasoned initial position on the user's question. Be direct and concise (150-200 words).`,
+              content: `${lang}You are AI Side ${cfg.side.toUpperCase()} in a structured debate. Give a clear, well-reasoned initial position on the user's question. Be direct and concise (150-200 words).`,
             },
             { role: 'user', content: userMessage },
           ])
@@ -165,7 +174,7 @@ export const structuredDebateTask = task({
           const content = await callSide(cfg, [
             {
               role: 'system',
-              content: `You are AI Side ${cfg.side.toUpperCase()}. Critically evaluate the other sides' positions. Identify weaknesses, assumptions, or gaps. Be specific and concise (100-150 words).`,
+              content: `${lang}You are AI Side ${cfg.side.toUpperCase()}. Critically evaluate the other sides' positions. Identify weaknesses, assumptions, or gaps. Be specific and concise (100-150 words).`,
             },
             {
               role: 'user',
@@ -191,7 +200,7 @@ export const structuredDebateTask = task({
           const content = await callSide(cfg, [
             {
               role: 'system',
-              content: `You are AI Side ${cfg.side.toUpperCase()}. Revise your initial position considering the critiques from other sides. You may maintain, adjust, or significantly change your view. Explain your reasoning (150-200 words).`,
+              content: `${lang}You are AI Side ${cfg.side.toUpperCase()}. Revise your initial position considering the critiques from other sides. You may maintain, adjust, or significantly change your view. Explain your reasoning (150-200 words).`,
             },
             {
               role: 'user',
@@ -225,7 +234,7 @@ ${JUDGE_SCHEMA}`
       const judgeRaw = await callSide(judgeConfig, [
         {
           role: 'system',
-          content: 'You are a neutral judge synthesizing a debate. Respond only with valid JSON.',
+          content: `${lang}You are a neutral judge synthesizing a debate. Respond only with valid JSON.`,
         },
         { role: 'user', content: judgePrompt },
       ])

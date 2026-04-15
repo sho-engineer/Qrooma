@@ -1,18 +1,23 @@
+import { getT } from '@/lib/i18n'
 import type { Database } from '@/types/database'
+import type { Locale } from '@/lib/i18n'
 
 type Message = Database['public']['Tables']['messages']['Row']
 
-const SIDE_COLORS: Record<string, { bg: string; text: string; badge: string; label: string }> = {
-  a: { bg: 'bg-blue-50', text: 'text-blue-900', badge: 'bg-blue-100 text-blue-700', label: 'Side A' },
-  b: { bg: 'bg-emerald-50', text: 'text-emerald-900', badge: 'bg-emerald-100 text-emerald-700', label: 'Side B' },
-  c: { bg: 'bg-orange-50', text: 'text-orange-900', badge: 'bg-orange-100 text-orange-700', label: 'Side C' },
-}
-
 interface Props {
   message: Message
+  locale: Locale
 }
 
-export function MessageBubble({ message }: Props) {
+export function MessageBubble({ message, locale }: Props) {
+  const t = getT(locale)
+
+  const SIDE_COLORS: Record<string, { bg: string; text: string; badge: string; label: string }> = {
+    a: { bg: 'bg-blue-50',    text: 'text-blue-900',    badge: 'bg-blue-100 text-blue-700',    label: t.sideA },
+    b: { bg: 'bg-emerald-50', text: 'text-emerald-900', badge: 'bg-emerald-100 text-emerald-700', label: t.sideB },
+    c: { bg: 'bg-orange-50',  text: 'text-orange-900',  badge: 'bg-orange-100 text-orange-700',  label: t.sideC },
+  }
+
   // User message — right aligned
   if (message.role === 'user') {
     return (
@@ -26,7 +31,7 @@ export function MessageBubble({ message }: Props) {
     )
   }
 
-  // Judge message — handled separately (ConclusionCard), skip here
+  // Judge message — handled by ConclusionCard
   if (message.side === 'judge') return null
 
   // AI message — left aligned with side badge
