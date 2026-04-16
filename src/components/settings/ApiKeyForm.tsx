@@ -2,7 +2,14 @@
 
 import { useState, useTransition } from 'react'
 import { saveApiKey, deleteApiKey } from '@/actions/apiKeys'
+import { useT } from '@/components/LocaleProvider'
 import type { Provider } from '@/types/database'
+
+const GET_KEY_URLS: Record<Provider, string> = {
+  openai: 'https://platform.openai.com/api-keys',
+  anthropic: 'https://console.anthropic.com/settings/keys',
+  google: 'https://aistudio.google.com/app/apikey',
+}
 
 interface Props {
   provider: Provider
@@ -12,6 +19,7 @@ interface Props {
 }
 
 export function ApiKeyForm({ provider, label, placeholder, saved: initialSaved }: Props) {
+  const t = useT()
   const [saved, setSaved] = useState(initialSaved)
   const [showInput, setShowInput] = useState(!initialSaved)
   const [value, setValue] = useState('')
@@ -53,19 +61,33 @@ export function ApiKeyForm({ provider, label, placeholder, saved: initialSaved }
           <span className="text-sm font-medium text-gray-800">{label}</span>
           {saved && (
             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-              Saved
+              {t.saved}
             </span>
           )}
         </div>
-        {saved && (
-          <button
-            onClick={handleDelete}
-            disabled={isPending}
-            className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
+        <div className="flex items-center gap-3">
+          {/* Get API key link */}
+          <a
+            href={GET_KEY_URLS[provider]}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1"
           >
-            Remove
-          </button>
-        )}
+            {t.getApiKey}
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+            </svg>
+          </a>
+          {saved && (
+            <button
+              onClick={handleDelete}
+              disabled={isPending}
+              className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
+            >
+              Remove
+            </button>
+          )}
+        </div>
       </div>
 
       {saved && !showInput ? (
@@ -95,7 +117,7 @@ export function ApiKeyForm({ provider, label, placeholder, saved: initialSaved }
               disabled={isPending || !value.trim()}
               className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
-              {isPending ? 'Saving...' : 'Save key'}
+              {isPending ? t.saving : 'Save key'}
             </button>
             {saved && (
               <button
@@ -103,7 +125,7 @@ export function ApiKeyForm({ provider, label, placeholder, saved: initialSaved }
                 onClick={() => { setShowInput(false); setError(null); setValue('') }}
                 className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700"
               >
-                Cancel
+                {t.cancel}
               </button>
             )}
           </div>

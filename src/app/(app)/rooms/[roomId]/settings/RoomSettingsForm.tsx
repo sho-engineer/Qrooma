@@ -2,6 +2,8 @@
 
 import { DefaultModeSelector } from '@/components/settings/DefaultModeSelector'
 import { ModelSelector } from '@/components/settings/ModelSelector'
+import { AgentCountSelector } from '@/components/settings/AgentCountSelector'
+import { AutoRunToggleClient } from './AutoRunToggleClient'
 import { updateRoomSettings } from '@/actions/rooms'
 import type { Database, Mode } from '@/types/database'
 
@@ -13,8 +15,14 @@ interface Props {
 }
 
 export function RoomSettingsForm({ roomId, settings }: Props) {
+  const activeAgentCount = (settings.active_agent_count ?? 3) as 2 | 3
+
   async function handleModeSave(mode: Mode) {
     return updateRoomSettings(roomId, { mode })
+  }
+
+  async function handleAgentCountSave(count: 2 | 3) {
+    return updateRoomSettings(roomId, { active_agent_count: count })
   }
 
   async function handleModelSave(
@@ -30,6 +38,10 @@ export function RoomSettingsForm({ roomId, settings }: Props) {
       </section>
 
       <section>
+        <AgentCountSelector initial={activeAgentCount} onSave={handleAgentCountSave} />
+      </section>
+
+      <section>
         <ModelSelector
           roomId={roomId}
           initial={{
@@ -37,30 +49,14 @@ export function RoomSettingsForm({ roomId, settings }: Props) {
             side_b: { provider: settings.side_b_provider, model: settings.side_b_model },
             side_c: { provider: settings.side_c_provider, model: settings.side_c_model },
           }}
+          activeAgentCount={activeAgentCount}
           onSave={handleModelSave}
         />
       </section>
 
-      {/* Auto-run toggle */}
       <section>
-        <AutoRunToggle roomId={roomId} initial={settings.auto_run_on_user_message} />
+        <AutoRunToggleClient roomId={roomId} initial={settings.auto_run_on_user_message} />
       </section>
     </div>
   )
 }
-
-function AutoRunToggle({
-  roomId,
-  initial,
-}: {
-  roomId: string
-  initial: boolean
-}) {
-  // Handled inline as simple controlled toggle
-  return (
-    <AutoRunToggleClient roomId={roomId} initial={initial} />
-  )
-}
-
-// Extracted to avoid mixing client/server in same file
-import { AutoRunToggleClient } from './AutoRunToggleClient'

@@ -5,6 +5,7 @@ import { getLocale } from '@/actions/locale'
 import { getT } from '@/lib/i18n'
 import { LocaleProvider } from '@/components/LocaleProvider'
 import { SidebarRoomList } from '@/components/rooms/SidebarRoomList'
+import { OnboardingModal } from '@/components/OnboardingModal'
 
 export default async function AppLayout({
   children,
@@ -28,6 +29,7 @@ export default async function AppLayout({
   ])
 
   const t = getT(locale)
+  const showOnboarding = user.user_metadata?.onboarding_seen === false
 
   return (
     <LocaleProvider locale={locale}>
@@ -78,6 +80,9 @@ export default async function AppLayout({
         {/* Main */}
         <main className="flex-1 overflow-hidden">{children}</main>
       </div>
+
+      {/* Onboarding modal — shown once on first login/signup */}
+      {showOnboarding && <OnboardingModal />}
     </LocaleProvider>
   )
 }

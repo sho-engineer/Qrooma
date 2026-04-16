@@ -11,6 +11,7 @@ import { DEFAULT_MODELS } from '@/lib/ai/types'
 
 export interface UserDefaults {
   mode: Mode
+  active_agent_count: 2 | 3
   side_a_provider: Provider
   side_a_model: string
   side_b_provider: Provider
@@ -21,6 +22,7 @@ export interface UserDefaults {
 
 const FACTORY_DEFAULTS: UserDefaults = {
   mode: 'structured_debate',
+  active_agent_count: 3,
   side_a_provider: 'openai',
   side_a_model: DEFAULT_MODELS.openai,
   side_b_provider: 'anthropic',

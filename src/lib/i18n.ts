@@ -74,6 +74,44 @@ export interface Translations {
   saving: string
   saved: string
   saveFailed: string
+
+  // Onboarding modal
+  onboardingTitle: string
+  onboardingWelcome: string
+  onboardingBody: string
+  onboardingNote: string
+  onboardingCta: string
+  onboardingLater: string
+
+  // API key info card (Settings)
+  apiKeyInfoTitle: string
+  apiKeyInfoBYOK: string
+  apiKeyInfoRequired: string
+  apiKeyInfo3Providers: string
+  apiKeyInfoFailed: string
+  apiKeyInfoEncrypted: string
+
+  // Agent count selector
+  agentCount: string
+  agent2: string
+  agent3: string
+  agent2Desc: string
+  agent3Desc: string
+  sideDisabled: string
+
+  // Model selector
+  aiSides: string
+  providerLabel: string
+  modelLabel: string
+  duplicateModel: string
+
+  // Default mode
+  defaultMode: string
+  structuredDebateDesc: string
+  freeTalkDesc: string
+
+  // API key links
+  getApiKey: string
 }
 
 export const translations: Record<Locale, Translations> = {
@@ -151,6 +189,44 @@ export const translations: Record<Locale, Translations> = {
     saving: '保存中...',
     saved: '保存済み',
     saveFailed: '保存失敗',
+
+    // Onboarding modal
+    onboardingTitle: 'Qrooma へようこそ',
+    onboardingWelcome: 'AIチームルームへようこそ。まず最初に、AIを動かすためのAPIキーを設定してください。',
+    onboardingBody: 'Qrooma は BYOK（Bring Your Own Key）方式です。利用するAIプロバイダーの APIキーをご自身でご用意ください。利用料金は各プロバイダーの契約に基づいて、あなた自身の APIキー経由で発生します。',
+    onboardingNote: 'APIキーはサーバーサイドで AES-256-GCM 暗号化して保存されます。クライアントに生値は返されません。',
+    onboardingCta: 'APIキーを設定する',
+    onboardingLater: 'あとで設定する',
+
+    // API key info card (Settings)
+    apiKeyInfoTitle: 'APIキーについて',
+    apiKeyInfoBYOK: 'Qrooma は BYOK（Bring Your Own Key）方式です',
+    apiKeyInfoRequired: '議論を実行するには APIキーの設定が必要です',
+    apiKeyInfo3Providers: 'Structured Debate では 3つの AIサイドに異なるプロバイダーを設定できます',
+    apiKeyInfoFailed: '未設定または無効なキーがあると、議論が失敗します',
+    apiKeyInfoEncrypted: 'APIキーは AES-256-GCM で暗号化されサーバーにのみ保存されます',
+
+    // Agent count selector
+    agentCount: '参加エージェント数',
+    agent2: '2エージェント (Side A・B)',
+    agent3: '3エージェント (Side A・B・C)',
+    agent2Desc: 'Side A と Side B のみ参加します',
+    agent3Desc: 'Side A・B・C の3サイドが参加します',
+    sideDisabled: 'このサイドは無効です（2エージェント設定）',
+
+    // Model selector
+    aiSides: 'AI サイド',
+    providerLabel: 'プロバイダー',
+    modelLabel: 'モデル',
+    duplicateModel: '同じモデルは複数の枠に設定できません',
+
+    // Default mode
+    defaultMode: 'デフォルトモード',
+    structuredDebateDesc: '初期意見 → 批評 → 改訂 → ジャッジ結論',
+    freeTalkDesc: 'AIが自由に議論します。最大3ラウンド。',
+
+    // API key links
+    getApiKey: 'APIキーを取得',
   },
 
   en: {
@@ -227,6 +303,44 @@ export const translations: Record<Locale, Translations> = {
     saving: 'Saving...',
     saved: 'Saved',
     saveFailed: 'Save failed',
+
+    // Onboarding modal
+    onboardingTitle: 'Welcome to Qrooma',
+    onboardingWelcome: 'Welcome to your AI team room. To get started, add your AI provider API keys.',
+    onboardingBody: 'Qrooma is BYOK (Bring Your Own Key). Add API keys for the AI providers you want to use. Usage costs are charged directly to your own keys under each provider\'s pricing.',
+    onboardingNote: 'Your API keys are encrypted with AES-256-GCM and stored server-side only. The raw key is never returned to the client.',
+    onboardingCta: 'Set up API keys',
+    onboardingLater: 'Set up later',
+
+    // API key info card (Settings)
+    apiKeyInfoTitle: 'About API Keys',
+    apiKeyInfoBYOK: 'Qrooma is BYOK (Bring Your Own Key)',
+    apiKeyInfoRequired: 'API keys are required to run AI discussions',
+    apiKeyInfo3Providers: 'Structured Debate supports different providers for each of the 3 AI sides',
+    apiKeyInfoFailed: 'Missing or invalid keys will cause discussions to fail',
+    apiKeyInfoEncrypted: 'Keys are encrypted with AES-256-GCM and stored server-side only',
+
+    // Agent count selector
+    agentCount: 'Number of agents',
+    agent2: '2 agents (Side A & B)',
+    agent3: '3 agents (Side A, B & C)',
+    agent2Desc: 'Only Side A and Side B participate',
+    agent3Desc: 'All three sides A, B & C participate',
+    sideDisabled: 'This side is disabled (2-agent mode)',
+
+    // Model selector
+    aiSides: 'AI Sides',
+    providerLabel: 'Provider',
+    modelLabel: 'Model',
+    duplicateModel: 'The same model cannot be assigned to multiple sides',
+
+    // Default mode
+    defaultMode: 'Default Mode',
+    structuredDebateDesc: 'Initial opinions → Critiques → Revisions → Judge conclusion',
+    freeTalkDesc: 'AIs take turns discussing freely. Up to 3 rounds.',
+
+    // API key links
+    getApiKey: 'Get API key',
   },
 }
 
