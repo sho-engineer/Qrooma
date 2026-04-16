@@ -10,15 +10,18 @@ export default function AgentAvatar({ agentId, size = "md" }: Props) {
   const agent = AGENTS.find((a) => a.id === agentId);
   if (!agent) return null;
 
-  const dim = size === "sm" ? "w-5 h-5 text-[10px]" : "w-7 h-7 text-xs";
+  const dim = size === "sm" ? "w-4 h-4" : "w-6 h-6";
+  const dotDim = size === "sm" ? "w-1.5 h-1.5" : "w-2 h-2";
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full font-semibold text-white shrink-0 ${dim}`}
-      style={{ backgroundColor: agent.color }}
+      className={`inline-flex items-center justify-center rounded-full bg-card border border-border shrink-0 ${dim}`}
       title={agent.name}
     >
-      {agent.initial}
+      <span
+        className={`rounded-full ${dotDim}`}
+        style={{ backgroundColor: agent.color }}
+      />
     </span>
   );
 }

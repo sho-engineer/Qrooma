@@ -1,15 +1,7 @@
 import { Link } from "wouter";
 import { useLocale, type Locale } from "../context/LocaleContext";
 import { useAuth } from "../context/AuthContext";
-import {
-  MessageSquareIcon,
-  LayersIcon,
-  BrainIcon,
-  KeyIcon,
-  CheckIcon,
-  ArrowRightIcon,
-  ZapIcon,
-} from "lucide-react";
+import { ArrowRightIcon, CheckIcon } from "lucide-react";
 
 function LocaleToggle() {
   const { locale, setLocale } = useLocale();
@@ -19,10 +11,10 @@ function LocaleToggle() {
         <button
           key={l}
           onClick={() => setLocale(l)}
-          className={`px-2.5 py-1 text-xs rounded-md border transition-all ${
+          className={`px-2.5 py-1 text-xs rounded-lg border transition-all ${
             locale === l
-              ? "bg-primary text-primary-foreground border-primary"
-              : "text-muted-foreground border-border hover:bg-accent/60"
+              ? "bg-foreground text-background border-foreground"
+              : "text-muted-foreground border-border hover:bg-accent"
           }`}
         >
           {l === "ja" ? "日本語" : "EN"}
@@ -38,17 +30,14 @@ export default function LandingPage() {
 
   const cards = [
     {
-      icon: <BrainIcon size={18} className="text-primary" />,
       title: t.landingCard1Title,
       body: t.landingCard1Body,
     },
     {
-      icon: <LayersIcon size={18} className="text-primary" />,
       title: t.landingCard2Title,
       body: t.landingCard2Body,
     },
     {
-      icon: <MessageSquareIcon size={18} className="text-primary" />,
       title: t.landingCard3Title,
       body: t.landingCard3Body,
     },
@@ -66,15 +55,15 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
 
-      {/* ── Nav ── */}
-      <header className="sticky top-0 z-30 bg-card/90 backdrop-blur border-b border-border">
-        <div className="max-w-4xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
+      {/* Nav */}
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur border-b border-border/60">
+        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
           <span className="text-sm font-semibold tracking-tight text-foreground">Qrooma</span>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
             <LocaleToggle />
             {user ? (
               <Link href="/rooms">
-                <button className="whitespace-nowrap px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity">
+                <button className="whitespace-nowrap px-3.5 py-1.5 text-sm font-medium bg-foreground text-background rounded-xl hover:opacity-80 transition-opacity">
                   {t.landingGoToApp}
                 </button>
               </Link>
@@ -86,7 +75,7 @@ export default function LandingPage() {
                   </button>
                 </Link>
                 <Link href="/signup">
-                  <button className="whitespace-nowrap px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity">
+                  <button className="whitespace-nowrap px-3.5 py-1.5 text-sm font-medium bg-foreground text-background rounded-xl hover:opacity-80 transition-opacity">
                     {t.landingGetStarted}
                   </button>
                 </Link>
@@ -96,22 +85,21 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* ── Hero ── */}
-      <section className="max-w-4xl mx-auto px-5 pt-20 pb-20 text-center">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-8 rounded-full bg-primary/8 border border-primary/20 text-xs font-medium text-primary">
-          <ZapIcon size={11} />
+      {/* Hero */}
+      <section className="max-w-5xl mx-auto px-6 pt-28 pb-28 text-center">
+        <p className="text-xs font-medium text-muted-foreground tracking-widest uppercase mb-8">
           ChatGPT · Claude · Gemini
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground leading-tight whitespace-pre-line mb-6">
+        </p>
+        <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-foreground leading-[1.1] whitespace-pre-line mb-7">
           {t.landingHero}
         </h1>
-        <p className="max-w-xl mx-auto text-base text-muted-foreground leading-relaxed mb-10">
+        <p className="max-w-lg mx-auto text-lg text-muted-foreground leading-relaxed mb-12">
           {t.landingSubcopy}
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
           {user ? (
             <Link href="/rooms">
-              <button className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity shadow-sm">
+              <button className="inline-flex items-center gap-2 px-7 py-3 text-sm font-medium bg-foreground text-background rounded-2xl hover:opacity-80 transition-opacity">
                 {t.landingGoToApp}
                 <ArrowRightIcon size={14} />
               </button>
@@ -119,13 +107,13 @@ export default function LandingPage() {
           ) : (
             <>
               <Link href="/signup">
-                <button className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity shadow-sm">
+                <button className="inline-flex items-center gap-2 px-7 py-3 text-sm font-medium bg-foreground text-background rounded-2xl hover:opacity-80 transition-opacity">
                   {t.landingGetStarted}
                   <ArrowRightIcon size={14} />
                 </button>
               </Link>
               <Link href="/login">
-                <button className="px-6 py-2.5 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-accent/40 transition-colors">
+                <button className="px-7 py-3 text-sm font-medium text-foreground bg-card border border-border rounded-2xl hover:bg-accent transition-colors">
                   {t.loginBtn}
                 </button>
               </Link>
@@ -134,18 +122,15 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Appeal cards ── */}
-      <section className="max-w-4xl mx-auto px-5 pb-20">
+      {/* Appeal cards */}
+      <section className="max-w-5xl mx-auto px-6 pb-28">
         <div className="grid sm:grid-cols-3 gap-4">
           {cards.map((card, i) => (
             <div
               key={i}
-              className="bg-card border border-border rounded-xl p-6 shadow-xs hover:shadow-sm transition-shadow"
+              className="bg-card border border-border rounded-2xl p-7"
             >
-              <div className="w-8 h-8 rounded-lg bg-primary/8 flex items-center justify-center mb-4">
-                {card.icon}
-              </div>
-              <p className="text-sm font-semibold text-foreground leading-snug mb-2">
+              <p className="text-sm font-semibold text-foreground leading-snug mb-3">
                 {card.title}
               </p>
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -156,23 +141,22 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── How it works ── */}
+      {/* How it works */}
       <section className="border-t border-border bg-card">
-        <div className="max-w-4xl mx-auto px-5 py-20">
-          <h2 className="text-xl font-semibold text-foreground text-center mb-12">
+        <div className="max-w-5xl mx-auto px-6 py-24">
+          <h2 className="text-2xl font-semibold text-foreground text-center mb-14">
             {t.landingHowTitle}
           </h2>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-start gap-8 sm:gap-0">
             {steps.map((step, i) => (
-              <div key={i} className="flex sm:flex-col items-center sm:items-center gap-4 sm:gap-3 flex-1 relative">
-                {/* Connector line (desktop) */}
+              <div key={i} className="flex sm:flex-col items-start sm:items-center gap-4 sm:gap-4 flex-1 relative">
                 {i < steps.length - 1 && (
-                  <div className="hidden sm:block absolute left-1/2 top-5 w-full h-px bg-border" />
+                  <div className="hidden sm:block absolute left-1/2 top-4 w-full h-px bg-border" />
                 )}
-                <div className="relative z-10 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold shrink-0">
+                <div className="relative z-10 w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center text-xs font-semibold text-muted-foreground shrink-0">
                   {i + 1}
                 </div>
-                <p className="sm:text-center text-sm text-foreground font-medium">
+                <p className="sm:text-center text-sm text-foreground leading-relaxed">
                   {step}
                 </p>
               </div>
@@ -181,47 +165,40 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Modes ── */}
-      <section className="max-w-4xl mx-auto px-5 py-20">
-        <h2 className="text-xl font-semibold text-foreground text-center mb-10">
+      {/* Modes */}
+      <section className="max-w-5xl mx-auto px-6 py-24">
+        <h2 className="text-2xl font-semibold text-foreground text-center mb-12">
           {t.landingModesTitle}
         </h2>
         <div className="grid sm:grid-cols-2 gap-4">
-          <div className="bg-card border border-border rounded-xl p-6 shadow-xs">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                {t.structuredDebate}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">{t.debateDesc}</p>
+          <div className="bg-card border border-border rounded-2xl p-7">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
+              {t.structuredDebate}
+            </p>
+            <p className="text-sm text-foreground leading-relaxed">{t.debateDesc}</p>
           </div>
-          <div className="bg-card border border-border rounded-xl p-6 shadow-xs">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-violet-50 text-violet-700 border border-violet-200">
-                {t.freeTalk}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">{t.freeTalkDesc}</p>
+          <div className="bg-card border border-border rounded-2xl p-7">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
+              {t.freeTalk}
+            </p>
+            <p className="text-sm text-foreground leading-relaxed">{t.freeTalkDesc}</p>
           </div>
         </div>
       </section>
 
-      {/* ── BYOK ── */}
+      {/* BYOK */}
       <section className="border-t border-border bg-card">
-        <div className="max-w-4xl mx-auto px-5 py-20">
+        <div className="max-w-5xl mx-auto px-6 py-24">
           <div className="max-w-xl mx-auto">
-            <div className="flex items-center gap-2.5 mb-2">
-              <KeyIcon size={16} className="text-primary" />
-              <h2 className="text-xl font-semibold text-foreground">{t.landingByokTitle}</h2>
-            </div>
-            <p className="text-sm text-muted-foreground mb-6">{t.landingByokLead}</p>
-            <ul className="space-y-3">
+            <h2 className="text-2xl font-semibold text-foreground mb-3">{t.landingByokTitle}</h2>
+            <p className="text-sm text-muted-foreground mb-8 leading-relaxed">{t.landingByokLead}</p>
+            <ul className="space-y-4">
               {byokItems.map((item, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <div className="mt-0.5 w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <CheckIcon size={10} className="text-primary" />
+                <li key={i} className="flex items-start gap-3.5">
+                  <div className="mt-0.5 w-4 h-4 rounded-full bg-muted border border-border flex items-center justify-center shrink-0">
+                    <CheckIcon size={9} className="text-muted-foreground" />
                   </div>
-                  <span className="text-sm text-foreground">{item}</span>
+                  <span className="text-sm text-foreground leading-relaxed">{item}</span>
                 </li>
               ))}
             </ul>
@@ -229,14 +206,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Footer CTA ── */}
+      {/* Footer CTA */}
       <section className="border-t border-border">
-        <div className="max-w-4xl mx-auto px-5 py-20 text-center">
-          <h2 className="text-2xl font-bold text-foreground mb-6">{t.landingFooterCta}</h2>
+        <div className="max-w-5xl mx-auto px-6 py-28 text-center">
+          <h2 className="text-3xl font-bold text-foreground mb-8 tracking-tight">{t.landingFooterCta}</h2>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             {user ? (
               <Link href="/rooms">
-                <button className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity shadow-sm">
+                <button className="inline-flex items-center gap-2 px-7 py-3 text-sm font-medium bg-foreground text-background rounded-2xl hover:opacity-80 transition-opacity">
                   {t.landingGoToApp}
                   <ArrowRightIcon size={14} />
                 </button>
@@ -244,13 +221,13 @@ export default function LandingPage() {
             ) : (
               <>
                 <Link href="/signup">
-                  <button className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity shadow-sm">
+                  <button className="inline-flex items-center gap-2 px-7 py-3 text-sm font-medium bg-foreground text-background rounded-2xl hover:opacity-80 transition-opacity">
                     {t.landingGetStarted}
                     <ArrowRightIcon size={14} />
                   </button>
                 </Link>
                 <Link href="/login">
-                  <button className="px-6 py-2.5 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-accent/40 transition-colors">
+                  <button className="px-7 py-3 text-sm font-medium text-foreground bg-card border border-border rounded-2xl hover:bg-accent transition-colors">
                     {t.loginBtn}
                   </button>
                 </Link>
@@ -260,9 +237,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Footer ── */}
+      {/* Footer */}
       <footer className="border-t border-border bg-card">
-        <div className="max-w-4xl mx-auto px-5 h-12 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="max-w-5xl mx-auto px-6 h-12 flex items-center justify-between text-xs text-muted-foreground/50">
           <span>© 2025 Qrooma</span>
           <span>BYOK · Async AI Team Room</span>
         </div>

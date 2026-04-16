@@ -6,16 +6,16 @@ export default function EmptyState() {
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 py-16 text-center px-6">
-      <div className="flex items-center gap-2 mb-6">
-        {AGENTS.map((agent, i) => (
-          <div key={agent.id} className="flex flex-col items-center gap-1.5">
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm"
-              style={{ backgroundColor: agent.color, animationDelay: `${i * 150}ms` }}
-            >
-              {agent.initial}
-            </div>
-            <span className="text-[10px] text-muted-foreground">{agent.name}</span>
+      <div className="flex items-center gap-3 mb-8">
+        {AGENTS.map((agent) => (
+          <div
+            key={agent.id}
+            className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center"
+          >
+            <span
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ backgroundColor: agent.color }}
+            />
           </div>
         ))}
       </div>

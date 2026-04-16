@@ -40,15 +40,14 @@ export default function RoomHeader({
   const modelLine = activeModels.map(shorten).join(" · ");
 
   return (
-    <div className="shrink-0 border-b border-border bg-card">
-      {/* Row 1: room name + re-run */}
-      <div className="flex items-center justify-between px-3 sm:px-4 pt-3 pb-1">
-        <h1 className="text-sm font-semibold text-foreground truncate">{roomName}</h1>
+    <div className="shrink-0 border-b border-border bg-card/80 backdrop-blur-sm">
+      <div className="flex items-center justify-between px-4 sm:px-5 pt-3.5 pb-1.5">
+        <h1 className="text-sm font-semibold text-foreground tracking-[-0.01em] truncate">{roomName}</h1>
         {hasMessages && (
           <button
             onClick={onRerun}
             disabled={runStatus === "running"}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border border-border rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-40 shrink-0 ml-3"
+            className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium border border-border rounded-lg text-muted-foreground hover:bg-accent transition-colors disabled:opacity-40 shrink-0 ml-3"
             title={t.rerun}
           >
             <RotateCcwIcon size={11} />
@@ -57,16 +56,15 @@ export default function RoomHeader({
         )}
       </div>
 
-      {/* Row 2: status + mode + models */}
-      <div className="flex items-center gap-1.5 px-3 sm:px-4 pb-2 flex-wrap">
+      <div className="flex items-center gap-1.5 px-4 sm:px-5 pb-3 flex-wrap">
         <RunStatusBadge status={runStatus} />
-        <span className="text-muted-foreground/40 text-xs">·</span>
+        <span className="text-border text-xs">·</span>
         <ModeBadge label={modeLabel} />
         {modelLine && (
           <>
-            <span className="text-muted-foreground/40 text-xs hidden sm:block">·</span>
+            <span className="text-border text-xs hidden sm:block">·</span>
             <span
-              className="text-xs text-muted-foreground/70 hidden sm:block truncate max-w-sm"
+              className="text-[11px] text-muted-foreground/60 hidden sm:block truncate max-w-sm"
               title={modelLine}
             >
               {modelLine}
@@ -80,16 +78,35 @@ export default function RoomHeader({
 
 function RunStatusBadge({ status }: { status: RunStatus }) {
   const { t } = useLocale();
-  const config: Record<RunStatus, { label: string; dot: string; text: string; bg: string }> = {
-    idle:      { label: t.statusIdle,      dot: "bg-muted-foreground/40", text: "text-muted-foreground", bg: "bg-muted/60" },
-    running:   { label: t.statusRunning,   dot: "bg-yellow-500 animate-pulse", text: "text-yellow-700 dark:text-yellow-400", bg: "bg-yellow-50 dark:bg-yellow-900/30" },
-    completed: { label: t.statusCompleted, dot: "bg-green-500", text: "text-green-700 dark:text-green-400", bg: "bg-green-50 dark:bg-green-900/30" },
-    error:     { label: t.statusError,     dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
+
+  const config: Record<RunStatus, { label: string; dotClass: string; pill: string }> = {
+    idle: {
+      label: t.statusIdle,
+      dotClass: "bg-muted-foreground/30",
+      pill: "bg-muted text-muted-foreground",
+    },
+    running: {
+      label: t.statusRunning,
+      dotClass: "bg-amber-400 animate-pulse",
+      pill: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400",
+    },
+    completed: {
+      label: t.statusCompleted,
+      dotClass: "bg-muted-foreground/40",
+      pill: "bg-muted text-muted-foreground",
+    },
+    error: {
+      label: t.statusError,
+      dotClass: "bg-destructive/60",
+      pill: "bg-muted text-destructive/80",
+    },
   };
-  const { label, dot, text, bg } = config[status];
+
+  const { label, dotClass, pill } = config[status];
+
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${bg} ${text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${pill}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
       {label}
     </span>
   );
@@ -99,10 +116,10 @@ function ModeBadge({ label }: { label: string }) {
   const { t } = useLocale();
   const isDebate = label === t.structuredDebate;
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
       isDebate
-        ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-        : "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
+        ? "bg-primary/8 text-primary"
+        : "bg-muted text-muted-foreground"
     }`}>
       {label}
     </span>
