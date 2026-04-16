@@ -77,6 +77,7 @@ export interface Translations {
 
   // Onboarding modal
   onboardingTitle: string
+  onboardingWelcome: string
   onboardingBody: string
   onboardingNote: string
   onboardingCta: string
@@ -190,11 +191,12 @@ export const translations: Record<Locale, Translations> = {
     saveFailed: '保存失敗',
 
     // Onboarding modal
-    onboardingTitle: 'APIキーの設定が必要です',
-    onboardingBody: 'Qrooma は BYOK（Bring Your Own Key）方式です。議論を実行するには、利用するAIプロバイダーの APIキー設定が必要です。利用料金は各プロバイダーの契約に基づいて、あなた自身の APIキー経由で発生します。',
+    onboardingTitle: 'Qrooma へようこそ',
+    onboardingWelcome: 'AIチームルームへようこそ。まず最初に、AIを動かすためのAPIキーを設定してください。',
+    onboardingBody: 'Qrooma は BYOK（Bring Your Own Key）方式です。利用するAIプロバイダーの APIキーをご自身でご用意ください。利用料金は各プロバイダーの契約に基づいて、あなた自身の APIキー経由で発生します。',
     onboardingNote: 'APIキーはサーバーサイドで AES-256-GCM 暗号化して保存されます。クライアントに生値は返されません。',
     onboardingCta: 'APIキーを設定する',
-    onboardingLater: 'あとで見る',
+    onboardingLater: 'あとで設定する',
 
     // API key info card (Settings)
     apiKeyInfoTitle: 'APIキーについて',
@@ -303,11 +305,12 @@ export const translations: Record<Locale, Translations> = {
     saveFailed: 'Save failed',
 
     // Onboarding modal
-    onboardingTitle: 'API Key Setup Required',
-    onboardingBody: 'Qrooma is BYOK (Bring Your Own Key). To run AI discussions, you need to add API keys for the AI providers you want to use. Usage costs are charged directly to your own API keys under each provider\'s pricing.',
+    onboardingTitle: 'Welcome to Qrooma',
+    onboardingWelcome: 'Welcome to your AI team room. To get started, add your AI provider API keys.',
+    onboardingBody: 'Qrooma is BYOK (Bring Your Own Key). Add API keys for the AI providers you want to use. Usage costs are charged directly to your own keys under each provider\'s pricing.',
     onboardingNote: 'Your API keys are encrypted with AES-256-GCM and stored server-side only. The raw key is never returned to the client.',
     onboardingCta: 'Set up API keys',
-    onboardingLater: 'Maybe later',
+    onboardingLater: 'Set up later',
 
     // API key info card (Settings)
     apiKeyInfoTitle: 'About API Keys',
