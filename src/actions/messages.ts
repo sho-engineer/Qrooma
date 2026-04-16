@@ -5,6 +5,16 @@ import { tasks } from '@trigger.dev/sdk/v3'
 import { revalidatePath } from 'next/cache'
 import type { Provider } from '@/types/database'
 
+/**
+ * Detect the primary language of a message for run-level language locking.
+ * Returns a natural language name used in AI system prompts.
+ */
+function detectDiscussionLanguage(text: string): string {
+  // Japanese: hiragana, katakana, CJK unified ideographs
+  if (/[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]/.test(text)) return 'Japanese'
+  return 'English'
+}
+
 export async function sendMessage(
   roomId: string,
   content: string
@@ -73,6 +83,8 @@ export async function sendMessage(
     roomId,
     userId: user.id,
     userMessage: trimmed,
+    discussionLanguage: detectDiscussionLanguage(trimmed),
+    activeAgentCount: (settings.active_agent_count ?? 3) as 2 | 3,
     settings: {
       side_a_provider: settings.side_a_provider as Provider,
       side_a_model: settings.side_a_model,
@@ -166,6 +178,8 @@ export async function retryRun(runId: string): Promise<{ error?: string }> {
     roomId: run.room_id,
     userId: user.id,
     userMessage: triggerMsg.content,
+    discussionLanguage: detectDiscussionLanguage(triggerMsg.content),
+    activeAgentCount: (settings.active_agent_count ?? 3) as 2 | 3,
     settings: {
       side_a_provider: settings.side_a_provider as Provider,
       side_a_model: settings.side_a_model,

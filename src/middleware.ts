@@ -47,17 +47,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (!user && pathname === '/') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
-
+  // Authenticated users visiting / → send to app
   if (user && pathname === '/') {
     const url = request.nextUrl.clone()
     url.pathname = '/rooms'
     return NextResponse.redirect(url)
   }
+
+  // Unauthenticated users visiting / → show landing page (no redirect)
 
   return supabaseResponse
 }

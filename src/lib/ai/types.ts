@@ -23,13 +23,13 @@ export interface ConclusionCard {
 }
 
 export const MODELS_BY_PROVIDER: Record<Provider, string[]> = {
-  openai: ['gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini'],
-  anthropic: ['claude-opus-4-5', 'claude-sonnet-4-5', 'claude-haiku-4-5-20251001'],
-  google: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash'],
+  openai: ['gpt-4o', 'gpt-4o-mini'],
+  anthropic: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
+  google: ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'],
 }
 
 export const DEFAULT_MODELS: Record<Provider, string> = {
   openai: 'gpt-4o',
-  anthropic: 'claude-opus-4-5',
-  google: 'gemini-1.5-pro',
+  anthropic: 'claude-sonnet-4-6',
+  google: 'gemini-2.0-flash',
 }

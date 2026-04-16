@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { retryRun } from '@/actions/messages'
+import { useT } from '@/components/LocaleProvider'
 import type { RunStatus } from '@/types/database'
 
 interface Props {
@@ -13,18 +14,21 @@ interface Props {
   mode: string
 }
 
-const STATUS_LABELS: Record<RunStatus, string> = {
-  queued: 'Queued...',
-  running: 'AI team is discussing...',
-  done: 'Done',
-  failed: 'Failed',
-}
-
 export function RunStatusBanner({ runId, initialStatus, errorMessage, mode }: Props) {
   const [status, setStatus] = useState<RunStatus>(initialStatus)
   const [errMsg, setErrMsg] = useState<string | null>(errorMessage ?? null)
   const [retrying, setRetrying] = useState(false)
   const router = useRouter()
+  const t = useT()
+
+  const STATUS_LABELS: Record<RunStatus, string> = {
+    queued: t.statusQueued,
+    running: t.statusRunning,
+    done: t.statusDone,
+    failed: t.statusFailed,
+  }
+
+  const modeLabel = mode === 'structured_debate' ? t.structuredDebate : t.freeTalk
 
   useEffect(() => {
     if (status === 'done' || status === 'failed') return
@@ -66,14 +70,11 @@ export function RunStatusBanner({ runId, initialStatus, errorMessage, mode }: Pr
       setErrMsg(result.error)
       setRetrying(false)
     } else {
-      // A new run was created — refresh page to mount the new RunStatusBanner
       router.refresh()
     }
   }, [runId, router])
 
   if (status === 'done') return null
-
-  const modeLabel = mode === 'structured_debate' ? 'Structured Debate' : 'Free Talk'
 
   return (
     <div
@@ -101,7 +102,7 @@ export function RunStatusBanner({ runId, initialStatus, errorMessage, mode }: Pr
             disabled={retrying}
             className="text-xs px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition-colors"
           >
-            {retrying ? 'Retrying...' : 'Retry'}
+            {retrying ? t.retrying : t.retry}
           </button>
         </div>
       )}

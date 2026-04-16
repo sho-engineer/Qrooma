@@ -1,6 +1,8 @@
 import { MessageBubble } from './MessageBubble'
 import { ConclusionCard } from './ConclusionCard'
 import { ScrollAnchor } from './ScrollAnchor'
+import { getLocale } from '@/actions/locale'
+import { getT } from '@/lib/i18n'
 import type { Database, ConclusionCard as ConclusionCardType, Mode } from '@/types/database'
 
 type Message = Database['public']['Tables']['messages']['Row']
@@ -11,29 +13,36 @@ interface Props {
   runs: Run[]
 }
 
-const MODE_LABELS: Record<Mode, string> = {
-  structured_debate: 'Structured Debate',
-  free_talk: 'Free Talk',
+const RUN_STATUS_BADGE_CLASSES: Record<string, string> = {
+  queued:  'text-amber-600 bg-amber-50 border-amber-200',
+  running: 'text-amber-700 bg-amber-50 border-amber-200',
+  done:    'text-green-700 bg-green-50 border-green-200',
+  failed:  'text-red-700 bg-red-50 border-red-200',
 }
 
-/** Status label mapping for display */
-const RUN_STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  queued:  { label: 'Queued',    className: 'text-amber-600 bg-amber-50 border-amber-200' },
-  running: { label: 'Running',   className: 'text-amber-700 bg-amber-50 border-amber-200' },
-  done:    { label: 'Completed', className: 'text-green-700 bg-green-50 border-green-200' },
-  failed:  { label: 'Error',     className: 'text-red-700 bg-red-50 border-red-200' },
-}
+export async function MessageTimeline({ messages, runs }: Props) {
+  const locale = await getLocale()
+  const t = getT(locale)
 
-export function MessageTimeline({ messages, runs }: Props) {
+  const STATUS_BADGE_LABELS: Record<string, string> = {
+    queued:  t.statusIdleBadge,
+    running: t.statusRunningBadge,
+    done:    t.statusDoneBadge,
+    failed:  t.statusErrorBadge,
+  }
+
+  const MODE_LABELS: Record<Mode, string> = {
+    structured_debate: t.structuredDebate,
+    free_talk: t.freeTalk,
+  }
+
   if (messages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-center px-8">
         <div>
           <p className="text-4xl mb-3">💬</p>
-          <p className="text-gray-500 font-medium">Start the discussion</p>
-          <p className="text-gray-400 text-sm mt-1">
-            Send a message and your AI team will start debating.
-          </p>
+          <p className="text-gray-500 font-medium">{t.startDiscussion}</p>
+          <p className="text-gray-400 text-sm mt-1">{t.startDiscussionHint}</p>
         </div>
       </div>
     )
@@ -42,18 +51,10 @@ export function MessageTimeline({ messages, runs }: Props) {
   // Build fast-lookup maps
   const runMap = new Map<string, Run>(runs.map((r) => [r.id, r]))
 
-  // Group messages: top-level user messages without run_id, and runs
-  // Strategy:
-  // 1. Show user messages that are trigger_message_id for a run, before that run group
-  // 2. Show run group (AI messages + ConclusionCard) for each run in order
-  // 3. Show lone user messages (no associated run) inline
-
-  // Determine which message IDs are trigger messages for runs
   const triggerMessageIds = new Set(
     runs.map((r) => r.trigger_message_id).filter(Boolean) as string[]
   )
 
-  // Separate user messages and AI messages
   const userMessages = messages.filter((m) => m.role === 'user')
   const aiMessagesByRunId = new Map<string, Message[]>()
   for (const m of messages) {
@@ -64,8 +65,6 @@ export function MessageTimeline({ messages, runs }: Props) {
     }
   }
 
-  // Build ordered render groups
-  // We walk runs in order, preceding each with its trigger user message
   const renderedMsgIds = new Set<string>()
 
   type RenderItem =
@@ -77,7 +76,6 @@ export function MessageTimeline({ messages, runs }: Props) {
   let runIndex = 0
 
   for (const run of runs) {
-    // Show trigger user message before this run group
     if (run.trigger_message_id) {
       const triggerMsg = messages.find((m) => m.id === run.trigger_message_id)
       if (triggerMsg && !renderedMsgIds.has(triggerMsg.id)) {
@@ -91,7 +89,6 @@ export function MessageTimeline({ messages, runs }: Props) {
     items.push({ type: 'run_group', run, runIndex, aiMessages })
   }
 
-  // Any remaining user messages not yet rendered (no associated run)
   for (const msg of userMessages) {
     if (!renderedMsgIds.has(msg.id)) {
       items.push({ type: 'lone_user_message', message: msg })
@@ -100,13 +97,14 @@ export function MessageTimeline({ messages, runs }: Props) {
 
   return (
     <div className="flex-1 overflow-y-auto py-4">
-      {items.map((item, i) => {
+      {items.map((item) => {
         if (item.type === 'user_message' || item.type === 'lone_user_message') {
-          return <MessageBubble key={item.message.id} message={item.message} />
+          return <MessageBubble key={item.message.id} message={item.message} locale={locale} />
         }
 
         const { run, runIndex: idx, aiMessages } = item
-        const statusInfo = RUN_STATUS_LABELS[run.status] ?? RUN_STATUS_LABELS.queued
+        const badgeClass = RUN_STATUS_BADGE_CLASSES[run.status] ?? RUN_STATUS_BADGE_CLASSES.queued
+        const badgeLabel = STATUS_BADGE_LABELS[run.status] ?? STATUS_BADGE_LABELS.queued
         const modeLabel = MODE_LABELS[run.mode] ?? run.mode
 
         return (
@@ -115,13 +113,11 @@ export function MessageTimeline({ messages, runs }: Props) {
             <div className="flex items-center gap-3 px-4 mb-2">
               <div className="flex-1 h-px bg-gray-200" />
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-xs text-gray-400">Run #{idx}</span>
+                <span className="text-xs text-gray-400">{t.runLabel(idx)}</span>
                 <span className="text-xs text-gray-300">·</span>
                 <span className="text-xs text-gray-500">{modeLabel}</span>
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded border ${statusInfo.className}`}
-                >
-                  {statusInfo.label}
+                <span className={`text-xs px-1.5 py-0.5 rounded border ${badgeClass}`}>
+                  {badgeLabel}
                 </span>
               </div>
               <div className="flex-1 h-px bg-gray-200" />
@@ -132,7 +128,7 @@ export function MessageTimeline({ messages, runs }: Props) {
               {aiMessages
                 .filter((m) => m.side !== 'judge')
                 .map((m) => (
-                  <MessageBubble key={m.id} message={m} />
+                  <MessageBubble key={m.id} message={m} locale={locale} />
                 ))}
             </div>
 
@@ -147,7 +143,7 @@ export function MessageTimeline({ messages, runs }: Props) {
             {/* Error state for failed run */}
             {run.status === 'failed' && (
               <div className="mx-4 my-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-                <span className="font-medium">Run failed</span>
+                <span className="font-medium">{t.runFailed}</span>
                 {run.error_message && (
                   <span className="ml-2 text-xs">{run.error_message}</span>
                 )}

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useTransition } from 'react'
 import { sendMessage } from '@/actions/messages'
+import { useT } from '@/components/LocaleProvider'
 
 interface Props {
   roomId: string
@@ -12,6 +13,7 @@ export function MessageInput({ roomId }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const t = useT()
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -25,7 +27,7 @@ export function MessageInput({ roomId }: Props) {
       const result = await sendMessage(roomId, content)
       if (result.error) {
         setError(result.error)
-        setValue(content) // restore on error
+        setValue(content)
       }
     })
   }
@@ -48,7 +50,7 @@ export function MessageInput({ roomId }: Props) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Send a message to start an AI debate... (Enter to send, Shift+Enter for newline)"
+          placeholder={t.messagePlaceholder}
           rows={2}
           disabled={isPending}
           className="flex-1 resize-none px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
@@ -58,12 +60,10 @@ export function MessageInput({ roomId }: Props) {
           disabled={isPending || !value.trim()}
           className="flex-shrink-0 h-10 px-4 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
-          {isPending ? '...' : 'Send'}
+          {isPending ? '...' : t.send}
         </button>
       </form>
-      <p className="text-xs text-gray-400 mt-1">
-        Sending a message automatically starts an AI run.
-      </p>
+      <p className="text-xs text-gray-400 mt-1">{t.sendingAutoRun}</p>
     </div>
   )
 }

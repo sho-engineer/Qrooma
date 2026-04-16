@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useT } from '@/components/LocaleProvider'
 import type { Mode } from '@/types/database'
 
 interface Props {
@@ -10,23 +11,24 @@ interface Props {
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
-const MODES: { value: Mode; label: string; description: string }[] = [
-  {
-    value: 'structured_debate',
-    label: 'Structured Debate',
-    description: 'Initial opinions → Critiques → Revisions → Judge conclusion',
-  },
-  {
-    value: 'free_talk',
-    label: 'Free Talk',
-    description: 'AIs take turns discussing freely. Up to 3 rounds.',
-  },
-]
-
 export function DefaultModeSelector({ initialMode, onSave }: Props) {
+  const t = useT()
   const [mode, setMode] = useState<Mode>(initialMode)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [isPending, startTransition] = useTransition()
+
+  const MODES: { value: Mode; label: string; description: string }[] = [
+    {
+      value: 'structured_debate',
+      label: t.structuredDebate,
+      description: t.structuredDebateDesc,
+    },
+    {
+      value: 'free_talk',
+      label: t.freeTalk,
+      description: t.freeTalkDesc,
+    },
+  ]
 
   function handleChange(newMode: Mode) {
     setMode(newMode)
@@ -44,17 +46,11 @@ export function DefaultModeSelector({ initialMode, onSave }: Props) {
     <div>
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-          Default Mode
+          {t.defaultMode}
         </h4>
-        {saveState === 'saving' && (
-          <span className="text-xs text-gray-400">Saving...</span>
-        )}
-        {saveState === 'saved' && (
-          <span className="text-xs text-green-600 font-medium">Saved</span>
-        )}
-        {saveState === 'error' && (
-          <span className="text-xs text-red-500">Save failed</span>
-        )}
+        {saveState === 'saving' && <span className="text-xs text-gray-400">{t.saving}</span>}
+        {saveState === 'saved' && <span className="text-xs text-green-600 font-medium">{t.saved}</span>}
+        {saveState === 'error' && <span className="text-xs text-red-500">{t.saveFailed}</span>}
       </div>
 
       <div className="space-y-2">
