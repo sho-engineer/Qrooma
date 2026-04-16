@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useT } from '@/components/LocaleProvider'
 import type { ConclusionCard as ConclusionCardType } from '@/types/database'
 
 interface Props {
@@ -11,7 +12,8 @@ interface Props {
 
 export function ConclusionCard({ conclusion, mode, defaultOpen = true }: Props) {
   const [open, setOpen] = useState(defaultOpen)
-  const modeLabel = mode === 'structured_debate' ? 'Structured Debate' : 'Free Talk'
+  const t = useT()
+  const modeLabel = mode === 'structured_debate' ? t.structuredDebate : t.freeTalk
 
   return (
     <div className="mx-4 my-4 border border-purple-200 rounded-xl overflow-hidden shadow-sm">
@@ -22,7 +24,7 @@ export function ConclusionCard({ conclusion, mode, defaultOpen = true }: Props) 
         className="w-full px-5 py-3 bg-purple-600 text-white flex items-center justify-between hover:bg-purple-700 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-sm">Conclusion</span>
+          <span className="font-semibold text-sm">{t.conclusion}</span>
           <span className="text-xs text-purple-200 hidden sm:inline">— {modeLabel}</span>
         </div>
         <div className="flex items-center gap-3">
@@ -47,7 +49,7 @@ export function ConclusionCard({ conclusion, mode, defaultOpen = true }: Props) 
           {conclusion.rationale && (
             <div>
               <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                Rationale
+                {t.rationale}
               </h4>
               <p className="text-sm text-gray-700 leading-relaxed">{conclusion.rationale}</p>
             </div>
@@ -58,7 +60,7 @@ export function ConclusionCard({ conclusion, mode, defaultOpen = true }: Props) 
             {conclusion.risks?.length > 0 && (
               <div>
                 <h4 className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-2">
-                  Risks
+                  {t.risks}
                 </h4>
                 <ul className="space-y-1">
                   {conclusion.risks.map((risk, i) => (
@@ -75,7 +77,7 @@ export function ConclusionCard({ conclusion, mode, defaultOpen = true }: Props) 
             {conclusion.next_actions?.length > 0 && (
               <div>
                 <h4 className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">
-                  Next Actions
+                  {t.nextActions}
                 </h4>
                 <ul className="space-y-1">
                   {conclusion.next_actions.map((action, i) => (
@@ -93,7 +95,7 @@ export function ConclusionCard({ conclusion, mode, defaultOpen = true }: Props) 
           {conclusion.disagreements?.length > 0 && (
             <div>
               <h4 className="text-xs font-semibold text-orange-500 uppercase tracking-wide mb-2">
-                Disagreements
+                {t.disagreements}
               </h4>
               <ul className="space-y-1">
                 {conclusion.disagreements.map((d, i) => (
@@ -110,7 +112,7 @@ export function ConclusionCard({ conclusion, mode, defaultOpen = true }: Props) 
           {conclusion.unknowns?.length > 0 && (
             <div>
               <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                Unknowns
+                {t.unknowns}
               </h4>
               <ul className="space-y-1">
                 {conclusion.unknowns.map((u, i) => (
