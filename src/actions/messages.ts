@@ -84,6 +84,7 @@ export async function sendMessage(
     userId: user.id,
     userMessage: trimmed,
     discussionLanguage: detectDiscussionLanguage(trimmed),
+    activeAgentCount: (settings.active_agent_count ?? 3) as 2 | 3,
     settings: {
       side_a_provider: settings.side_a_provider as Provider,
       side_a_model: settings.side_a_model,
@@ -178,6 +179,7 @@ export async function retryRun(runId: string): Promise<{ error?: string }> {
     userId: user.id,
     userMessage: triggerMsg.content,
     discussionLanguage: detectDiscussionLanguage(triggerMsg.content),
+    activeAgentCount: (settings.active_agent_count ?? 3) as 2 | 3,
     settings: {
       side_a_provider: settings.side_a_provider as Provider,
       side_a_model: settings.side_a_model,
