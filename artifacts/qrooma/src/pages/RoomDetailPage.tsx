@@ -75,7 +75,16 @@ export default function RoomDetailPage() {
 
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isFirstMount = useRef(true);
+  /** Set to true when the user explicitly sends or re-runs — force-scroll regardless of position */
+  const shouldScrollToBottom = useRef(false);
+
+  function isNearBottom(): boolean {
+    const el = scrollContainerRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+  }
 
   // Reset when room changes
   useEffect(() => {
@@ -90,14 +99,16 @@ export default function RoomDetailPage() {
     setRunCount(new Set(msgs.map((m) => m.runId).filter(Boolean)).size);
     setRespondedCount(0);
     isFirstMount.current = true;
+    shouldScrollToBottom.current = false;
   }, [roomId]);
 
-  // Scroll: top on room change, bottom on new messages
+  // Scroll: top on room change; bottom on new messages only if near bottom or user sent
   useEffect(() => {
     if (isFirstMount.current) {
       topRef.current?.scrollIntoView();
       isFirstMount.current = false;
-    } else {
+    } else if (shouldScrollToBottom.current || isNearBottom()) {
+      shouldScrollToBottom.current = false;
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
@@ -143,6 +154,7 @@ export default function RoomDetailPage() {
       createdAt: new Date().toISOString(),
       runId: newRunId,
     };
+    shouldScrollToBottom.current = true;
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setRunCount((n) => n + 1);
@@ -152,6 +164,7 @@ export default function RoomDetailPage() {
   function rerun() {
     if (runStatus === "running" || messages.length === 0) return;
     const newRunId = `run-${Date.now()}`;
+    shouldScrollToBottom.current = true;
     setRunCount((n) => n + 1);
     triggerAgentReplies(newRunId);
   }
@@ -177,7 +190,7 @@ export default function RoomDetailPage() {
         onRerun={rerun}
       />
 
-      <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4 flex flex-col">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4 flex flex-col">
         <div ref={topRef} />
 
         {!hasMessages && <EmptyState />}
