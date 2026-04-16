@@ -66,6 +66,30 @@ export interface Translations {
   noConclusionAfterRun: string;
   emptyStateTitle: string;
   emptyStateDesc: string;
+  // Landing page
+  landingHero: string;
+  landingSubcopy: string;
+  landingGetStarted: string;
+  landingGoToApp: string;
+  landingCard1Title: string;
+  landingCard1Body: string;
+  landingCard2Title: string;
+  landingCard2Body: string;
+  landingCard3Title: string;
+  landingCard3Body: string;
+  landingHowTitle: string;
+  landingHowStep1: string;
+  landingHowStep2: string;
+  landingHowStep3: string;
+  landingModesTitle: string;
+  landingByokTitle: string;
+  landingByokLead: string;
+  landingByokItem1: string;
+  landingByokItem2: string;
+  landingByokItem3: string;
+  landingByokItem4: string;
+  landingFooterCta: string;
+  landingNav: string;
 }
 
 const ja: Translations = {
@@ -133,6 +157,30 @@ const ja: Translations = {
   noConclusionAfterRun: "実行完了後に表示されます。",
   emptyStateTitle: "ディスカッションを開始",
   emptyStateDesc: "下の入力欄にトピックや質問を入力してください。ChatGPT・Claude・Gemini がそれぞれの視点で回答します。",
+  // Landing page
+  landingHero: "ひとりのAIではなく、\n考えてくれるAIチームを。",
+  landingSubcopy: "Qrooma は、複数のAIがそれぞれの視点で議論し、壁打ちで終わらず、ひとつの結論まで導く AI チームルームです。",
+  landingGetStarted: "はじめる",
+  landingGoToApp: "アプリを開く",
+  landingCard1Title: "優秀な回答をひとつもらうだけでは足りない人へ",
+  landingCard1Body: "ひとつの答えではなく、複数の視点から考えたい。",
+  landingCard2Title: "複数のAIを自分で使い分けるのが面倒な人へ",
+  landingCard2Body: "いくつものAIを行き来せず、ひとつの場所で議論を進めたい。",
+  landingCard3Title: "浅い壁打ちではなく、深く考えたい人へ",
+  landingCard3Body: "思いつきの返答ではなく、論点整理、反論、実行案まで踏み込みたい。",
+  landingHowTitle: "使い方",
+  landingHowStep1: "APIキーを設定",
+  landingHowStep2: "ルームを作成",
+  landingHowStep3: "テーマを投げて、議論と結論を見る",
+  landingModesTitle: "2つのモード",
+  landingByokTitle: "Bring Your Own Key",
+  landingByokLead: "Qrooma は BYOK 方式です。",
+  landingByokItem1: "利用には OpenAI・Anthropic・Google の APIキー設定が必要です",
+  landingByokItem2: "APIキーはサーバーサイドで暗号化保存されます（本実装）",
+  landingByokItem3: "利用料金はユーザー自身の契約ベースで発生します",
+  landingByokItem4: "Qrooma への課金は月額プランのみ",
+  landingFooterCta: "今すぐ Qrooma をはじめる",
+  landingNav: "Qrooma について",
 };
 
 const en: Translations = {
@@ -201,6 +249,30 @@ const en: Translations = {
   noConclusionAfterRun: "Will appear after a completed run.",
   emptyStateTitle: "Start the discussion",
   emptyStateDesc: "Post a topic or question below. ChatGPT, Claude, and Gemini will each share their perspective — then you can dig deeper.",
+  // Landing page
+  landingHero: "Not one AI.\nAn AI team that thinks together.",
+  landingSubcopy: "Qrooma is an async AI team room where multiple AIs debate from their own perspectives — guiding you all the way to a conclusion, not just a quick reply.",
+  landingGetStarted: "Get started",
+  landingGoToApp: "Open app",
+  landingCard1Title: "For those who need more than one great answer",
+  landingCard1Body: "You want multiple perspectives, not just the first plausible response.",
+  landingCard2Title: "For those tired of switching between AI tools",
+  landingCard2Body: "Run the whole discussion in one place, without juggling tabs.",
+  landingCard3Title: "For those who want depth, not just a sounding board",
+  landingCard3Body: "Not a quick reply — structured arguments, counterpoints, and action items.",
+  landingHowTitle: "How it works",
+  landingHowStep1: "Set your API keys",
+  landingHowStep2: "Create a room",
+  landingHowStep3: "Post a topic and watch the debate unfold",
+  landingModesTitle: "Two modes",
+  landingByokTitle: "Bring Your Own Key",
+  landingByokLead: "Qrooma is BYOK — you bring the keys.",
+  landingByokItem1: "Requires API keys from OpenAI, Anthropic, and/or Google",
+  landingByokItem2: "Keys are encrypted server-side in production — never exposed to the client",
+  landingByokItem3: "API usage is billed directly through your own provider accounts",
+  landingByokItem4: "Qrooma charges a flat monthly subscription only",
+  landingFooterCta: "Start using Qrooma today",
+  landingNav: "About Qrooma",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };
