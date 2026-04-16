@@ -91,6 +91,7 @@ export async function updateRoomSettings(
   roomId: string,
   settings: {
     mode?: 'structured_debate' | 'free_talk'
+    active_agent_count?: 2 | 3
     side_a_provider?: 'openai' | 'anthropic' | 'google'
     side_a_model?: string
     side_b_provider?: 'openai' | 'anthropic' | 'google'

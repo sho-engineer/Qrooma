@@ -65,6 +65,7 @@ export interface Database {
         Row: {
           room_id: string
           mode: Mode
+          active_agent_count: 2 | 3
           side_a_provider: Provider
           side_a_model: string
           side_b_provider: Provider
@@ -76,6 +77,7 @@ export interface Database {
         Insert: {
           room_id: string
           mode?: Mode
+          active_agent_count?: 2 | 3
           side_a_provider?: Provider
           side_a_model?: string
           side_b_provider?: Provider
@@ -86,6 +88,7 @@ export interface Database {
         }
         Update: {
           mode?: Mode
+          active_agent_count?: 2 | 3
           side_a_provider?: Provider
           side_a_model?: string
           side_b_provider?: Provider
