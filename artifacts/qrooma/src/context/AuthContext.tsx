@@ -19,8 +19,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const STORAGE_KEY = "qrooma_user";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>({ id: "demo-1", email: "demo@qrooma.app", name: "Demo" });
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
