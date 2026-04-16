@@ -8,6 +8,7 @@ interface Props {
   modeLabel: string;
   activeModels: string[];
   hasMessages: boolean;
+  canRun: boolean;
   onRerun: () => void;
 }
 
@@ -34,21 +35,24 @@ export default function RoomHeader({
   modeLabel,
   activeModels,
   hasMessages,
+  canRun,
   onRerun,
 }: Props) {
   const { t } = useLocale();
   const modelLine = activeModels.map(shorten).join(" · ");
 
   return (
-    <div className="shrink-0 border-b border-border bg-card/80 backdrop-blur-sm">
-      <div className="flex items-center justify-between px-4 sm:px-5 pt-3.5 pb-1.5">
-        <h1 className="text-sm font-semibold text-foreground tracking-[-0.01em] truncate">{roomName}</h1>
+    <div className="shrink-0 border-b border-border bg-card/80 backdrop-blur-sm overflow-hidden">
+      <div className="flex items-center gap-2 px-4 sm:px-5 pt-3.5 pb-1.5 min-w-0">
+        <h1 className="flex-1 text-sm font-semibold text-foreground tracking-[-0.01em] truncate min-w-0">
+          {roomName}
+        </h1>
         {hasMessages && (
           <button
             onClick={onRerun}
-            disabled={runStatus === "running"}
-            className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium border border-border rounded-lg text-muted-foreground hover:bg-accent transition-colors disabled:opacity-40 shrink-0 ml-3"
-            title={t.rerun}
+            disabled={runStatus === "running" || !canRun}
+            className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium border border-border rounded-lg text-muted-foreground hover:bg-accent transition-colors disabled:opacity-40 shrink-0"
+            title={!canRun ? t.apiKeyMissingRunTitle : t.rerun}
           >
             <RotateCcwIcon size={11} />
             {t.rerun}
@@ -56,15 +60,15 @@ export default function RoomHeader({
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 px-4 sm:px-5 pb-3 flex-wrap">
+      <div className="flex items-center gap-1.5 px-4 sm:px-5 pb-3 overflow-hidden">
         <RunStatusBadge status={runStatus} />
-        <span className="text-border text-xs">·</span>
+        <span className="text-border text-xs shrink-0">·</span>
         <ModeBadge label={modeLabel} />
         {modelLine && (
           <>
-            <span className="text-border text-xs hidden sm:block">·</span>
+            <span className="text-border text-xs shrink-0 hidden sm:block">·</span>
             <span
-              className="text-[11px] text-muted-foreground/60 hidden sm:block truncate max-w-sm"
+              className="text-[11px] text-muted-foreground/50 hidden sm:block truncate min-w-0"
               title={modelLine}
             >
               {modelLine}
@@ -105,22 +109,16 @@ function RunStatusBadge({ status }: { status: RunStatus }) {
   const { label, dotClass, pill } = config[status];
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${pill}`}>
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${pill}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
       {label}
     </span>
   );
 }
 
 function ModeBadge({ label }: { label: string }) {
-  const { t } = useLocale();
-  const isDebate = label === t.structuredDebate;
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
-      isDebate
-        ? "bg-primary/8 text-primary"
-        : "bg-muted text-muted-foreground"
-    }`}>
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 bg-muted text-muted-foreground">
       {label}
     </span>
   );

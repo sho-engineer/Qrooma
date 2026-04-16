@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSettings } from "../context/SettingsContext";
 import { useLocale, type Locale } from "../context/LocaleContext";
 import type { AgentSideConfig, Provider, DefaultMode } from "../types";
-import { AlertCircleIcon } from "lucide-react";
+import { AlertCircleIcon, KeyRoundIcon } from "lucide-react";
 
 const PROVIDER_COLORS: Record<Provider, string> = {
   openai:    "#10a37f",
@@ -85,63 +85,61 @@ function SideConfig({
   const isDuplicate = otherCombos.has(comboKey(config.provider, currentModelValue));
 
   return (
-    <div className={`flex gap-3 items-start border rounded-2xl p-4 bg-card transition-colors ${
+    <div className={`border rounded-2xl p-4 bg-card transition-colors ${
       isDuplicate ? "border-destructive/40" : "border-border"
     }`}>
-      <div className="shrink-0 pt-0.5">
-        <div className="w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center">
+      {/* Side header */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <div className="w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center shrink-0">
           <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
         </div>
+        <p className="text-xs font-semibold text-foreground">{t.sideLabel(sideKey)}</p>
+        {!hasApiKey && (
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground/70 leading-none">
+            {t.apiKeyNotSet}
+          </span>
+        )}
+        {isDuplicate && (
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-destructive/8 text-destructive/80 flex items-center gap-1 leading-none">
+            <AlertCircleIcon size={9} />
+            重複
+          </span>
+        )}
       </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-2.5">
-          <p className="text-xs font-medium text-foreground">{t.sideLabel(sideKey)}</p>
-          {!hasApiKey && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-              API Key 未設定
-            </span>
-          )}
-          {isDuplicate && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive/80 flex items-center gap-1">
-              <AlertCircleIcon size={9} />
-              重複
-            </span>
-          )}
+      {/* Provider + Model selects — stack on mobile, side-by-side on sm+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[11px] text-muted-foreground mb-1">{t.provider}</label>
+          <select
+            value={config.provider}
+            onChange={(e) => {
+              const p = e.target.value as Provider;
+              onChange({ ...config, provider: p, model: PROVIDER_MODELS[p][0].value });
+            }}
+            className="w-full px-2.5 py-1.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring"
+          >
+            {(["openai", "anthropic", "google"] as Provider[]).map((p) => (
+              <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>
+            ))}
+          </select>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block text-[11px] text-muted-foreground mb-1">{t.provider}</label>
-            <select
-              value={config.provider}
-              onChange={(e) => {
-                const p = e.target.value as Provider;
-                onChange({ ...config, provider: p, model: PROVIDER_MODELS[p][0].value });
-              }}
-              className="w-full px-2.5 py-1.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring"
-            >
-              {(["openai", "anthropic", "google"] as Provider[]).map((p) => (
-                <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-[11px] text-muted-foreground mb-1">{t.model}</label>
-            <select
-              value={currentModelValue}
-              onChange={(e) => onChange({ ...config, model: e.target.value })}
-              className="w-full px-2.5 py-1.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring"
-            >
-              {models.map((m) => {
-                const taken = otherCombos.has(comboKey(config.provider, m.value));
-                return (
-                  <option key={m.value} value={m.value} disabled={taken}>
-                    {taken ? `${m.label} ✕` : m.label}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
+        <div>
+          <label className="block text-[11px] text-muted-foreground mb-1">{t.model}</label>
+          <select
+            value={currentModelValue}
+            onChange={(e) => onChange({ ...config, model: e.target.value })}
+            className="w-full px-2.5 py-1.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring"
+          >
+            {models.map((m) => {
+              const taken = otherCombos.has(comboKey(config.provider, m.value));
+              return (
+                <option key={m.value} value={m.value} disabled={taken}>
+                  {taken ? `${m.label} ✕` : m.label}
+                </option>
+              );
+            })}
+          </select>
         </div>
       </div>
     </div>
@@ -181,7 +179,9 @@ export default function SettingsPage() {
   function handleSideChange(key: string, c: AgentSideConfig) {
     const patch = key === "A" ? { sideA: c } : key === "B" ? { sideB: c } : { sideC: c };
     updateSettings(patch);
-    const afterKeys = sides.map((s) => s.key === key ? comboKey(c.provider, c.model) : comboKey(s.config.provider, s.config.model));
+    const afterKeys = sides.map((s) =>
+      s.key === key ? comboKey(c.provider, c.model) : comboKey(s.config.provider, s.config.model)
+    );
     setShowDupError(new Set(afterKeys).size !== afterKeys.length);
   }
 
@@ -225,12 +225,29 @@ export default function SettingsPage() {
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
               {t.apiKeys}
             </h3>
-            <div className="mb-4 px-3.5 py-3 bg-muted/50 border border-border rounded-2xl">
-              <p className="text-xs font-medium text-foreground mb-1">{t.apiKeysTempWarningTitle}</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {t.apiKeysTempWarningDesc}
+
+            {/* BYOK explanation */}
+            <div className="mb-4 px-4 py-3.5 bg-card border border-border rounded-2xl">
+              <div className="flex items-start gap-2.5">
+                <KeyRoundIcon size={14} className="shrink-0 text-muted-foreground/50 mt-px" />
+                <div>
+                  <p className="text-xs font-semibold text-foreground mb-1">
+                    {t.apiKeyByokBannerTitle}
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t.apiKeyByokBannerDesc}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Temp storage notice */}
+            <div className="mb-4 px-3.5 py-2.5 bg-muted/40 border border-border/60 rounded-xl">
+              <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
+                ⚠ {t.apiKeysTempWarningDesc}
               </p>
             </div>
+
             <div className="space-y-3">
               <ApiKeyField
                 label="OpenAI API Key"
@@ -296,7 +313,7 @@ export default function SettingsPage() {
             {/* Agent count toggle */}
             <div className="flex items-center justify-between mb-4 px-4 py-3 bg-card border border-border rounded-2xl">
               <span className="text-xs font-medium text-foreground">{t.agentCount}</span>
-              <div className="flex gap-1 rounded-full border border-border bg-background p-0.5">
+              <div className="flex gap-1 rounded-full border border-border bg-background p-0.5 shrink-0">
                 {([2, 3] as const).map((n) => (
                   <button
                     key={n}

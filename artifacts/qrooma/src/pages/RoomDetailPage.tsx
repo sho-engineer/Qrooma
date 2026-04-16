@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams } from "wouter";
 import { RotateCcwIcon } from "lucide-react";
 import {
@@ -11,7 +11,7 @@ import {
 import { useSettings } from "../context/SettingsContext";
 import { useRooms } from "../context/RoomsContext";
 import { useLocale } from "../context/LocaleContext";
-import type { Message, RunStatus } from "../types";
+import type { Message, RunStatus, Provider } from "../types";
 import RoomHeader from "../components/RoomHeader";
 import MessageBubble from "../components/MessageBubble";
 import ConclusionCard from "../components/ConclusionCard";
@@ -19,14 +19,41 @@ import MessageInput from "../components/MessageInput";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// ─── group messages by run ────────────────────────────────────────────────────
+const MODEL_SHORT: Record<string, string> = {
+  "gpt-4o":                      "GPT-4o",
+  "gpt-4o-mini":                 "GPT-4o mini",
+  "gpt-4-turbo":                 "GPT-4 Turbo",
+  "gpt-3.5-turbo":               "GPT-3.5 Turbo",
+  "claude-3-5-sonnet-20241022":  "Claude 3.5 Sonnet",
+  "claude-3-opus-20240229":      "Claude 3 Opus",
+  "claude-3-haiku-20240307":     "Claude 3 Haiku",
+  "gemini-1.5-pro":              "Gemini 1.5 Pro",
+  "gemini-1.5-flash":            "Gemini 1.5 Flash",
+  "gemini-1.0-pro":              "Gemini 1.0 Pro",
+};
+
+function shortenModel(model: string): string {
+  return MODEL_SHORT[model] ?? model;
+}
+
+function hasApiKeyFor(provider: Provider, settings: {
+  openaiApiKey: string;
+  anthropicApiKey: string;
+  googleApiKey: string;
+}): boolean {
+  if (provider === "openai") return !!settings.openaiApiKey;
+  if (provider === "anthropic") return !!settings.anthropicApiKey;
+  return !!settings.googleApiKey;
+}
+
+// ─── Run grouping ─────────────────────────────────────────────────────────────
+
 interface RunGroup {
   runId: string;
   messages: Message[];
-  /** true when this group has no user message (= triggered by Re-run) */
   isRerun: boolean;
-  /** the user question that started this run (null for Re-runs without a new question) */
   userQuestion: string | null;
 }
 
@@ -70,15 +97,46 @@ export default function RoomDetailPage() {
   const [runCount, setRunCount] = useState(
     new Set(initialMessages.map((m) => m.runId).filter(Boolean)).size
   );
-  /** How many agents have responded in the current in-progress run (0–3) */
   const [respondedCount, setRespondedCount] = useState(0);
 
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isFirstMount = useRef(true);
-  /** Set to true when the user explicitly sends or re-runs — force-scroll regardless of position */
   const shouldScrollToBottom = useRef(false);
+
+  // ─── Derived values ─────────────────────────────────────────────────────────
+
+  const agentCount = settings.agentCount ?? 3;
+  const activeSides = agentCount === 2
+    ? [settings.sideA, settings.sideB]
+    : [settings.sideA, settings.sideB, settings.sideC];
+
+  /** true = all required API keys are present */
+  const canRun = useMemo(() => {
+    return activeSides.every((side) => hasApiKeyFor(side.provider, settings));
+  }, [settings.openaiApiKey, settings.anthropicApiKey, settings.googleApiKey, agentCount]);
+
+  /** Shortened model name for each side (for MessageBubble sub-labels) */
+  const sideModelMap = useMemo(() => ({
+    A: shortenModel(settings.sideA.model),
+    B: shortenModel(settings.sideB.model),
+    C: shortenModel(settings.sideC.model),
+  }), [settings.sideA.model, settings.sideB.model, settings.sideC.model]);
+
+  const activeModels = activeSides.map((s) => s.model);
+
+  const MODE_LABELS: Record<string, string> = {
+    "structured-debate": t.structuredDebate,
+    "free-talk": t.freeTalk,
+  };
+  const modeLabel = MODE_LABELS[settings.defaultMode] ?? settings.defaultMode;
+
+  const groupedMessages = groupByRun(messages);
+  const conclusion = roomId ? DUMMY_CONCLUSIONS[roomId] ?? null : null;
+  const hasMessages = messages.length > 0;
+
+  // ─── Scroll ──────────────────────────────────────────────────────────────────
 
   function isNearBottom(): boolean {
     const el = scrollContainerRef.current;
@@ -86,7 +144,6 @@ export default function RoomDetailPage() {
     return el.scrollHeight - el.scrollTop - el.clientHeight < 150;
   }
 
-  // Reset when room changes
   useEffect(() => {
     const msgs = DUMMY_MESSAGES.filter((m) => m.roomId === roomId);
     setMessages(msgs);
@@ -102,7 +159,6 @@ export default function RoomDetailPage() {
     shouldScrollToBottom.current = false;
   }, [roomId]);
 
-  // Scroll: top on room change; bottom on new messages only if near bottom or user sent
   useEffect(() => {
     if (isFirstMount.current) {
       topRef.current?.scrollIntoView();
@@ -113,12 +169,16 @@ export default function RoomDetailPage() {
     }
   }, [messages]);
 
+  // ─── Actions ─────────────────────────────────────────────────────────────────
+
   function triggerAgentReplies(currentRunId: string) {
     setRunStatus("running");
     setRespondedCount(0);
     const pool = settings.defaultMode === "free-talk" ? FREETALK_POOL : DEBATE_POOL;
+    // Use only the active agent count
+    const activeAgents = AGENTS.slice(0, agentCount);
     let delay = 900;
-    AGENTS.forEach((agent, i) => {
+    activeAgents.forEach((agent, i) => {
       setTimeout(() => {
         const fn = pool[Math.floor(Math.random() * pool.length)];
         setMessages((prev) => [
@@ -144,7 +204,7 @@ export default function RoomDetailPage() {
   }
 
   function sendMessage() {
-    if (!input.trim() || runStatus === "running") return;
+    if (!input.trim() || runStatus === "running" || !canRun) return;
     const newRunId = `run-${Date.now()}`;
     const userMsg: Message = {
       id: `m-${Date.now()}`,
@@ -162,35 +222,31 @@ export default function RoomDetailPage() {
   }
 
   function rerun() {
-    if (runStatus === "running" || messages.length === 0) return;
+    if (runStatus === "running" || messages.length === 0 || !canRun) return;
     const newRunId = `run-${Date.now()}`;
     shouldScrollToBottom.current = true;
     setRunCount((n) => n + 1);
     triggerAgentReplies(newRunId);
   }
 
-  const hasMessages = messages.length > 0;
-  const MODE_LABELS: Record<string, string> = {
-    "structured-debate": t.structuredDebate,
-    "free-talk": t.freeTalk,
-  };
-  const modeLabel = MODE_LABELS[settings.defaultMode] ?? settings.defaultMode;
-  const activeModels = [settings.sideA.model, settings.sideB.model, settings.sideC.model];
-  const groupedMessages = groupByRun(messages);
-  const conclusion = roomId ? DUMMY_CONCLUSIONS[roomId] ?? null : null;
+  // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       <RoomHeader
         roomName={roomName}
         runStatus={runStatus}
         modeLabel={modeLabel}
         activeModels={activeModels}
         hasMessages={hasMessages}
+        canRun={canRun}
         onRerun={rerun}
       />
 
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4 flex flex-col">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 sm:px-4 sm:py-4 flex flex-col"
+      >
         <div ref={topRef} />
 
         {!hasMessages && <EmptyState />}
@@ -207,13 +263,20 @@ export default function RoomDetailPage() {
             )}
             <div className="space-y-4">
               {group.messages.map((msg) => (
-                <MessageBubble key={msg.id} message={msg} />
+                <MessageBubble
+                  key={msg.id}
+                  message={msg}
+                  mode={settings.defaultMode}
+                  sideModelMap={sideModelMap}
+                />
               ))}
             </div>
           </div>
         ))}
 
-        {runStatus === "running" && <ThinkingIndicator respondedCount={respondedCount} />}
+        {runStatus === "running" && (
+          <ThinkingIndicator respondedCount={respondedCount} agentCount={agentCount} />
+        )}
         {runStatus === "error" && <ErrorState onRerun={rerun} />}
 
         <div ref={bottomRef} />
@@ -228,6 +291,7 @@ export default function RoomDetailPage() {
         onChange={setInput}
         onSend={sendMessage}
         isRunning={runStatus === "running"}
+        apiKeysReady={canRun}
       />
     </div>
   );
@@ -282,10 +346,11 @@ function RunSeparator({ index, firstMsgTime, isRerun, userQuestion }: RunSeparat
 
 // ─── Thinking Indicator ───────────────────────────────────────────────────────
 
-function ThinkingIndicator({ respondedCount }: { respondedCount: number }) {
+function ThinkingIndicator({ respondedCount, agentCount }: { respondedCount: number; agentCount: number }) {
   const { t } = useLocale();
-  const done = AGENTS.slice(0, respondedCount);
-  const pending = AGENTS.slice(respondedCount);
+  const activeAgents = AGENTS.slice(0, agentCount);
+  const done = activeAgents.slice(0, respondedCount);
+  const pending = activeAgents.slice(respondedCount);
   const nextAgent = pending[0];
   const remaining = pending.length;
 
@@ -324,8 +389,8 @@ function ThinkingIndicator({ respondedCount }: { respondedCount: number }) {
       </div>
 
       <span className="text-xs text-muted-foreground">
-        {remaining === 3 && t.agentsResponding}
-        {remaining === 2 && t.agentAndMoreResponding(pending[0]?.name ?? "")}
+        {remaining === agentCount && t.agentsResponding}
+        {remaining > 0 && remaining < agentCount && t.agentAndMoreResponding(nextAgent?.name ?? "")}
         {remaining === 1 && t.agentResponding(nextAgent?.name ?? "")}
         {remaining === 0 && t.finishingUp}
       </span>

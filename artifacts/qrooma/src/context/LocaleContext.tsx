@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
+import type { DefaultMode } from "../types";
 
 export type Locale = "ja" | "en";
 
@@ -68,6 +69,16 @@ export interface Translations {
   emptyStateDesc: string;
   agentCount: string;
   duplicateModelError: string;
+  // Role labels
+  roleLabel: (side: "A" | "B" | "C", mode: DefaultMode) => string;
+  roleSubLabel: (side: "A" | "B" | "C") => string;
+  // API key / BYOK
+  apiKeyNotSet: string;
+  apiKeyByokBannerTitle: string;
+  apiKeyByokBannerDesc: string;
+  apiKeyMissingRunTitle: string;
+  apiKeyMissingRunDesc: string;
+  goToSettings: string;
   // Landing page
   landingHero: string;
   landingSubcopy: string;
@@ -161,9 +172,25 @@ const ja: Translations = {
   noConclusionStart: "ディスカッションを開始すると生成されます。",
   noConclusionAfterRun: "実行完了後に表示されます。",
   emptyStateTitle: "ディスカッションを開始",
-  emptyStateDesc: "下の入力欄にトピックや質問を入力してください。ChatGPT・Claude・Gemini がそれぞれの視点で回答します。",
+  emptyStateDesc: "下の入力欄にトピックや質問を入力してください。AIチームがそれぞれの視点で議論します。",
   agentCount: "参加エージェント数",
   duplicateModelError: "同じモデルは複数の枠に設定できません",
+  // Role labels — debate: 推進 / 批判 / 統合, free-talk: Side A/B/C
+  roleLabel: (side, mode) => {
+    if (mode === "structured-debate") {
+      return side === "A" ? "推進" : side === "B" ? "批判" : "統合";
+    }
+    return `Side ${side}`;
+  },
+  roleSubLabel: (side) => `Side ${side}`,
+  // API key / BYOK
+  apiKeyNotSet: "APIキー未設定",
+  apiKeyByokBannerTitle: "Bring Your Own Key",
+  apiKeyByokBannerDesc:
+    "Qrooma は BYOK 方式です。議論を実行するには、利用するプロバイダーの API キーが必要です。キーは暗号化保存されます（本実装）。",
+  apiKeyMissingRunTitle: "APIキーが設定されていません",
+  apiKeyMissingRunDesc: "現在の構成で必要なAPIキーが未設定のため、議論を実行できません。",
+  goToSettings: "設定で入力する",
   // Landing page
   landingHero: "ひとりのAIではなく、\n考えてくれるAIチームを。",
   landingSubcopy: "Qrooma は、複数のAIがそれぞれの視点で議論し、壁打ちで終わらず、ひとつの結論まで導く AI チームルームです。",
@@ -226,7 +253,7 @@ const en: Translations = {
   apiKeys: "API Keys",
   apiKeysTempWarningTitle: "Temporary storage",
   apiKeysTempWarningDesc:
-    "API keys are currently stored in your browser's localStorage. This is a placeholder implementation. The final spec uses encrypted server-side storage per account — keys will never be exposed to the client.",
+    "API keys are currently stored in your browser's localStorage. This is a placeholder. In production, keys are encrypted server-side and never exposed to the client.",
   defaultMode: "Default Mode",
   agentConfig: "Agent Configuration",
   agentConfigDesc: "Each side maps to one provider and model. Agents respond in the order A → B → C.",
@@ -258,9 +285,25 @@ const en: Translations = {
   noConclusionStart: "Start a discussion to generate one.",
   noConclusionAfterRun: "Will appear after a completed run.",
   emptyStateTitle: "Start the discussion",
-  emptyStateDesc: "Post a topic or question below. ChatGPT, Claude, and Gemini will each share their perspective — then you can dig deeper.",
+  emptyStateDesc: "Post a topic or question below. The AI team will each share their perspective — then you can dig deeper.",
   agentCount: "Number of agents",
   duplicateModelError: "The same model cannot be assigned to multiple sides",
+  // Role labels — debate: Advocate / Critic / Synthesizer, free-talk: Side A/B/C
+  roleLabel: (side, mode) => {
+    if (mode === "structured-debate") {
+      return side === "A" ? "Advocate" : side === "B" ? "Critic" : "Synthesizer";
+    }
+    return `Side ${side}`;
+  },
+  roleSubLabel: (side) => `Side ${side}`,
+  // API key / BYOK
+  apiKeyNotSet: "No API key",
+  apiKeyByokBannerTitle: "Bring Your Own Key",
+  apiKeyByokBannerDesc:
+    "Qrooma is BYOK — discussions require API keys from your own provider accounts. Keys are encrypted server-side in production.",
+  apiKeyMissingRunTitle: "API key not set",
+  apiKeyMissingRunDesc: "One or more API keys required for the current agent configuration are missing.",
+  goToSettings: "Set up in Settings",
   // Landing page
   landingHero: "Not one AI.\nAn AI team that thinks together.",
   landingSubcopy: "Qrooma is an async AI team room where multiple AIs debate from their own perspectives — guiding you all the way to a conclusion, not just a quick reply.",
