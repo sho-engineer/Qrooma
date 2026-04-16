@@ -1,4 +1,5 @@
 import { useSettings } from "../context/SettingsContext";
+import { useLocale, type Locale } from "../context/LocaleContext";
 import type { AgentSideConfig, Provider, DefaultMode } from "../types";
 
 const PROVIDER_COLORS: Record<Provider, string> = {
@@ -32,19 +33,6 @@ const PROVIDER_MODELS: Record<Provider, { value: string; label: string }[]> = {
   ],
 };
 
-const MODES: { value: DefaultMode; label: string; description: string }[] = [
-  {
-    value: "structured-debate",
-    label: "Structured Debate",
-    description: "Each agent takes a distinct position and argues it. Trade-offs surface through disagreement.",
-  },
-  {
-    value: "free-talk",
-    label: "Free Talk",
-    description: "Agents respond freely without role constraints. Good for open exploration and brainstorming.",
-  },
-];
-
 function ApiKeyField({
   label,
   value,
@@ -72,35 +60,35 @@ function ApiKeyField({
 }
 
 function SideConfig({
-  label,
+  sideKey,
   config,
   onChange,
 }: {
-  label: string;
+  sideKey: string;
   config: AgentSideConfig;
   onChange: (c: AgentSideConfig) => void;
 }) {
+  const { t } = useLocale();
   const models = PROVIDER_MODELS[config.provider];
   const color = PROVIDER_COLORS[config.provider];
   const currentModel = models.find((m) => m.value === config.model) ?? models[0];
 
   return (
     <div className="flex gap-4 items-start bg-muted/30 border border-border/60 rounded-lg p-4">
-      {/* Color indicator */}
       <div className="shrink-0 flex flex-col items-center gap-1 pt-0.5">
         <div
           className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm"
           style={{ backgroundColor: color }}
         >
-          {label}
+          {sideKey}
         </div>
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-muted-foreground mb-2.5">Side {label}</p>
+        <p className="text-xs font-medium text-muted-foreground mb-2.5">{t.sideLabel(sideKey)}</p>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-muted-foreground mb-1">Provider</label>
+            <label className="block text-xs text-muted-foreground mb-1">{t.provider}</label>
             <select
               value={config.provider}
               onChange={(e) => {
@@ -115,7 +103,7 @@ function SideConfig({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-muted-foreground mb-1">Model</label>
+            <label className="block text-xs text-muted-foreground mb-1">{t.model}</label>
             <select
               value={currentModel.value}
               onChange={(e) => onChange({ ...config, model: e.target.value })}
@@ -134,26 +122,60 @@ function SideConfig({
 
 export default function SettingsPage() {
   const { settings, updateSettings } = useSettings();
+  const { t, locale, setLocale } = useLocale();
+
+  const modes: { value: DefaultMode; label: string; description: string }[] = [
+    {
+      value: "structured-debate",
+      label: t.structuredDebate,
+      description: t.debateDesc,
+    },
+    {
+      value: "free-talk",
+      label: t.freeTalk,
+      description: t.freeTalkDesc,
+    },
+  ];
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
       <div className="max-w-xl">
-        <h2 className="text-lg font-semibold text-foreground mb-0.5">Settings</h2>
-        <p className="text-xs text-muted-foreground mb-7">Changes are saved automatically.</p>
+        <h2 className="text-lg font-semibold text-foreground mb-0.5">{t.settingsTitle}</h2>
+        <p className="text-xs text-muted-foreground mb-7">{t.settingsDesc}</p>
 
         <div className="space-y-9">
+
+          {/* UI Language */}
+          <section>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              {t.uiLanguage}
+            </h3>
+            <div className="flex gap-2">
+              {(["ja", "en"] as Locale[]).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLocale(l)}
+                  className={`px-4 py-1.5 text-sm rounded-md border transition-all ${
+                    locale === l
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-foreground border-border hover:bg-accent/40"
+                  }`}
+                >
+                  {l === "ja" ? "日本語" : "English"}
+                </button>
+              ))}
+            </div>
+          </section>
 
           {/* API Keys */}
           <section>
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              API Keys
+              {t.apiKeys}
             </h3>
             <div className="mb-4 px-3.5 py-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/30 dark:border-amber-800">
-              <p className="text-xs font-semibold text-amber-800 dark:text-amber-400 mb-1">Temporary storage</p>
+              <p className="text-xs font-semibold text-amber-800 dark:text-amber-400 mb-1">{t.apiKeysTempWarningTitle}</p>
               <p className="text-xs text-amber-700 dark:text-amber-500 leading-relaxed">
-                API keys are currently stored in your browser's localStorage. This is a placeholder
-                implementation. The final spec uses encrypted server-side storage per account —
-                keys will never be exposed to the client.
+                {t.apiKeysTempWarningDesc}
               </p>
             </div>
             <div className="space-y-3.5">
@@ -181,10 +203,10 @@ export default function SettingsPage() {
           {/* Default Mode */}
           <section>
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Default Mode
+              {t.defaultMode}
             </h3>
             <div className="space-y-2">
-              {MODES.map((mode) => {
+              {modes.map((mode) => {
                 const active = settings.defaultMode === mode.value;
                 const isDebate = mode.value === "structured-debate";
                 return (
@@ -223,15 +245,15 @@ export default function SettingsPage() {
           {/* Agent Configuration */}
           <section>
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-              Agent Configuration
+              {t.agentConfig}
             </h3>
             <p className="text-xs text-muted-foreground mb-3">
-              Each side maps to one provider and model. Agents respond in the order A → B → C.
+              {t.agentConfigDesc}
             </p>
             <div className="space-y-2.5">
-              <SideConfig label="A" config={settings.sideA} onChange={(c) => updateSettings({ sideA: c })} />
-              <SideConfig label="B" config={settings.sideB} onChange={(c) => updateSettings({ sideB: c })} />
-              <SideConfig label="C" config={settings.sideC} onChange={(c) => updateSettings({ sideC: c })} />
+              <SideConfig sideKey="A" config={settings.sideA} onChange={(c) => updateSettings({ sideA: c })} />
+              <SideConfig sideKey="B" config={settings.sideB} onChange={(c) => updateSettings({ sideB: c })} />
+              <SideConfig sideKey="C" config={settings.sideC} onChange={(c) => updateSettings({ sideC: c })} />
             </div>
           </section>
 

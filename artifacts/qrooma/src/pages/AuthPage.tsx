@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useLocale, type Locale } from "../context/LocaleContext";
 import { useLocation } from "wouter";
 
 export default function AuthPage() {
@@ -10,6 +11,7 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn, signUp } = useAuth();
+  const { t, locale, setLocale } = useLocale();
   const [, navigate] = useLocation();
 
   async function handleSubmit(e: FormEvent) {
@@ -20,12 +22,12 @@ export default function AuthPage() {
       if (mode === "login") {
         await signIn(email, password);
       } else {
-        if (!name.trim()) { setError("Name is required."); setIsSubmitting(false); return; }
+        if (!name.trim()) { setError(locale === "ja" ? "名前を入力してください。" : "Name is required."); setIsSubmitting(false); return; }
         await signUp(email, password, name);
       }
       navigate("/rooms");
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(locale === "ja" ? "エラーが発生しました。再度お試しください。" : "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -35,18 +37,36 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
 
+        {/* Language toggle */}
+        <div className="flex justify-end mb-4 gap-1">
+          {(["ja", "en"] as Locale[]).map((l) => (
+            <button
+              key={l}
+              onClick={() => setLocale(l)}
+              className={`px-2.5 py-1 text-xs rounded border transition-all ${
+                locale === l
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "text-muted-foreground border-border hover:bg-accent/40"
+              }`}
+            >
+              {l === "ja" ? "日本語" : "EN"}
+            </button>
+          ))}
+        </div>
+
         {/* Logo / tagline */}
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Qrooma</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Async AI team room — bring your own API keys</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {locale === "ja" ? "非同期 AI チームルーム — 自分の API キーを使う" : "Async AI team room — bring your own API keys"}
+          </p>
         </div>
 
         {/* Demo banner */}
         <div className="mb-4 px-3.5 py-2.5 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/30 dark:border-blue-800">
-          <p className="text-xs font-semibold text-blue-800 dark:text-blue-400 mb-0.5">Demo mode</p>
+          <p className="text-xs font-semibold text-blue-800 dark:text-blue-400 mb-0.5">{t.demoModeTitle}</p>
           <p className="text-xs text-blue-700 dark:text-blue-500 leading-relaxed">
-            Any email and password works. Auth is not validated in this UI prototype.{" "}
-            <span className="opacity-70">Supabase Auth replaces this in production.</span>
+            {t.demoModeDesc}
           </p>
         </div>
 
@@ -63,7 +83,7 @@ export default function AuthPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Log in
+              {t.loginTab}
             </button>
             <button
               type="button"
@@ -74,7 +94,7 @@ export default function AuthPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Sign up
+              {t.signupTab}
             </button>
           </div>
 
@@ -82,14 +102,14 @@ export default function AuthPage() {
             {mode === "signup" && (
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1" htmlFor="name">
-                  Name
+                  {t.name}
                 </label>
                 <input
                   id="name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Your name"
+                  placeholder={locale === "ja" ? "お名前" : "Your name"}
                   required={mode === "signup"}
                   className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md outline-none focus:ring-2 focus:ring-ring transition-shadow placeholder:text-muted-foreground"
                 />
@@ -98,7 +118,7 @@ export default function AuthPage() {
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-1" htmlFor="email">
-                Email
+                {t.email}
               </label>
               <input
                 id="email"
@@ -113,7 +133,7 @@ export default function AuthPage() {
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-1" htmlFor="password">
-                Password
+                {t.password}
               </label>
               <input
                 id="password"
@@ -136,16 +156,19 @@ export default function AuthPage() {
               disabled={isSubmitting}
               className="w-full py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity disabled:opacity-60"
             >
-              {isSubmitting ? "Please wait…" : mode === "login" ? "Log in" : "Create account"}
+              {isSubmitting
+                ? (locale === "ja" ? "処理中…" : "Please wait…")
+                : mode === "login" ? t.loginBtn : t.signupBtn}
             </button>
           </form>
         </div>
 
         {/* API key footnote */}
-        <div className="mt-4 px-1 space-y-1">
+        <div className="mt-4 px-1">
           <p className="text-xs text-center text-muted-foreground leading-relaxed">
-            API keys are stored in your browser for this prototype.{" "}
-            <span className="opacity-60">Final spec: encrypted server-side storage — keys never exposed to the client.</span>
+            {locale === "ja"
+              ? "APIキーはこのプロトタイプではブラウザに保存されます。本実装ではサーバーサイドで暗号化されクライアントに送信されません。"
+              : "API keys are stored in your browser for this prototype. Final spec: encrypted server-side storage — keys never exposed to the client."}
           </p>
         </div>
       </div>
