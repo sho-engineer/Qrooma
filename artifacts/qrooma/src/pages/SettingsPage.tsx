@@ -86,7 +86,7 @@ function SideConfig({
 
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium text-muted-foreground mb-2.5">{t.sideLabel(sideKey)}</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-muted-foreground mb-1">{t.provider}</label>
             <select
@@ -138,7 +138,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="flex-1 overflow-y-auto px-4 py-5 sm:p-6">
       <div className="max-w-xl">
         <h2 className="text-lg font-semibold text-foreground mb-0.5">{t.settingsTitle}</h2>
         <p className="text-xs text-muted-foreground mb-7">{t.settingsDesc}</p>

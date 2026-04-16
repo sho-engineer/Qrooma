@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MenuIcon } from "lucide-react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { RoomsProvider } from "./context/RoomsContext";
@@ -17,7 +18,23 @@ const queryClient = new QueryClient();
 function AppShell() {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
+
+  useEffect(() => {
+    function onResize() {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(true);
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  function closeSidebar() {
+    if (isMobile) setSidebarOpen(false);
+  }
 
   if (isLoading) {
     return (
@@ -39,8 +56,33 @@ function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen((o) => !o)} />
+      {/* Mobile backdrop */}
+      {isMobile && sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={closeSidebar}
+        />
+      )}
+
+      <Sidebar
+        isOpen={sidebarOpen}
+        isMobile={isMobile}
+        onToggle={() => setSidebarOpen((o) => !o)}
+        onClose={closeSidebar}
+      />
+
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Mobile-only top nav bar */}
+        <div className="md:hidden shrink-0 flex items-center gap-3 px-4 h-12 border-b border-border bg-card">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-1 -ml-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <MenuIcon size={20} />
+          </button>
+          <span className="text-sm font-semibold text-foreground">Qrooma</span>
+        </div>
+
         <Switch>
           <Route path="/rooms" component={RoomsPage} />
           <Route path="/rooms/:id" component={RoomDetailPage} />

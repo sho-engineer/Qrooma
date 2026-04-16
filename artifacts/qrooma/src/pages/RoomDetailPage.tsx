@@ -175,7 +175,7 @@ export default function RoomDetailPage() {
         onRerun={rerun}
       />
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col">
+      <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4 flex flex-col">
         <div ref={topRef} />
 
         {!hasMessages && <EmptyState />}

@@ -11,10 +11,12 @@ import {
 
 interface Props {
   isOpen: boolean;
+  isMobile: boolean;
   onToggle: () => void;
+  onClose: () => void;
 }
 
-export default function Sidebar({ isOpen, onToggle }: Props) {
+export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) {
   const [location] = useLocation();
   const { user, signOut } = useAuth();
   const { rooms, addRoom, updateRoom } = useRooms();
@@ -48,7 +50,12 @@ export default function Sidebar({ isOpen, onToggle }: Props) {
     setNewRoomMode(false);
   }
 
-  if (!isOpen) {
+  function handleRoomClick() {
+    onClose();
+  }
+
+  /* ── Desktop collapsed: icon-only bar ── */
+  if (!isOpen && !isMobile) {
     return (
       <aside className="flex flex-col w-10 shrink-0 border-r border-border bg-sidebar h-full items-center py-2 gap-2">
         <button
@@ -82,8 +89,18 @@ export default function Sidebar({ isOpen, onToggle }: Props) {
     );
   }
 
+  /* ── Mobile closed: nothing rendered (backdrop/button in App.tsx) ── */
+  if (!isOpen && isMobile) {
+    return null;
+  }
+
+  /* ── Full sidebar (desktop open OR mobile drawer) ── */
+  const containerClass = isMobile
+    ? "fixed inset-y-0 left-0 z-50 flex flex-col w-72 bg-sidebar shadow-2xl"
+    : "flex flex-col w-60 shrink-0 border-r border-border bg-sidebar h-full";
+
   return (
-    <aside className="flex flex-col w-60 shrink-0 border-r border-border bg-sidebar h-full">
+    <aside className={containerClass}>
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-3 border-b border-sidebar-border">
         <span className="text-sm font-semibold text-sidebar-foreground">Qrooma</span>
@@ -95,13 +112,24 @@ export default function Sidebar({ isOpen, onToggle }: Props) {
           >
             <PlusIcon size={15} />
           </button>
-          <button
-            onClick={onToggle}
-            title={t.toggleSidebar}
-            className="p-1 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-sidebar-accent-foreground transition-colors"
-          >
-            <PanelLeftCloseIcon size={15} />
-          </button>
+          {!isMobile && (
+            <button
+              onClick={onToggle}
+              title={t.toggleSidebar}
+              className="p-1 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-sidebar-accent-foreground transition-colors"
+            >
+              <PanelLeftCloseIcon size={15} />
+            </button>
+          )}
+          {isMobile && (
+            <button
+              onClick={onClose}
+              title={t.toggleSidebar}
+              className="p-1 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-sidebar-accent-foreground transition-colors"
+            >
+              <XIcon size={15} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -169,7 +197,11 @@ export default function Sidebar({ isOpen, onToggle }: Props) {
                 </div>
               ) : (
                 <>
-                  <Link href={`/rooms/${room.id}`} className="flex-1 min-w-0 px-2 py-1.5">
+                  <Link
+                    href={`/rooms/${room.id}`}
+                    className="flex-1 min-w-0 px-2 py-1.5"
+                    onClick={handleRoomClick}
+                  >
                     <div className="flex items-center gap-1.5 min-w-0">
                       {hasError && (
                         <AlertTriangleIcon size={10} className="text-destructive shrink-0" />
@@ -206,6 +238,7 @@ export default function Sidebar({ isOpen, onToggle }: Props) {
       <div className="border-t border-sidebar-border px-3 py-2 space-y-1">
         <Link
           href="/settings"
+          onClick={handleRoomClick}
           className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${
             location === "/settings"
               ? "bg-sidebar-accent text-sidebar-accent-foreground"

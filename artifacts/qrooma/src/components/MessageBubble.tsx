@@ -53,7 +53,7 @@ export default function MessageBubble({ message }: Props) {
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[70%] bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm leading-relaxed">
+        <div className="max-w-[88%] sm:max-w-[70%] bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm leading-relaxed">
           {message.content}
         </div>
       </div>
@@ -63,7 +63,7 @@ export default function MessageBubble({ message }: Props) {
   const agent = AGENTS.find((a) => a.id === message.agentId);
 
   return (
-    <div className="flex gap-2.5 max-w-[85%]">
+    <div className="flex gap-2.5 max-w-[95%] sm:max-w-[85%]">
       {message.agentId && <AgentAvatar agentId={message.agentId} />}
       <div className="min-w-0">
         {agent && (

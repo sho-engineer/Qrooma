@@ -40,7 +40,7 @@ export default function RoomHeader({
   return (
     <div className="shrink-0 border-b border-border bg-card">
       {/* Row 1: room name + re-run */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-1">
+      <div className="flex items-center justify-between px-3 sm:px-4 pt-3 pb-1">
         <h1 className="text-sm font-semibold text-foreground truncate">{roomName}</h1>
         {hasMessages && (
           <button
@@ -56,7 +56,7 @@ export default function RoomHeader({
       </div>
 
       {/* Row 2: status + mode + models */}
-      <div className="flex items-center gap-1.5 px-4 pb-2 flex-wrap">
+      <div className="flex items-center gap-1.5 px-3 sm:px-4 pb-2 flex-wrap">
         <RunStatusBadge status={runStatus} />
         <span className="text-muted-foreground/40 text-xs">·</span>
         <ModeBadge label={modeLabel} />

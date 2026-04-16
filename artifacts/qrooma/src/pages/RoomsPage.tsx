@@ -76,9 +76,9 @@ export default function RoomsPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="flex-1 overflow-y-auto px-4 py-5 sm:p-6">
       <div className="max-w-2xl">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5 sm:mb-6 gap-3">
           <div>
             <h2 className="text-lg font-semibold text-foreground">{t.rooms}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -87,7 +87,7 @@ export default function RoomsPage() {
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity whitespace-nowrap shrink-0"
           >
             <PlusIcon size={14} />
             {t.newRoom}

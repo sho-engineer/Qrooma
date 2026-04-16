@@ -19,7 +19,7 @@ export default function MessageInput({ value, onChange, onSend, isRunning }: Pro
   }
 
   return (
-    <div className="shrink-0 px-4 pb-4 pt-1">
+    <div className="shrink-0 px-3 pb-3 pt-1 sm:px-4 sm:pb-4">
       <div
         className={`flex gap-2 bg-card border rounded-lg px-3 py-2 transition-opacity ${
           isRunning ? "opacity-60" : ""
