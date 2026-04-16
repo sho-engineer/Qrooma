@@ -1,4 +1,5 @@
 import { useSettings } from "../context/SettingsContext";
+import { useLocale, type Locale } from "../context/LocaleContext";
 import type { AgentSideConfig, Provider, DefaultMode } from "../types";
 
 const PROVIDER_COLORS: Record<Provider, string> = {
@@ -32,19 +33,6 @@ const PROVIDER_MODELS: Record<Provider, { value: string; label: string }[]> = {
   ],
 };
 
-const MODES: { value: DefaultMode; label: string; description: string }[] = [
-  {
-    value: "structured-debate",
-    label: "Structured Debate",
-    description: "Each agent takes a distinct position and argues it. Trade-offs surface through disagreement.",
-  },
-  {
-    value: "free-talk",
-    label: "Free Talk",
-    description: "Agents respond freely without role constraints. Good for open exploration and brainstorming.",
-  },
-];
-
 function ApiKeyField({
   label,
   value,
@@ -58,56 +46,67 @@ function ApiKeyField({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-foreground mb-1">{label}</label>
+      <label className="block text-xs font-medium text-foreground mb-1.5">{label}</label>
       <input
         type="password"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete="new-password"
-        className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md outline-none focus:ring-2 focus:ring-ring font-mono placeholder:font-sans placeholder:text-muted-foreground"
+        className="w-full px-3 py-2.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring font-mono placeholder:font-sans placeholder:text-muted-foreground"
       />
     </div>
   );
 }
 
 function SideConfig({
-  label,
+  sideKey,
   config,
+  hasApiKey,
   onChange,
 }: {
-  label: string;
+  sideKey: string;
   config: AgentSideConfig;
+  hasApiKey: boolean;
   onChange: (c: AgentSideConfig) => void;
 }) {
+  const { t } = useLocale();
   const models = PROVIDER_MODELS[config.provider];
   const color = PROVIDER_COLORS[config.provider];
   const currentModel = models.find((m) => m.value === config.model) ?? models[0];
 
   return (
-    <div className="flex gap-4 items-start bg-muted/30 border border-border/60 rounded-lg p-4">
-      {/* Color indicator */}
+    <div className="flex gap-4 items-start border border-border rounded-2xl p-5 bg-card">
       <div className="shrink-0 flex flex-col items-center gap-1 pt-0.5">
         <div
-          className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm"
-          style={{ backgroundColor: color }}
+          className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center"
         >
-          {label}
+          <span
+            className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: color }}
+          />
         </div>
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-muted-foreground mb-2.5">Side {label}</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="flex items-center gap-2 mb-3">
+          <p className="text-xs font-medium text-foreground">{t.sideLabel(sideKey)}</p>
+          {!hasApiKey && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+              API Key 未設定
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-muted-foreground mb-1">Provider</label>
+            <label className="block text-xs text-muted-foreground mb-1.5">{t.provider}</label>
             <select
               value={config.provider}
               onChange={(e) => {
                 const p = e.target.value as Provider;
                 onChange({ ...config, provider: p, model: PROVIDER_MODELS[p][0].value });
               }}
-              className="w-full px-2.5 py-1.5 text-sm bg-background border border-input rounded-md outline-none focus:ring-2 focus:ring-ring"
+              className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring"
             >
               {(["openai", "anthropic", "google"] as Provider[]).map((p) => (
                 <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>
@@ -115,11 +114,11 @@ function SideConfig({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-muted-foreground mb-1">Model</label>
+            <label className="block text-xs text-muted-foreground mb-1.5">{t.model}</label>
             <select
               value={currentModel.value}
               onChange={(e) => onChange({ ...config, model: e.target.value })}
-              className="w-full px-2.5 py-1.5 text-sm bg-background border border-input rounded-md outline-none focus:ring-2 focus:ring-ring"
+              className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring"
             >
               {models.map((m) => (
                 <option key={m.value} value={m.value}>{m.label}</option>
@@ -134,29 +133,69 @@ function SideConfig({
 
 export default function SettingsPage() {
   const { settings, updateSettings } = useSettings();
+  const { t, locale, setLocale } = useLocale();
+
+  function apiKeyForProvider(provider: Provider): string {
+    if (provider === "openai") return settings.openaiApiKey;
+    if (provider === "anthropic") return settings.anthropicApiKey;
+    return settings.googleApiKey;
+  }
+
+  const modes: { value: DefaultMode; label: string; description: string }[] = [
+    {
+      value: "structured-debate",
+      label: t.structuredDebate,
+      description: t.debateDesc,
+    },
+    {
+      value: "free-talk",
+      label: t.freeTalk,
+      description: t.freeTalkDesc,
+    },
+  ];
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-7 sm:py-8">
       <div className="max-w-xl">
-        <h2 className="text-lg font-semibold text-foreground mb-0.5">Settings</h2>
-        <p className="text-xs text-muted-foreground mb-7">Changes are saved automatically.</p>
+        <h2 className="text-lg font-semibold text-foreground mb-1">{t.settingsTitle}</h2>
+        <p className="text-xs text-muted-foreground mb-9">{t.settingsDesc}</p>
 
-        <div className="space-y-9">
+        <div className="space-y-10">
+
+          {/* UI Language */}
+          <section>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">
+              {t.uiLanguage}
+            </h3>
+            <div className="flex gap-2">
+              {(["ja", "en"] as Locale[]).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLocale(l)}
+                  className={`px-4 py-2 text-sm rounded-xl border transition-all ${
+                    locale === l
+                      ? "bg-foreground text-background border-foreground"
+                      : "bg-background text-foreground border-border hover:bg-accent"
+                  }`}
+                >
+                  {l === "ja" ? "日本語" : "English"}
+                </button>
+              ))}
+            </div>
+          </section>
 
           {/* API Keys */}
           <section>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              API Keys
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">
+              {t.apiKeys}
             </h3>
-            <div className="mb-4 px-3.5 py-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/30 dark:border-amber-800">
-              <p className="text-xs font-semibold text-amber-800 dark:text-amber-400 mb-1">Temporary storage</p>
-              <p className="text-xs text-amber-700 dark:text-amber-500 leading-relaxed">
-                API keys are currently stored in your browser's localStorage. This is a placeholder
-                implementation. The final spec uses encrypted server-side storage per account —
-                keys will never be exposed to the client.
+            <div className="mb-5 px-4 py-3.5 bg-muted/50 border border-border rounded-2xl">
+              <p className="text-xs font-medium text-foreground mb-1">{t.apiKeysTempWarningTitle}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {t.apiKeysTempWarningDesc}
               </p>
             </div>
-            <div className="space-y-3.5">
+            <div className="space-y-4">
               <ApiKeyField
                 label="OpenAI API Key"
                 value={settings.openaiApiKey}
@@ -180,35 +219,28 @@ export default function SettingsPage() {
 
           {/* Default Mode */}
           <section>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Default Mode
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">
+              {t.defaultMode}
             </h3>
-            <div className="space-y-2">
-              {MODES.map((mode) => {
+            <div className="space-y-2.5">
+              {modes.map((mode) => {
                 const active = settings.defaultMode === mode.value;
-                const isDebate = mode.value === "structured-debate";
                 return (
                   <button
                     key={mode.value}
                     onClick={() => updateSettings({ defaultMode: mode.value })}
-                    className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${
+                    className={`w-full text-left px-5 py-4 rounded-2xl border transition-all ${
                       active
-                        ? isDebate
-                          ? "bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-700"
-                          : "bg-violet-50 border-violet-300 dark:bg-violet-900/20 dark:border-violet-700"
-                        : "bg-background border-border hover:bg-accent/40"
+                        ? "bg-card border-foreground/20"
+                        : "bg-background border-border hover:border-foreground/10 hover:bg-card"
                     }`}
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${
-                        active
-                          ? isDebate ? "bg-blue-500" : "bg-violet-500"
-                          : "bg-border"
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        active ? "bg-foreground" : "bg-border"
                       }`} />
                       <span className={`text-sm font-medium ${
-                        active
-                          ? isDebate ? "text-blue-700 dark:text-blue-400" : "text-violet-700 dark:text-violet-400"
-                          : "text-foreground"
+                        active ? "text-foreground" : "text-foreground/70"
                       }`}>
                         {mode.label}
                       </span>
@@ -222,16 +254,16 @@ export default function SettingsPage() {
 
           {/* Agent Configuration */}
           <section>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-              Agent Configuration
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">
+              {t.agentConfig}
             </h3>
-            <p className="text-xs text-muted-foreground mb-3">
-              Each side maps to one provider and model. Agents respond in the order A → B → C.
+            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+              {t.agentConfigDesc}
             </p>
-            <div className="space-y-2.5">
-              <SideConfig label="A" config={settings.sideA} onChange={(c) => updateSettings({ sideA: c })} />
-              <SideConfig label="B" config={settings.sideB} onChange={(c) => updateSettings({ sideB: c })} />
-              <SideConfig label="C" config={settings.sideC} onChange={(c) => updateSettings({ sideC: c })} />
+            <div className="space-y-3">
+              <SideConfig sideKey="A" config={settings.sideA} hasApiKey={!!apiKeyForProvider(settings.sideA.provider)} onChange={(c) => updateSettings({ sideA: c })} />
+              <SideConfig sideKey="B" config={settings.sideB} hasApiKey={!!apiKeyForProvider(settings.sideB.provider)} onChange={(c) => updateSettings({ sideB: c })} />
+              <SideConfig sideKey="C" config={settings.sideC} hasApiKey={!!apiKeyForProvider(settings.sideC.provider)} onChange={(c) => updateSettings({ sideC: c })} />
             </div>
           </section>
 
