@@ -5,6 +5,7 @@ import { ApiKeyForm } from '@/components/settings/ApiKeyForm'
 import { DefaultModeSelector } from '@/components/settings/DefaultModeSelector'
 import { ModelSelector } from '@/components/settings/ModelSelector'
 import { LocaleSelector } from '@/components/settings/LocaleSelector'
+import { ApiKeyInfoCard } from '@/components/settings/ApiKeyInfoCard'
 import { getOrCreateUserDefaults } from '@/actions/userDefaults'
 import { SettingsActions } from './SettingsActions'
 
@@ -36,7 +37,8 @@ export default async function SettingsPage() {
             {t.apiKeys}
           </h3>
           <p className="text-xs text-gray-400 mb-4">{t.apiKeysDesc}</p>
-          <div className="space-y-3">
+          <ApiKeyInfoCard />
+          <div className="space-y-3 mt-4">
             <ApiKeyForm
               provider="openai"
               label="OpenAI"

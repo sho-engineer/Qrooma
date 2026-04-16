@@ -74,6 +74,21 @@ export interface Translations {
   saving: string
   saved: string
   saveFailed: string
+
+  // Onboarding modal
+  onboardingTitle: string
+  onboardingBody: string
+  onboardingNote: string
+  onboardingCta: string
+  onboardingLater: string
+
+  // API key info card (Settings)
+  apiKeyInfoTitle: string
+  apiKeyInfoBYOK: string
+  apiKeyInfoRequired: string
+  apiKeyInfo3Providers: string
+  apiKeyInfoFailed: string
+  apiKeyInfoEncrypted: string
 }
 
 export const translations: Record<Locale, Translations> = {
@@ -151,6 +166,21 @@ export const translations: Record<Locale, Translations> = {
     saving: '保存中...',
     saved: '保存済み',
     saveFailed: '保存失敗',
+
+    // Onboarding modal
+    onboardingTitle: 'APIキーの設定が必要です',
+    onboardingBody: 'Qrooma は BYOK（Bring Your Own Key）方式です。議論を実行するには、利用するAIプロバイダーの APIキー設定が必要です。利用料金は各プロバイダーの契約に基づいて、あなた自身の APIキー経由で発生します。',
+    onboardingNote: 'APIキーはサーバーサイドで AES-256-GCM 暗号化して保存されます。クライアントに生値は返されません。',
+    onboardingCta: 'APIキーを設定する',
+    onboardingLater: 'あとで見る',
+
+    // API key info card (Settings)
+    apiKeyInfoTitle: 'APIキーについて',
+    apiKeyInfoBYOK: 'Qrooma は BYOK（Bring Your Own Key）方式です',
+    apiKeyInfoRequired: '議論を実行するには APIキーの設定が必要です',
+    apiKeyInfo3Providers: 'Structured Debate では 3つの AIサイドに異なるプロバイダーを設定できます',
+    apiKeyInfoFailed: '未設定または無効なキーがあると、議論が失敗します',
+    apiKeyInfoEncrypted: 'APIキーは AES-256-GCM で暗号化されサーバーにのみ保存されます',
   },
 
   en: {
@@ -227,6 +257,21 @@ export const translations: Record<Locale, Translations> = {
     saving: 'Saving...',
     saved: 'Saved',
     saveFailed: 'Save failed',
+
+    // Onboarding modal
+    onboardingTitle: 'API Key Setup Required',
+    onboardingBody: 'Qrooma is BYOK (Bring Your Own Key). To run AI discussions, you need to add API keys for the AI providers you want to use. Usage costs are charged directly to your own API keys under each provider\'s pricing.',
+    onboardingNote: 'Your API keys are encrypted with AES-256-GCM and stored server-side only. The raw key is never returned to the client.',
+    onboardingCta: 'Set up API keys',
+    onboardingLater: 'Maybe later',
+
+    // API key info card (Settings)
+    apiKeyInfoTitle: 'About API Keys',
+    apiKeyInfoBYOK: 'Qrooma is BYOK (Bring Your Own Key)',
+    apiKeyInfoRequired: 'API keys are required to run AI discussions',
+    apiKeyInfo3Providers: 'Structured Debate supports different providers for each of the 3 AI sides',
+    apiKeyInfoFailed: 'Missing or invalid keys will cause discussions to fail',
+    apiKeyInfoEncrypted: 'Keys are encrypted with AES-256-GCM and stored server-side only',
   },
 }
 
