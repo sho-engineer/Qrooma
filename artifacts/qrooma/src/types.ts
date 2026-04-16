@@ -74,4 +74,5 @@ export interface Settings {
   sideB: AgentSideConfig;
   sideC: AgentSideConfig;
   defaultMode: DefaultMode;
+  agentCount: 2 | 3;
 }

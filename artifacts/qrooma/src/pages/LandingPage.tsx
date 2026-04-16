@@ -43,6 +43,7 @@ export default function LandingPage() {
   ];
 
   const steps = [t.landingHowStep1, t.landingHowStep2, t.landingHowStep3];
+  const stepLabels = [t.landingHowStep1Label, t.landingHowStep2Label, t.landingHowStep3Label];
 
   const byokItems = [
     t.landingByokItem1,
@@ -230,21 +231,21 @@ export default function LandingPage() {
 
       {/* How it works */}
       <section className="border-t border-border/70">
-        <div className="max-w-6xl mx-auto px-6 py-24">
-          <div className="max-w-2xl mb-14">
+        <div className="max-w-6xl mx-auto px-6 py-16 sm:py-20">
+          <div className="max-w-2xl mb-10">
             <SectionTitle>{t.landingHowTitle}</SectionTitle>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="space-y-0 divide-y divide-border/60">
             {steps.map((step, i) => (
-              <div
-                key={i}
-                className="rounded-[24px] border border-border bg-card/70 p-6"
-              >
-                <div className="w-8 h-8 rounded-full border border-border bg-background flex items-center justify-center text-xs font-medium text-muted-foreground mb-4">
+              <div key={i} className="flex items-center gap-5 py-4 sm:py-5">
+                <span className="shrink-0 text-sm font-semibold text-muted-foreground/40 w-5 text-right select-none">
                   {i + 1}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{step}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{stepLabels[i]}</p>
                 </div>
-                <p className="text-sm text-foreground leading-7">{step}</p>
               </div>
             ))}
           </div>

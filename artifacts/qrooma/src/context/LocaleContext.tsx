@@ -66,6 +66,8 @@ export interface Translations {
   noConclusionAfterRun: string;
   emptyStateTitle: string;
   emptyStateDesc: string;
+  agentCount: string;
+  duplicateModelError: string;
   // Landing page
   landingHero: string;
   landingSubcopy: string;
@@ -79,8 +81,11 @@ export interface Translations {
   landingCard3Body: string;
   landingHowTitle: string;
   landingHowStep1: string;
+  landingHowStep1Label: string;
   landingHowStep2: string;
+  landingHowStep2Label: string;
   landingHowStep3: string;
+  landingHowStep3Label: string;
   landingModesTitle: string;
   landingByokTitle: string;
   landingByokLead: string;
@@ -157,6 +162,8 @@ const ja: Translations = {
   noConclusionAfterRun: "実行完了後に表示されます。",
   emptyStateTitle: "ディスカッションを開始",
   emptyStateDesc: "下の入力欄にトピックや質問を入力してください。ChatGPT・Claude・Gemini がそれぞれの視点で回答します。",
+  agentCount: "参加エージェント数",
+  duplicateModelError: "同じモデルは複数の枠に設定できません",
   // Landing page
   landingHero: "ひとりのAIではなく、\n考えてくれるAIチームを。",
   landingSubcopy: "Qrooma は、複数のAIがそれぞれの視点で議論し、壁打ちで終わらず、ひとつの結論まで導く AI チームルームです。",
@@ -169,9 +176,12 @@ const ja: Translations = {
   landingCard3Title: "浅い壁打ちではなく、深く考えたい人へ",
   landingCard3Body: "思いつきの返答ではなく、論点整理、反論、実行案まで踏み込みたい。",
   landingHowTitle: "使い方",
-  landingHowStep1: "APIキーを設定",
+  landingHowStep1: "API キーを設定",
+  landingHowStep1Label: "OpenAI・Anthropic・Google のキーを入力",
   landingHowStep2: "ルームを作成",
-  landingHowStep3: "テーマを投げて、議論と結論を見る",
+  landingHowStep2Label: "議題ごとにルームを分けて管理",
+  landingHowStep3: "テーマを投げる",
+  landingHowStep3Label: "AIチームが議論し、結論を生成",
   landingModesTitle: "2つのモード",
   landingByokTitle: "Bring Your Own Key",
   landingByokLead: "Qrooma は BYOK 方式です。",
@@ -249,6 +259,8 @@ const en: Translations = {
   noConclusionAfterRun: "Will appear after a completed run.",
   emptyStateTitle: "Start the discussion",
   emptyStateDesc: "Post a topic or question below. ChatGPT, Claude, and Gemini will each share their perspective — then you can dig deeper.",
+  agentCount: "Number of agents",
+  duplicateModelError: "The same model cannot be assigned to multiple sides",
   // Landing page
   landingHero: "Not one AI.\nAn AI team that thinks together.",
   landingSubcopy: "Qrooma is an async AI team room where multiple AIs debate from their own perspectives — guiding you all the way to a conclusion, not just a quick reply.",
@@ -262,8 +274,11 @@ const en: Translations = {
   landingCard3Body: "Not a quick reply — structured arguments, counterpoints, and action items.",
   landingHowTitle: "How it works",
   landingHowStep1: "Set your API keys",
+  landingHowStep1Label: "Enter keys for OpenAI, Anthropic, or Google",
   landingHowStep2: "Create a room",
-  landingHowStep3: "Post a topic and watch the debate unfold",
+  landingHowStep2Label: "Organize discussions by topic",
+  landingHowStep3: "Post a topic",
+  landingHowStep3Label: "The AI team debates and delivers a conclusion",
   landingModesTitle: "Two modes",
   landingByokTitle: "Bring Your Own Key",
   landingByokLead: "Qrooma is BYOK — you bring the keys.",

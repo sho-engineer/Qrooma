@@ -21,7 +21,7 @@ function RoomCard({ room }: { room: Room }) {
 
   return (
     <Link href={`/rooms/${room.id}`} className="block">
-      <div className="bg-card border border-border rounded-2xl px-5 py-4 hover:border-foreground/20 transition-colors cursor-pointer">
+      <div className="bg-card border border-border rounded-2xl px-4 py-3 hover:border-foreground/20 transition-colors cursor-pointer">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">

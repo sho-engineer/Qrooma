@@ -320,4 +320,5 @@ export const DEFAULT_SETTINGS: Settings = {
   sideB: { side: "B", provider: "anthropic", model: "claude-3-5-sonnet-20241022" },
   sideC: { side: "C", provider: "google",    model: "gemini-1.5-pro" },
   defaultMode: "structured-debate",
+  agentCount: 3,
 };
