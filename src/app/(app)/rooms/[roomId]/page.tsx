@@ -5,15 +5,12 @@ import { MessageTimeline } from '@/components/chat/MessageTimeline'
 import { MessageInput } from '@/components/chat/MessageInput'
 import { RunStatusBanner } from '@/components/chat/RunStatusBanner'
 import { RoomRealtime } from '@/components/chat/RoomRealtime'
+import { getLocale } from '@/actions/locale'
+import { getT } from '@/lib/i18n'
 import type { RunStatus, Mode } from '@/types/database'
 
 interface Props {
   params: { roomId: string }
-}
-
-const MODE_LABELS: Record<Mode, string> = {
-  structured_debate: 'Structured Debate',
-  free_talk: 'Free Talk',
 }
 
 const MODE_COLORS: Record<Mode, string> = {
@@ -29,6 +26,9 @@ export default async function RoomDetailPage({ params }: Props) {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const locale = await getLocale()
+  const t = getT(locale)
 
   const { data: room } = await supabase
     .from('rooms')
@@ -74,7 +74,7 @@ export default async function RoomDetailPage({ params }: Props) {
           <span
             className={`flex-shrink-0 text-xs px-2 py-0.5 rounded border font-medium ${MODE_COLORS[mode]}`}
           >
-            {MODE_LABELS[mode]}
+            {mode === 'structured_debate' ? t.structuredDebate : t.freeTalk}
           </span>
         </div>
 
@@ -105,7 +105,7 @@ export default async function RoomDetailPage({ params }: Props) {
             href={`/rooms/${roomId}/settings`}
             className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
           >
-            ⚙ Settings
+            ⚙ {t.roomSettings}
           </Link>
         </div>
       </div>
