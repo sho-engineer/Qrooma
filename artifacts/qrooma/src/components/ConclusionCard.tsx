@@ -23,55 +23,55 @@ export default function ConclusionCard({ runCount, conclusion }: Props) {
     <div className="mx-3 sm:mx-4 mb-2">
       <button
         onClick={() => setIsOpen((p) => !p)}
-        className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium border transition-all ${
+        className={`w-full flex items-center justify-between px-4 py-2.5 text-sm border transition-all ${
           isOpen
-            ? "border-b-0 rounded-t-xl bg-card border-border/70"
-            : "rounded-xl bg-card border-border/70 hover:border-border"
+            ? "border-b-0 rounded-t-2xl bg-card border-border/60"
+            : "rounded-2xl bg-card border-border/60 hover:border-foreground/15 hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
         }`}
       >
-        <div className="flex items-center gap-2.5 text-foreground">
-          <span className="text-muted-foreground/50 text-base leading-none">◈</span>
-          <span className="font-medium">{t.conclusion}</span>
+        <div className="flex items-center gap-2 text-foreground">
+          <span className="text-foreground/30 text-base leading-none select-none">◈</span>
+          <span className="text-sm font-semibold">{t.conclusion}</span>
           {conclusion && (
-            <span className="text-[11px] font-normal text-muted-foreground/60">
+            <span className="text-[11px] font-normal text-muted-foreground/50">
               {t.runsCount(runCount)}
             </span>
           )}
         </div>
-        <div className="text-muted-foreground/40">
-          {isOpen ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />}
+        <div className={`transition-transform duration-200 text-muted-foreground/40 ${isOpen ? "rotate-180" : ""}`}>
+          <ChevronDownIcon size={14} />
         </div>
       </button>
 
       {isOpen && (
-        <div className="border border-t-0 border-border/70 rounded-b-xl bg-card divide-y divide-border/40">
+        <div className="border border-t-0 border-border/60 rounded-b-2xl bg-card overflow-hidden">
           {conclusion ? (
             <>
               <div className="px-5 py-4">
-                <p className="text-sm text-foreground leading-relaxed">{conclusion.summary}</p>
+                <p className="text-sm text-foreground leading-[1.75]">{conclusion.summary}</p>
               </div>
-              <div className="px-5 py-4">
-                <p className="text-[10px] font-semibold text-muted-foreground/60 mb-3 uppercase tracking-widest">
+              <div className="px-5 py-4 border-t border-border/40 bg-background/30">
+                <p className="text-[10px] font-semibold text-muted-foreground/50 mb-3 uppercase tracking-widest">
                   {t.keyPoints}
                 </p>
-                <ul className="space-y-2.5">
+                <ul className="space-y-2">
                   {conclusion.keyPoints.map((pt, i) => (
-                    <li key={i} className="flex items-start gap-3 text-xs text-foreground/70 leading-relaxed">
-                      <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground/30 shrink-0" />
+                    <li key={i} className="flex items-start gap-3 text-[13px] text-foreground/75 leading-relaxed">
+                      <span className="mt-2 w-1 h-1 rounded-full bg-foreground/20 shrink-0" />
                       {pt}
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="px-5 py-2.5">
+              <div className="px-5 py-2 border-t border-border/30 bg-background/20">
                 <p className="text-[11px] text-muted-foreground/40">
                   {t.generatedAt}: {formatDate(conclusion.generatedAt, locale)}
                 </p>
               </div>
             </>
           ) : (
-            <div className="px-5 py-6 text-center">
-              <p className="text-sm text-muted-foreground/60">
+            <div className="px-5 py-7 text-center">
+              <p className="text-sm text-muted-foreground/50">
                 {runCount === 0 ? t.noConclusionStart : t.noConclusionAfterRun}
               </p>
             </div>

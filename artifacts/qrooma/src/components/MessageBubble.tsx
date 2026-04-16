@@ -51,7 +51,7 @@ export default function MessageBubble({ message }: Props) {
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[88%] sm:max-w-[70%] bg-primary text-primary-foreground rounded-2xl px-4 py-2.5 text-sm leading-relaxed">
+        <div className="max-w-[88%] sm:max-w-[72%] bg-foreground text-background rounded-2xl px-4 py-2.5 text-sm leading-relaxed">
           {message.content}
         </div>
       </div>
