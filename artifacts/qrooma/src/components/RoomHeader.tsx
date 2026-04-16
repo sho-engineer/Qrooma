@@ -1,5 +1,6 @@
 import { RotateCcwIcon } from "lucide-react";
 import type { RunStatus } from "../types";
+import { useLocale } from "../context/LocaleContext";
 
 interface Props {
   roomName: string;
@@ -35,6 +36,7 @@ export default function RoomHeader({
   hasMessages,
   onRerun,
 }: Props) {
+  const { t } = useLocale();
   const modelLine = activeModels.map(shorten).join(" · ");
 
   return (
@@ -47,10 +49,10 @@ export default function RoomHeader({
             onClick={onRerun}
             disabled={runStatus === "running"}
             className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border border-border rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-40 shrink-0 ml-3"
-            title="Re-run — starts a new run with the same last question"
+            title={t.rerun}
           >
             <RotateCcwIcon size={11} />
-            Re-run
+            {t.rerun}
           </button>
         )}
       </div>
@@ -77,11 +79,12 @@ export default function RoomHeader({
 }
 
 function RunStatusBadge({ status }: { status: RunStatus }) {
+  const { t } = useLocale();
   const config: Record<RunStatus, { label: string; dot: string; text: string; bg: string }> = {
-    idle:      { label: "Idle",       dot: "bg-muted-foreground/40", text: "text-muted-foreground", bg: "bg-muted/60" },
-    running:   { label: "Running",    dot: "bg-yellow-500 animate-pulse", text: "text-yellow-700 dark:text-yellow-400", bg: "bg-yellow-50 dark:bg-yellow-900/30" },
-    completed: { label: "Completed",  dot: "bg-green-500", text: "text-green-700 dark:text-green-400", bg: "bg-green-50 dark:bg-green-900/30" },
-    error:     { label: "Error",      dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
+    idle:      { label: t.statusIdle,      dot: "bg-muted-foreground/40", text: "text-muted-foreground", bg: "bg-muted/60" },
+    running:   { label: t.statusRunning,   dot: "bg-yellow-500 animate-pulse", text: "text-yellow-700 dark:text-yellow-400", bg: "bg-yellow-50 dark:bg-yellow-900/30" },
+    completed: { label: t.statusCompleted, dot: "bg-green-500", text: "text-green-700 dark:text-green-400", bg: "bg-green-50 dark:bg-green-900/30" },
+    error:     { label: t.statusError,     dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
   };
   const { label, dot, text, bg } = config[status];
   return (
@@ -93,7 +96,8 @@ function RunStatusBadge({ status }: { status: RunStatus }) {
 }
 
 function ModeBadge({ label }: { label: string }) {
-  const isDebate = label === "Structured Debate";
+  const { t } = useLocale();
+  const isDebate = label === t.structuredDebate;
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
       isDebate

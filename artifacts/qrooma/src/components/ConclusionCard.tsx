@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { ChevronDownIcon, ChevronUpIcon, SparklesIcon } from "lucide-react";
 import type { ConclusionData } from "../types";
+import { useLocale } from "../context/LocaleContext";
 
 interface Props {
   runCount: number;
   conclusion: ConclusionData | null;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString([], {
+function formatDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleString(locale === "ja" ? "ja-JP" : "en-US", {
     month: "short", day: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
@@ -16,9 +17,10 @@ function formatDate(iso: string): string {
 
 export default function ConclusionCard({ runCount, conclusion }: Props) {
   const [isOpen, setIsOpen] = useState(false);
+  const { t, locale } = useLocale();
 
   return (
-    <div className="mx-4 mb-2">
+    <div className="mx-3 sm:mx-4 mb-2">
       <button
         onClick={() => setIsOpen((p) => !p)}
         className={`w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium border transition-all ${
@@ -29,10 +31,10 @@ export default function ConclusionCard({ runCount, conclusion }: Props) {
       >
         <div className="flex items-center gap-2 text-foreground">
           <SparklesIcon size={13} className="text-primary/70" />
-          <span>Conclusion</span>
+          <span>{t.conclusion}</span>
           {conclusion && (
             <span className="text-xs font-normal text-muted-foreground">
-              · {runCount} {runCount === 1 ? "run" : "runs"}
+              {t.runsCount(runCount)}
             </span>
           )}
         </div>
@@ -49,7 +51,9 @@ export default function ConclusionCard({ runCount, conclusion }: Props) {
                 <p className="text-sm text-foreground leading-relaxed">{conclusion.summary}</p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Key points</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+                  {t.keyPoints}
+                </p>
                 <ul className="space-y-2">
                   {conclusion.keyPoints.map((pt, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed">
@@ -61,7 +65,7 @@ export default function ConclusionCard({ runCount, conclusion }: Props) {
               </div>
               <div className="px-4 py-2 flex items-center justify-between">
                 <p className="text-xs text-muted-foreground/50 italic">
-                  Generated {formatDate(conclusion.generatedAt)}
+                  {t.generatedAt}: {formatDate(conclusion.generatedAt, locale)}
                 </p>
                 <span className="text-[10px] text-muted-foreground/40 bg-muted px-1.5 py-0.5 rounded">
                   placeholder
@@ -71,10 +75,7 @@ export default function ConclusionCard({ runCount, conclusion }: Props) {
           ) : (
             <div className="px-4 py-5 text-center">
               <p className="text-sm text-muted-foreground">
-                No conclusion yet —{" "}
-                {runCount === 0
-                  ? "start a discussion to generate one."
-                  : "will appear after a completed run."}
+                {runCount === 0 ? t.noConclusionStart : t.noConclusionAfterRun}
               </p>
             </div>
           )}

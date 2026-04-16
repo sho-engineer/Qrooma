@@ -1,10 +1,13 @@
 import { AlertTriangleIcon, RotateCcwIcon } from "lucide-react";
+import { useLocale } from "../context/LocaleContext";
 
 interface Props {
   onRerun: () => void;
 }
 
 export default function ErrorState({ onRerun }: Props) {
+  const { t } = useLocale();
+
   return (
     <div className="mt-4 rounded-lg border border-destructive/25 bg-destructive/5 overflow-hidden">
       <div className="flex items-start gap-3 px-4 py-3.5">
@@ -12,9 +15,9 @@ export default function ErrorState({ onRerun }: Props) {
           <AlertTriangleIcon size={13} className="text-destructive" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-destructive">Run failed</p>
+          <p className="text-sm font-medium text-destructive">{t.runFailed}</p>
           <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-            One or more agents did not respond. Check that your API keys are set in Settings and try again.
+            {t.runFailedDesc}
           </p>
         </div>
       </div>
@@ -24,7 +27,7 @@ export default function ErrorState({ onRerun }: Props) {
           className="flex items-center gap-1.5 text-xs font-medium text-destructive hover:opacity-80 transition-opacity"
         >
           <RotateCcwIcon size={11} />
-          Re-run
+          {t.rerun}
         </button>
       </div>
     </div>

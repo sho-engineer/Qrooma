@@ -20,8 +20,8 @@ function RoomCard({ room }: { room: Room }) {
   const hasError = room.lastRunStatus === "error";
 
   return (
-    <Link href={`/rooms/${room.id}`}>
-      <div className={`bg-card border rounded-lg p-4 hover:shadow-sm transition-all cursor-pointer ${
+    <Link href={`/rooms/${room.id}`} className="block overflow-hidden">
+      <div className={`bg-card border rounded-lg p-4 hover:shadow-sm transition-all cursor-pointer overflow-hidden ${
         hasError
           ? "border-destructive/30 hover:border-destructive/50"
           : "border-border hover:border-primary/40"
@@ -76,7 +76,7 @@ export default function RoomsPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-5 sm:p-6">
+    <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 sm:p-6">
       <div className="max-w-2xl">
         <div className="flex items-center justify-between mb-5 sm:mb-6 gap-3">
           <div>

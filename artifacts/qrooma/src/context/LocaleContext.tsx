@@ -56,6 +56,16 @@ export interface Translations {
   freeTalkDesc: string;
   sideLabel: (s: string) => string;
   toggleSidebar: string;
+  rerunDesc: string;
+  agentResponding: (name: string) => string;
+  agentAndMoreResponding: (name: string) => string;
+  finishingUp: string;
+  runsCount: (n: number) => string;
+  generatedAt: string;
+  noConclusionStart: string;
+  noConclusionAfterRun: string;
+  emptyStateTitle: string;
+  emptyStateDesc: string;
 }
 
 const ja: Translations = {
@@ -113,6 +123,16 @@ const ja: Translations = {
   freeTalkDesc: "エージェントが制約なく自由に回答します。オープンな探索やブレインストーミングに適しています。",
   sideLabel: (s) => `サイド ${s}`,
   toggleSidebar: "サイドバーを切り替え",
+  rerunDesc: "同じ質問で再実行 — エージェントが新たに回答します",
+  agentResponding: (name) => `${name} が回答中…`,
+  agentAndMoreResponding: (name) => `${name} と他1名が回答中…`,
+  finishingUp: "まとめ中…",
+  runsCount: (n) => `· ${n} 回`,
+  generatedAt: "生成日時",
+  noConclusionStart: "ディスカッションを開始すると生成されます。",
+  noConclusionAfterRun: "実行完了後に表示されます。",
+  emptyStateTitle: "ディスカッションを開始",
+  emptyStateDesc: "下の入力欄にトピックや質問を入力してください。ChatGPT・Claude・Gemini がそれぞれの視点で回答します。",
 };
 
 const en: Translations = {
@@ -171,6 +191,16 @@ const en: Translations = {
   freeTalkDesc: "Agents respond freely without role constraints. Good for open exploration and brainstorming.",
   sideLabel: (s) => `Side ${s}`,
   toggleSidebar: "Toggle sidebar",
+  rerunDesc: "Same question, new run — agents respond fresh",
+  agentResponding: (name) => `${name} is responding…`,
+  agentAndMoreResponding: (name) => `${name} and 1 more responding…`,
+  finishingUp: "Finishing up…",
+  runsCount: (n) => `· ${n} ${n === 1 ? "run" : "runs"}`,
+  generatedAt: "Generated",
+  noConclusionStart: "Start a discussion to generate one.",
+  noConclusionAfterRun: "Will appear after a completed run.",
+  emptyStateTitle: "Start the discussion",
+  emptyStateDesc: "Post a topic or question below. ChatGPT, Claude, and Gemini will each share their perspective — then you can dig deeper.",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };

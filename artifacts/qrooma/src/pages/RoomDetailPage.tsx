@@ -10,6 +10,7 @@ import {
 } from "../data/dummy";
 import { useSettings } from "../context/SettingsContext";
 import { useRooms } from "../context/RoomsContext";
+import { useLocale } from "../context/LocaleContext";
 import type { Message, RunStatus } from "../types";
 import RoomHeader from "../components/RoomHeader";
 import MessageBubble from "../components/MessageBubble";
@@ -18,10 +19,6 @@ import MessageInput from "../components/MessageInput";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 
-const MODE_LABELS: Record<string, string> = {
-  "structured-debate": "Structured Debate",
-  "free-talk": "Free Talk",
-};
 
 // ─── group messages by run ────────────────────────────────────────────────────
 interface RunGroup {
@@ -55,6 +52,7 @@ export default function RoomDetailPage() {
   const { id: roomId } = useParams<{ id: string }>();
   const { settings } = useSettings();
   const { getRoomById } = useRooms();
+  const { t } = useLocale();
 
   const room = getRoomById(roomId);
   const roomName = room?.name ?? "Room";
@@ -159,6 +157,10 @@ export default function RoomDetailPage() {
   }
 
   const hasMessages = messages.length > 0;
+  const MODE_LABELS: Record<string, string> = {
+    "structured-debate": t.structuredDebate,
+    "free-talk": t.freeTalk,
+  };
   const modeLabel = MODE_LABELS[settings.defaultMode] ?? settings.defaultMode;
   const activeModels = [settings.sideA.model, settings.sideB.model, settings.sideC.model];
   const groupedMessages = groupByRun(messages);
@@ -228,13 +230,13 @@ interface RunSeparatorProps {
 }
 
 function RunSeparator({ index, firstMsgTime, isRerun, userQuestion }: RunSeparatorProps) {
+  const { t } = useLocale();
   const timeLabel = firstMsgTime
     ? new Date(firstMsgTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : null;
 
   return (
     <div className="my-8">
-      {/* Divider line + pill */}
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px bg-border/60" />
         <div className="flex items-center gap-1.5 shrink-0">
@@ -242,7 +244,7 @@ function RunSeparator({ index, firstMsgTime, isRerun, userQuestion }: RunSeparat
             <RotateCcwIcon size={10} className="text-muted-foreground/50" />
           )}
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-medium">
-            {isRerun ? "Re-run" : `Run ${index}`}
+            {isRerun ? t.rerun : t.runLabel(index)}
           </span>
           {timeLabel && (
             <span className="text-[11px] text-muted-foreground/50">{timeLabel}</span>
@@ -251,7 +253,6 @@ function RunSeparator({ index, firstMsgTime, isRerun, userQuestion }: RunSeparat
         <div className="flex-1 h-px bg-border/60" />
       </div>
 
-      {/* Trigger question (for new questions, not re-runs) */}
       {!isRerun && userQuestion && (
         <p className="mt-2 text-center text-[11px] text-muted-foreground/50 italic px-8 truncate" title={userQuestion}>
           "{userQuestion}"
@@ -259,7 +260,7 @@ function RunSeparator({ index, firstMsgTime, isRerun, userQuestion }: RunSeparat
       )}
       {isRerun && (
         <p className="mt-2 text-center text-[11px] text-muted-foreground/50 italic">
-          Same question, new run — agents respond fresh
+          {t.rerunDesc}
         </p>
       )}
     </div>
@@ -269,6 +270,7 @@ function RunSeparator({ index, firstMsgTime, isRerun, userQuestion }: RunSeparat
 // ─── Thinking Indicator ───────────────────────────────────────────────────────
 
 function ThinkingIndicator({ respondedCount }: { respondedCount: number }) {
+  const { t } = useLocale();
   const done = AGENTS.slice(0, respondedCount);
   const pending = AGENTS.slice(respondedCount);
   const nextAgent = pending[0];
@@ -277,19 +279,16 @@ function ThinkingIndicator({ respondedCount }: { respondedCount: number }) {
   return (
     <div className="flex items-center gap-3 mt-5 px-1">
       <div className="flex items-center gap-2">
-        {/* Already responded — dimmed */}
         {done.map((a) => (
           <span
             key={a.id}
             className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[9px] font-bold opacity-30"
             style={{ backgroundColor: a.color }}
-            title={`${a.name} responded`}
           >
             {a.initial}
           </span>
         ))}
 
-        {/* Currently responding — animated dots */}
         {nextAgent && (
           <div className="flex items-center gap-1.5">
             <span
@@ -312,10 +311,10 @@ function ThinkingIndicator({ respondedCount }: { respondedCount: number }) {
       </div>
 
       <span className="text-xs text-muted-foreground">
-        {remaining === 3 && "Agents are thinking…"}
-        {remaining === 2 && `${pending[0]?.name} and 1 more responding…`}
-        {remaining === 1 && `${nextAgent?.name} is responding…`}
-        {remaining === 0 && "Finishing up…"}
+        {remaining === 3 && t.agentsResponding}
+        {remaining === 2 && t.agentAndMoreResponding(pending[0]?.name ?? "")}
+        {remaining === 1 && t.agentResponding(nextAgent?.name ?? "")}
+        {remaining === 0 && t.finishingUp}
       </span>
     </div>
   );

@@ -1,9 +1,11 @@
 import { AGENTS } from "../data/dummy";
+import { useLocale } from "../context/LocaleContext";
 
 export default function EmptyState() {
+  const { t } = useLocale();
+
   return (
     <div className="flex flex-col items-center justify-center flex-1 py-16 text-center px-6">
-      {/* Agent avatars */}
       <div className="flex items-center gap-2 mb-6">
         {AGENTS.map((agent, i) => (
           <div key={agent.id} className="flex flex-col items-center gap-1.5">
@@ -18,9 +20,9 @@ export default function EmptyState() {
         ))}
       </div>
 
-      <p className="text-sm font-semibold text-foreground mb-2">Start the discussion</p>
+      <p className="text-sm font-semibold text-foreground mb-2">{t.emptyStateTitle}</p>
       <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
-        Post a topic or question below. ChatGPT, Claude, and Gemini will each share their perspective — then you can dig deeper.
+        {t.emptyStateDesc}
       </p>
     </div>
   );

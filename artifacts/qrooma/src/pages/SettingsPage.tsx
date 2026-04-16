@@ -62,10 +62,12 @@ function ApiKeyField({
 function SideConfig({
   sideKey,
   config,
+  hasApiKey,
   onChange,
 }: {
   sideKey: string;
   config: AgentSideConfig;
+  hasApiKey: boolean;
   onChange: (c: AgentSideConfig) => void;
 }) {
   const { t } = useLocale();
@@ -74,7 +76,9 @@ function SideConfig({
   const currentModel = models.find((m) => m.value === config.model) ?? models[0];
 
   return (
-    <div className="flex gap-4 items-start bg-muted/30 border border-border/60 rounded-lg p-4">
+    <div className={`flex gap-4 items-start border rounded-lg p-4 ${
+      hasApiKey ? "bg-muted/30 border-border/60" : "bg-amber-50/50 border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-800/40"
+    }`}>
       <div className="shrink-0 flex flex-col items-center gap-1 pt-0.5">
         <div
           className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm"
@@ -85,7 +89,14 @@ function SideConfig({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-muted-foreground mb-2.5">{t.sideLabel(sideKey)}</p>
+        <div className="flex items-center gap-2 mb-2.5">
+          <p className="text-xs font-medium text-muted-foreground">{t.sideLabel(sideKey)}</p>
+          {!hasApiKey && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+              API Key 未設定
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-muted-foreground mb-1">{t.provider}</label>
@@ -123,6 +134,12 @@ function SideConfig({
 export default function SettingsPage() {
   const { settings, updateSettings } = useSettings();
   const { t, locale, setLocale } = useLocale();
+
+  function apiKeyForProvider(provider: Provider): string {
+    if (provider === "openai") return settings.openaiApiKey;
+    if (provider === "anthropic") return settings.anthropicApiKey;
+    return settings.googleApiKey;
+  }
 
   const modes: { value: DefaultMode; label: string; description: string }[] = [
     {
@@ -251,9 +268,9 @@ export default function SettingsPage() {
               {t.agentConfigDesc}
             </p>
             <div className="space-y-2.5">
-              <SideConfig sideKey="A" config={settings.sideA} onChange={(c) => updateSettings({ sideA: c })} />
-              <SideConfig sideKey="B" config={settings.sideB} onChange={(c) => updateSettings({ sideB: c })} />
-              <SideConfig sideKey="C" config={settings.sideC} onChange={(c) => updateSettings({ sideC: c })} />
+              <SideConfig sideKey="A" config={settings.sideA} hasApiKey={!!apiKeyForProvider(settings.sideA.provider)} onChange={(c) => updateSettings({ sideA: c })} />
+              <SideConfig sideKey="B" config={settings.sideB} hasApiKey={!!apiKeyForProvider(settings.sideB.provider)} onChange={(c) => updateSettings({ sideB: c })} />
+              <SideConfig sideKey="C" config={settings.sideC} hasApiKey={!!apiKeyForProvider(settings.sideC.provider)} onChange={(c) => updateSettings({ sideC: c })} />
             </div>
           </section>
 
