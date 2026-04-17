@@ -54,7 +54,7 @@
  *   failed           → "error"
  */
 
-import type { AgentId, Message, RunStatus } from "../types";
+import type { AgentId, ConclusionData, Message, RunStatus } from "../types";
 import { AGENTS, DEBATE_POOL, FREETALK_POOL } from "../data/dummy";
 
 export interface RunPayload {
@@ -63,6 +63,16 @@ export interface RunPayload {
   userMessage?: string;
   mode:       "structured-debate" | "free-talk";
   agentCount: 2 | 3;
+}
+
+export interface RealRunParams {
+  roomId:           string;
+  runId:            string;
+  userMessage:      string;
+  mode:             "structured-debate" | "free-talk";
+  agentConfig:      { side: "A" | "B" | "C"; provider: string; model: string }[];
+  apiKeys:          { openai?: string; anthropic?: string; google?: string };
+  previousMessages: { role: string; agentId?: string; content: string }[];
 }
 
 // ── Mock simulation (replace with Trigger.dev in production) ──────────────────
@@ -78,9 +88,7 @@ export const runsService = {
   },
 
   /**
-   * Simulate AI agent responses locally with staggered delays.
-   * TRIGGER.DEV: Replace with Supabase realtime subscription on `messages` table.
-   *
+   * Simulate AI agent responses locally with staggered delays (Free mode).
    * Returns a cancel function (call on component unmount / re-navigate).
    */
   simulateRun(
@@ -115,5 +123,75 @@ export const runsService = {
     timers.push(done);
 
     return () => timers.forEach(clearTimeout);
+  },
+
+  /**
+   * Run a REAL discussion via the API server (BYOK mode).
+   * Streams SSE events: agent messages → conclusion → done.
+   * Returns a cancel function (aborts the fetch).
+   */
+  realRun(
+    params:       RealRunParams,
+    onMessage:    (msg: Message) => void,
+    onConclusion: (conclusion: ConclusionData) => void,
+    onComplete:   (status: RunStatus) => void,
+  ): () => void {
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const response = await fetch("/api/discuss", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify(params),
+          signal:  controller.signal,
+        });
+
+        if (!response.ok || !response.body) {
+          const text = await response.text().catch(() => "");
+          throw new Error(`API error ${response.status}: ${text}`);
+        }
+
+        const reader  = response.body.getReader();
+        const decoder = new TextDecoder();
+        let   buffer  = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const raw = line.slice(6).trim();
+            if (!raw) continue;
+
+            let data: Record<string, unknown>;
+            try { data = JSON.parse(raw); }
+            catch { continue; }
+
+            if (data["type"] === "message") {
+              onMessage(data["message"] as Message);
+            } else if (data["type"] === "conclusion") {
+              onConclusion(data["conclusion"] as ConclusionData);
+            } else if (data["type"] === "done") {
+              onComplete("completed");
+            } else if (data["type"] === "error") {
+              console.error("API discussion error:", data["message"]);
+              onComplete("error");
+            }
+          }
+        }
+      } catch (err: unknown) {
+        if (controller.signal.aborted) return;
+        console.error("realRun fetch error:", err);
+        onComplete("error");
+      }
+    })();
+
+    return () => controller.abort();
   },
 };

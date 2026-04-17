@@ -19,7 +19,7 @@ import { useParams } from "wouter";
 import { RotateCcwIcon } from "lucide-react";
 import { AGENTS } from "../data/dummy";
 import { messagesService } from "../services/messagesService";
-import { runsService, type RunPayload } from "../services/runsService";
+import { runsService, type RunPayload, type RealRunParams } from "../services/runsService";
 import { useSettings } from "../context/SettingsContext";
 import { useRooms } from "../context/RoomsContext";
 import { useLocale } from "../context/LocaleContext";
@@ -148,14 +148,13 @@ export default function RoomDetailPage() {
   const modeLabel = MODE_LABELS[settings.defaultMode] ?? settings.defaultMode;
 
   const groupedMessages = groupByRun(messages);
-  // SUPABASE: replace with supabase.from("conclusions").select("*").eq("room_id", roomId)
-  const conclusion  = messagesService.getConclusion(roomId);
+  const [conclusion, setConclusion] = useState(() => messagesService.getConclusion(roomId));
   const hasMessages = messages.length > 0;
 
   // ─── Reset when roomId changes ──────────────────────────────────────────────
 
   useEffect(() => {
-    // Cancel any in-progress simulated run
+    // Cancel any in-progress run
     cancelRun.current?.();
     cancelRun.current = null;
 
@@ -164,6 +163,7 @@ export default function RoomDetailPage() {
     setRunCount(messagesService.countRuns(roomId));
     setRunStatus(room?.lastRunStatus ?? (msgs.length > 0 ? "completed" : "idle"));
     setRespondedCount(0);
+    setConclusion(messagesService.getConclusion(roomId));
     isFirstMount.current = true;
     shouldScrollToBottom.current = false;
   }, [roomId]);
@@ -195,51 +195,86 @@ export default function RoomDetailPage() {
 
   /**
    * Trigger agent responses for a given run.
-   * TRIGGER.DEV CONNECTION POINT:
-   *   Replace `runsService.simulateRun()` with:
-   *   const handle = await tasks.trigger("discussion", payload)
-   *   // Then subscribe to Supabase realtime on messages table for this runId
+   * BYOK mode  → calls real AI APIs via /api/discuss (SSE stream)
+   * Free mode  → local simulation with dummy responses
    */
-  function triggerRun(runId: string) {
+  function triggerRun(runId: string, userMessage: string) {
     setRunStatus("running");
     setRespondedCount(0);
 
-    const payload: RunPayload = {
-      roomId,
-      userId:     "demo",
-      mode:       settings.defaultMode,
-      agentCount: settings.agentCount ?? 3,
-    };
-
     let responseCount = 0;
 
-    const cancel = runsService.simulateRun(
-      runId,
-      payload,
-      (msg) => {
-        // SUPABASE: this callback is replaced by realtime subscription events
-        messagesService.append(msg);
-        setMessages((prev) => [...prev, msg]);
-        responseCount++;
-        setRespondedCount(responseCount);
-      },
-      (status) => {
-        setRunStatus(status);
-        setRespondedCount(0);
-        // Update room metadata (lastRunStatus, lastMessage) via service
-        // SUPABASE: this is handled server-side after the Trigger.dev task completes
-        const lastMsg = messagesService.getByRoom(roomId).at(-1);
-        if (lastMsg?.role === "assistant") {
-          updateRoom(roomId, {
-            lastRunStatus: status,
-            lastMessage:   lastMsg.content.slice(0, 80),
-            lastMessageAt: lastMsg.createdAt,
-          });
-        }
-      },
-    );
+    function onMessage(msg: Message) {
+      messagesService.append(msg);
+      setMessages((prev) => [...prev, msg]);
+      responseCount++;
+      setRespondedCount(responseCount);
+    }
 
-    cancelRun.current = cancel;
+    function onStatus(status: RunStatus) {
+      setRunStatus(status);
+      setRespondedCount(0);
+      const lastMsg = messagesService.getByRoom(roomId).at(-1);
+      if (lastMsg?.role === "assistant") {
+        updateRoom(roomId, {
+          lastRunStatus: status,
+          lastMessage:   lastMsg.content.slice(0, 80),
+          lastMessageAt: lastMsg.createdAt,
+        });
+      }
+    }
+
+    if (canRun) {
+      // ── BYOK: real AI call ─────────────────────────────────────────────────
+      const agentCount = settings.agentCount ?? 3;
+      const sides = (agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[];
+      const sideConfigs = [settings.sideA, settings.sideB, settings.sideC];
+
+      const agentConfig = sides.map((side, i) => ({
+        side,
+        provider: sideConfigs[i]!.provider,
+        model:    sideConfigs[i]!.model,
+      }));
+
+      const params: RealRunParams = {
+        roomId,
+        runId,
+        userMessage,
+        mode:       settings.defaultMode,
+        agentConfig,
+        apiKeys: {
+          openai:    settings.openaiApiKey    || undefined,
+          anthropic: settings.anthropicApiKey || undefined,
+          google:    settings.googleApiKey    || undefined,
+        },
+        previousMessages: messages.slice(-12).map((m) => ({
+          role:    m.role,
+          agentId: m.agentId,
+          content: m.content,
+        })),
+      };
+
+      const cancel = runsService.realRun(
+        params,
+        onMessage,
+        (conc) => {
+          messagesService.saveConclusion(roomId, conc);
+          setConclusion(conc);
+        },
+        onStatus,
+      );
+      cancelRun.current = cancel;
+    } else {
+      // ── Free mode: local simulation ────────────────────────────────────────
+      const payload: RunPayload = {
+        roomId,
+        userId:     "demo",
+        mode:       settings.defaultMode,
+        agentCount: settings.agentCount ?? 3,
+      };
+      const cancel = runsService.simulateRun(runId, payload, onMessage, onStatus);
+      cancelRun.current = cancel;
+    }
   }
 
   function sendMessage() {
@@ -263,15 +298,16 @@ export default function RoomDetailPage() {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setRunCount((n) => n + 1);
-    triggerRun(newRunId);
+    triggerRun(newRunId, input.trim());
   }
 
   function rerun() {
     if (runStatus === "running" || messages.length === 0) return;
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     const newRunId = `run-${Date.now()}`;
     shouldScrollToBottom.current = true;
     setRunCount((n) => n + 1);
-    triggerRun(newRunId);
+    triggerRun(newRunId, lastUserMsg?.content ?? "");
   }
 
   // ─── Render ──────────────────────────────────────────────────────────────────

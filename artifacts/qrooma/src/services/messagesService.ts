@@ -87,6 +87,13 @@ export const messagesService = {
     return loadConclusions()[roomId] ?? null;
   },
 
+  /** SUPABASE: .from("conclusions").upsert({ room_id: roomId, ...conclusion }) */
+  saveConclusion(roomId: string, conclusion: ConclusionData): void {
+    const all = loadConclusions();
+    all[roomId] = conclusion;
+    localStorage.setItem(CONC_KEY, JSON.stringify(all));
+  },
+
   /** Count unique run IDs for a room */
   countRuns(roomId: string): number {
     const ids = loadMessages()

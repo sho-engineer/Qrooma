@@ -2,7 +2,7 @@
 
 Async AI team room — bring your own API keys (BYOK).
 A group-chat UI where ChatGPT, Claude, and Gemini discuss topics asynchronously.
-The current build is a **UI-only MVP** driven by dummy data, designed to connect to Supabase Auth, Supabase DB, and Trigger.dev in the next phase.
+**BYOK mode is now live**: when the user enters API keys in Settings, real OpenAI / Anthropic / Google calls are made via the Express API server using SSE streaming. Free mode still uses local simulation (dummy data). Supabase Auth/DB and Trigger.dev are future integration points.
 
 ---
 
@@ -14,6 +14,7 @@ The current build is a **UI-only MVP** driven by dummy data, designed to connect
 | Styling | Tailwind CSS v4 (CSS variables) |
 | Routing | Wouter |
 | Data fetching | TanStack Query (wired, not yet used for real fetches) |
+| AI calls | Express API server (`/api/discuss`) → OpenAI / Anthropic / Google SDKs via SSE |
 | Auth (temp) | localStorage |
 | Settings (temp) | localStorage |
 
