@@ -1,13 +1,25 @@
+/**
+ * Room Detail Page
+ *
+ * ARCHITECTURE NOTE
+ * ─────────────────
+ * All data access goes through service layer:
+ *   - messagesService  →  read/write messages + conclusions
+ *   - runsService      →  trigger agent runs (Trigger.dev in production)
+ *   - roomsService     →  update room metadata after a run completes
+ *
+ * When connecting to Supabase + Trigger.dev:
+ * 1. Replace `runsService.simulateRun()` with `tasks.trigger("discussion", payload)`
+ * 2. Replace `messagesService.getByRoom()` with Supabase query + realtime subscription
+ * 3. Remove all setTimeout-based simulation
+ */
+
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams } from "wouter";
 import { RotateCcwIcon } from "lucide-react";
-import {
-  DUMMY_MESSAGES,
-  DUMMY_CONCLUSIONS,
-  AGENTS,
-  DEBATE_POOL,
-  FREETALK_POOL,
-} from "../data/dummy";
+import { AGENTS } from "../data/dummy";
+import { messagesService } from "../services/messagesService";
+import { runsService, type RunPayload } from "../services/runsService";
 import { useSettings } from "../context/SettingsContext";
 import { useRooms } from "../context/RoomsContext";
 import { useLocale } from "../context/LocaleContext";
@@ -39,11 +51,9 @@ function shortenModel(model: string): string {
 }
 
 function hasApiKeyFor(provider: Provider, settings: {
-  openaiApiKey: string;
-  anthropicApiKey: string;
-  googleApiKey: string;
+  openaiApiKey: string; anthropicApiKey: string; googleApiKey: string;
 }): boolean {
-  if (provider === "openai") return !!settings.openaiApiKey;
+  if (provider === "openai")    return !!settings.openaiApiKey;
   if (provider === "anthropic") return !!settings.anthropicApiKey;
   return !!settings.googleApiKey;
 }
@@ -51,9 +61,9 @@ function hasApiKeyFor(provider: Provider, settings: {
 // ─── Run grouping ─────────────────────────────────────────────────────────────
 
 interface RunGroup {
-  runId: string;
-  messages: Message[];
-  isRerun: boolean;
+  runId:        string;
+  messages:     Message[];
+  isRerun:      boolean;
   userQuestion: string | null;
 }
 
@@ -78,86 +88,98 @@ function groupByRun(messages: Message[]): RunGroup[] {
 export default function RoomDetailPage() {
   const { id: roomId } = useParams<{ id: string }>();
   const { settings } = useSettings();
-  const { getRoomById } = useRooms();
+  const { getRoomById, updateRoom } = useRooms();
   const { t } = useLocale();
 
   const room = getRoomById(roomId);
   const roomName = room?.name ?? "Room";
 
-  const initialMessages = DUMMY_MESSAGES.filter((m) => m.roomId === roomId);
+  // ─── Load messages from service ────────────────────────────────────────────
+  // SUPABASE: replace with supabase.from("messages").select("*").eq("room_id", roomId)
+  //           + realtime subscription to append new messages
+
+  function loadMessages() {
+    return messagesService.getByRoom(roomId);
+  }
 
   function deriveInitialStatus(): RunStatus {
     if (room?.lastRunStatus) return room.lastRunStatus;
-    return initialMessages.length > 0 ? "completed" : "idle";
+    return loadMessages().length > 0 ? "completed" : "idle";
   }
 
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [input, setInput] = useState("");
-  const [runStatus, setRunStatus] = useState<RunStatus>(deriveInitialStatus);
-  const [runCount, setRunCount] = useState(
-    new Set(initialMessages.map((m) => m.runId).filter(Boolean)).size
-  );
+  const [messages,       setMessages]       = useState<Message[]>(loadMessages);
+  const [input,          setInput]          = useState("");
+  const [runStatus,      setRunStatus]      = useState<RunStatus>(deriveInitialStatus);
+  const [runCount,       setRunCount]       = useState(() => messagesService.countRuns(roomId));
   const [respondedCount, setRespondedCount] = useState(0);
 
-  const topRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  // Cancel ref: holds a cleanup function for in-progress simulated runs
+  const cancelRun = useRef<(() => void) | null>(null);
+
+  const topRef            = useRef<HTMLDivElement>(null);
+  const bottomRef         = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const isFirstMount = useRef(true);
+  const isFirstMount      = useRef(true);
   const shouldScrollToBottom = useRef(false);
 
   // ─── Derived values ─────────────────────────────────────────────────────────
 
-  const agentCount = settings.agentCount ?? 3;
+  const agentCount  = settings.agentCount ?? 3;
   const activeSides = agentCount === 2
     ? [settings.sideA, settings.sideB]
     : [settings.sideA, settings.sideB, settings.sideC];
 
-  /** true = all required API keys are present */
   const canRun = useMemo(() => {
     return activeSides.every((side) => hasApiKeyFor(side.provider, settings));
   }, [settings.openaiApiKey, settings.anthropicApiKey, settings.googleApiKey, agentCount]);
 
-  /** Shortened model name for each side (for MessageBubble sub-labels) */
   const sideModelMap = useMemo(() => ({
     A: shortenModel(settings.sideA.model),
     B: shortenModel(settings.sideB.model),
     C: shortenModel(settings.sideC.model),
   }), [settings.sideA.model, settings.sideB.model, settings.sideC.model]);
 
-  const activeModels = activeSides.map((s) => s.model);
+  const activeModels  = activeSides.map((s) => s.model);
 
   const MODE_LABELS: Record<string, string> = {
     "structured-debate": t.structuredDebate,
-    "free-talk": t.freeTalk,
+    "free-talk":         t.freeTalk,
   };
   const modeLabel = MODE_LABELS[settings.defaultMode] ?? settings.defaultMode;
 
   const groupedMessages = groupByRun(messages);
-  const conclusion = roomId ? DUMMY_CONCLUSIONS[roomId] ?? null : null;
+  // SUPABASE: replace with supabase.from("conclusions").select("*").eq("room_id", roomId)
+  const conclusion  = messagesService.getConclusion(roomId);
   const hasMessages = messages.length > 0;
 
-  // ─── Scroll ──────────────────────────────────────────────────────────────────
+  // ─── Reset when roomId changes ──────────────────────────────────────────────
+
+  useEffect(() => {
+    // Cancel any in-progress simulated run
+    cancelRun.current?.();
+    cancelRun.current = null;
+
+    const msgs = messagesService.getByRoom(roomId);
+    setMessages(msgs);
+    setRunCount(messagesService.countRuns(roomId));
+    setRunStatus(room?.lastRunStatus ?? (msgs.length > 0 ? "completed" : "idle"));
+    setRespondedCount(0);
+    isFirstMount.current = true;
+    shouldScrollToBottom.current = false;
+  }, [roomId]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { cancelRun.current?.(); };
+  }, []);
+
+  // ─── Scroll ─────────────────────────────────────────────────────────────────
 
   function isNearBottom(): boolean {
     const el = scrollContainerRef.current;
     if (!el) return true;
     return el.scrollHeight - el.scrollTop - el.clientHeight < 150;
   }
-
-  useEffect(() => {
-    const msgs = DUMMY_MESSAGES.filter((m) => m.roomId === roomId);
-    setMessages(msgs);
-    const newRoom = getRoomById(roomId);
-    if (newRoom?.lastRunStatus) {
-      setRunStatus(newRoom.lastRunStatus);
-    } else {
-      setRunStatus(msgs.length > 0 ? "completed" : "idle");
-    }
-    setRunCount(new Set(msgs.map((m) => m.runId).filter(Boolean)).size);
-    setRespondedCount(0);
-    isFirstMount.current = true;
-    shouldScrollToBottom.current = false;
-  }, [roomId]);
 
   useEffect(() => {
     if (isFirstMount.current) {
@@ -171,54 +193,77 @@ export default function RoomDetailPage() {
 
   // ─── Actions ─────────────────────────────────────────────────────────────────
 
-  function triggerAgentReplies(currentRunId: string) {
+  /**
+   * Trigger agent responses for a given run.
+   * TRIGGER.DEV CONNECTION POINT:
+   *   Replace `runsService.simulateRun()` with:
+   *   const handle = await tasks.trigger("discussion", payload)
+   *   // Then subscribe to Supabase realtime on messages table for this runId
+   */
+  function triggerRun(runId: string) {
     setRunStatus("running");
     setRespondedCount(0);
-    const pool = settings.defaultMode === "free-talk" ? FREETALK_POOL : DEBATE_POOL;
-    // Use only the active agent count
-    const activeAgents = AGENTS.slice(0, agentCount);
-    let delay = 900;
-    activeAgents.forEach((agent, i) => {
-      setTimeout(() => {
-        const fn = pool[Math.floor(Math.random() * pool.length)];
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `m-${Date.now()}-${agent.id}`,
-            roomId,
-            role: "assistant",
-            agentId: agent.id,
-            content: fn(agent.name),
-            createdAt: new Date().toISOString(),
-            runId: currentRunId,
-          },
-        ]);
-        setRespondedCount(i + 1);
-      }, delay);
-      delay += 1200;
-    });
-    setTimeout(() => {
-      setRunStatus("completed");
-      setRespondedCount(0);
-    }, delay + 300);
+
+    const payload: RunPayload = {
+      roomId,
+      userId:     "demo",
+      mode:       settings.defaultMode,
+      agentCount: settings.agentCount ?? 3,
+    };
+
+    let responseCount = 0;
+
+    const cancel = runsService.simulateRun(
+      runId,
+      payload,
+      (msg) => {
+        // SUPABASE: this callback is replaced by realtime subscription events
+        messagesService.append(msg);
+        setMessages((prev) => [...prev, msg]);
+        responseCount++;
+        setRespondedCount(responseCount);
+      },
+      (status) => {
+        setRunStatus(status);
+        setRespondedCount(0);
+        // Update room metadata (lastRunStatus, lastMessage) via service
+        // SUPABASE: this is handled server-side after the Trigger.dev task completes
+        const lastMsg = messagesService.getByRoom(roomId).at(-1);
+        if (lastMsg?.role === "assistant") {
+          updateRoom(roomId, {
+            lastRunStatus: status,
+            lastMessage:   lastMsg.content.slice(0, 80),
+            lastMessageAt: lastMsg.createdAt,
+          });
+        }
+      },
+    );
+
+    cancelRun.current = cancel;
   }
 
   function sendMessage() {
     if (!input.trim() || runStatus === "running" || !canRun) return;
+
     const newRunId = `run-${Date.now()}`;
     const userMsg: Message = {
-      id: `m-${Date.now()}`,
+      id:        `m-${Date.now()}`,
       roomId,
-      role: "user",
-      content: input.trim(),
+      role:      "user",
+      content:   input.trim(),
       createdAt: new Date().toISOString(),
-      runId: newRunId,
+      runId:     newRunId,
     };
+
+    // Persist user message via service
+    // SUPABASE: supabase.from("messages").insert(userMsg)
+    messagesService.append(userMsg);
+
     shouldScrollToBottom.current = true;
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setRunCount((n) => n + 1);
-    triggerAgentReplies(newRunId);
+    triggerRun(newRunId);
   }
 
   function rerun() {
@@ -226,7 +271,7 @@ export default function RoomDetailPage() {
     const newRunId = `run-${Date.now()}`;
     shouldScrollToBottom.current = true;
     setRunCount((n) => n + 1);
-    triggerAgentReplies(newRunId);
+    triggerRun(newRunId);
   }
 
   // ─── Render ──────────────────────────────────────────────────────────────────
@@ -300,9 +345,9 @@ export default function RoomDetailPage() {
 // ─── Run Separator ────────────────────────────────────────────────────────────
 
 interface RunSeparatorProps {
-  index: number;
+  index:        number;
   firstMsgTime?: string;
-  isRerun: boolean;
+  isRerun:      boolean;
   userQuestion: string | null;
 }
 
@@ -317,9 +362,7 @@ function RunSeparator({ index, firstMsgTime, isRerun, userQuestion }: RunSeparat
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px bg-border/60" />
         <div className="flex items-center gap-1.5 shrink-0">
-          {isRerun && (
-            <RotateCcwIcon size={10} className="text-muted-foreground/50" />
-          )}
+          {isRerun && <RotateCcwIcon size={10} className="text-muted-foreground/50" />}
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-medium">
             {isRerun ? t.rerun : t.runLabel(index)}
           </span>
@@ -349,7 +392,7 @@ function RunSeparator({ index, firstMsgTime, isRerun, userQuestion }: RunSeparat
 function ThinkingIndicator({ respondedCount, agentCount }: { respondedCount: number; agentCount: number }) {
   const { t } = useLocale();
   const activeAgents = AGENTS.slice(0, agentCount);
-  const done = activeAgents.slice(0, respondedCount);
+  const done    = activeAgents.slice(0, respondedCount);
   const pending = activeAgents.slice(respondedCount);
   const nextAgent = pending[0];
   const remaining = pending.length;

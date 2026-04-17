@@ -202,7 +202,7 @@ const ja: Translations = {
   duplicateModelError: "同じモデルは複数の枠に設定できません",
   roleLabel: (side, mode) => {
     if (mode === "structured-debate") {
-      return side === "A" ? "推進" : side === "B" ? "批判" : "統合";
+      return side === "A" ? "提案" : side === "B" ? "検証" : "実行";
     }
     return `Side ${side}`;
   },
@@ -235,9 +235,9 @@ const ja: Translations = {
   previewRoom2: "価格戦略",
   previewRoom3: "技術スタック検討",
   previewMeta: "3エージェント · Run 2",
-  previewRole1: "推進",
-  previewRole2: "批判",
-  previewRole3: "統合",
+  previewRole1: "提案",
+  previewRole2: "検証",
+  previewRole3: "実行",
   previewMsg1: "機能数よりも先に、開発リソースの制約を見直すべきです。スコープを絞ってリリースし、四半期ごとに再評価する方が確実です。",
   previewMsg2: "それだけでは不十分です。問題はリソースだけでなく、成功指標が不明確なことです。最重要指標をひとつ決めることが先決では？",
   previewMsg3: "中間案として、北極星指標をひとつ決めることで、優先順位とスコープの両方を自動的に整理できます。",
@@ -341,7 +341,7 @@ const en: Translations = {
   duplicateModelError: "The same model cannot be assigned to multiple sides",
   roleLabel: (side, mode) => {
     if (mode === "structured-debate") {
-      return side === "A" ? "Advocate" : side === "B" ? "Critic" : "Synthesizer";
+      return side === "A" ? "Proposal" : side === "B" ? "Review" : "Execution";
     }
     return `Side ${side}`;
   },
@@ -374,9 +374,9 @@ const en: Translations = {
   previewRoom2: "Pricing Strategy",
   previewRoom3: "Tech Stack Decision",
   previewMeta: "3 agents · Run 2",
-  previewRole1: "Advocate",
-  previewRole2: "Critic",
-  previewRole3: "Synthesizer",
+  previewRole1: "Proposal",
+  previewRole2: "Review",
+  previewRole3: "Execution",
   previewMsg1: "The real bottleneck isn't the feature list — it's engineering bandwidth. I'd ship a tighter scope and revisit quarterly.",
   previewMsg2: "I'd push back. The issue isn't just bandwidth — it's unclear success criteria. What's the one metric that matters most?",
   previewMsg3: "A middle path: lock one north star metric, then let it drive scope decisions automatically. Both problems solved.",

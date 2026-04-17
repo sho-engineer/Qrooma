@@ -67,7 +67,7 @@ function RoomCard({ room }: { room: Room }) {
 }
 
 export default function RoomsPage() {
-  const { rooms, addRoom } = useRooms();
+  const { rooms, isLoading, addRoom } = useRooms();
   const { t } = useLocale();
   const [, navigate] = useLocation();
   const [showForm, setShowForm] = useState(false);
@@ -137,7 +137,13 @@ export default function RoomsPage() {
         )}
 
         {/* Room list */}
-        {rooms.length === 0 ? (
+        {isLoading ? (
+          <div className="grid gap-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-16 rounded-2xl bg-card border border-border animate-pulse" />
+            ))}
+          </div>
+        ) : rooms.length === 0 ? (
           <RoomsEmptyState onNew={() => setShowForm(true)} />
         ) : (
           <div className="grid gap-2">
