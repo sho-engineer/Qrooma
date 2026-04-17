@@ -29,7 +29,10 @@ function RoomCard({ room }: { room: Room }) {
 
   return (
     <Link href={`/rooms/${room.id}`} className="block w-full min-w-0">
-      <div className="bg-card border border-border rounded-2xl px-4 py-3 hover:border-foreground/20 transition-colors cursor-pointer">
+      <div className="bg-card border border-border rounded-2xl px-4 py-3 cursor-pointer
+        transition-all duration-200
+        hover:border-foreground/15 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]
+        active:scale-[0.99] active:shadow-none">
         {/* Row 1: error dot · name · error badge */}
         <div className="flex items-center gap-2 mb-1 overflow-hidden min-w-0">
           {hasError && (

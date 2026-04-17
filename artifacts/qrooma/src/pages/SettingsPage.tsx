@@ -308,7 +308,7 @@ export default function SettingsPage() {
                 <button
                   key={l}
                   onClick={() => setLocale(l)}
-                  className={`px-3.5 py-1.5 text-sm rounded-xl border transition-all ${
+                  className={`px-3.5 py-1.5 text-sm rounded-xl border transition-all duration-200 active:scale-[0.97] ${
                     locale === l
                       ? "bg-foreground text-background border-foreground"
                       : "bg-background text-foreground border-border hover:bg-accent"
@@ -363,7 +363,7 @@ export default function SettingsPage() {
                   <button
                     key={mode.value}
                     onClick={() => updateSettings({ defaultMode: mode.value })}
-                    className={`w-full text-left px-4 py-3.5 rounded-2xl border transition-all ${
+                    className={`w-full text-left px-4 py-3.5 rounded-2xl border transition-all duration-200 active:scale-[0.99] ${
                       active
                         ? "bg-card border-foreground/20"
                         : "bg-background border-border hover:border-foreground/10 hover:bg-card"

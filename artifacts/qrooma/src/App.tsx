@@ -66,10 +66,10 @@ function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Mobile backdrop */}
+      {/* Mobile backdrop — fades in when sidebar opens */}
       {isMobile && sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          className="fixed inset-0 z-40 bg-black/40 md:hidden animate-fade-in"
           onClick={closeSidebar}
         />
       )}

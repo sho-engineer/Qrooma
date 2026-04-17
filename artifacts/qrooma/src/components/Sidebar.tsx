@@ -93,7 +93,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
   }
 
   const containerClass = isMobile
-    ? "fixed inset-y-0 left-0 z-50 flex flex-col w-72 bg-sidebar shadow-xl border-r border-sidebar-border"
+    ? "fixed inset-y-0 left-0 z-50 flex flex-col w-72 bg-sidebar shadow-xl border-r border-sidebar-border animate-slide-left"
     : "flex flex-col w-60 shrink-0 border-r border-sidebar-border bg-sidebar h-full";
 
   return (

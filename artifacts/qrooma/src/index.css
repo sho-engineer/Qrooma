@@ -46,23 +46,19 @@
 }
 
 :root {
-  /* Near-white background — Apple f5f5f7 equivalent */
   --background: 240 5% 97%;
   --foreground: 0 0% 9%;
 
-  /* Very light neutral border */
   --border: 0 0% 89%;
   --input: 0 0% 89%;
   --ring: 211 100% 44%;
 
-  /* Pure white cards */
   --card: 0 0% 100%;
   --card-foreground: 0 0% 9%;
 
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 9%;
 
-  /* Apple blue — restrained, not electric */
   --primary: 211 100% 44%;
   --primary-foreground: 0 0% 100%;
 
@@ -75,11 +71,9 @@
   --accent: 0 0% 94%;
   --accent-foreground: 0 0% 9%;
 
-  /* Softer destructive — less alarming */
   --destructive: 4 72% 48%;
   --destructive-foreground: 0 0% 100%;
 
-  /* Sidebar: slightly warmer white */
   --sidebar: 0 0% 99%;
   --sidebar-foreground: 0 0% 9%;
   --sidebar-border: 0 0% 91%;
@@ -89,7 +83,6 @@
   --app-font-sans: -apple-system, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
   --app-font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
 
-  /* Larger radius for Apple-like softness */
   --radius: 0.625rem;
 }
 
@@ -129,12 +122,29 @@
   --sidebar-accent-foreground: 0 0% 93%;
 }
 
+/* ─── Keyframes ──────────────────────────────────────────────────────────── */
+
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Mobile sidebar slides in from the left */
+@keyframes slide-in-left {
+  from { opacity: 0.8; transform: translateX(-100%); }
+  to   { opacity: 1;   transform: translateX(0); }
+}
+
+/* Quick backdrop fade */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ─── Utilities ──────────────────────────────────────────────────────────── */
+
 @layer utilities {
+  /* Hero elements (load-time) */
   .animate-fade-up {
     animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
@@ -143,7 +153,38 @@
   .anim-d3 { animation-delay: 260ms; }
   .anim-d4 { animation-delay: 380ms; }
   .anim-d5 { animation-delay: 520ms; }
+
+  /* Mobile sidebar slide-in */
+  .animate-slide-left {
+    animation: slide-in-left 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Backdrop fade */
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out both;
+  }
+
+  /* Accordion (conclusion card open / close)
+     Usage: wrap content in `.accordion-wrap > .accordion-inner`
+     Toggle `.accordion-open` on `.accordion-wrap`. */
+  .accordion-wrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows 280ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 220ms ease;
+  }
+  .accordion-wrap.accordion-open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  .accordion-inner {
+    overflow: hidden;
+  }
 }
+
+/* ─── Base ───────────────────────────────────────────────────────────────── */
 
 @layer base {
   * {

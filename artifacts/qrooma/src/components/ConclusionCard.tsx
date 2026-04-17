@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
+import { ChevronDownIcon } from "lucide-react";
 import type { ConclusionData } from "../types";
 import { useLocale } from "../context/LocaleContext";
 
@@ -21,12 +21,13 @@ export default function ConclusionCard({ runCount, conclusion }: Props) {
 
   return (
     <div className="mx-3 sm:mx-4 mb-2">
+      {/* Toggle button */}
       <button
         onClick={() => setIsOpen((p) => !p)}
-        className={`w-full flex items-center justify-between px-4 py-2.5 text-sm border transition-all ${
+        className={`w-full flex items-center justify-between px-4 py-2.5 text-sm border transition-all duration-200 ${
           isOpen
             ? "border-b-0 rounded-t-2xl bg-card border-border/60"
-            : "rounded-2xl bg-card border-border/60 hover:border-foreground/15 hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+            : "rounded-2xl bg-card border-border/60 hover:border-foreground/15 hover:shadow-[0_2px_12px_rgba(0,0,0,0.05)] active:scale-[0.99]"
         }`}
       >
         <div className="flex items-center gap-2 text-foreground">
@@ -38,13 +39,21 @@ export default function ConclusionCard({ runCount, conclusion }: Props) {
             </span>
           )}
         </div>
-        <div className={`transition-transform duration-200 text-muted-foreground/40 ${isOpen ? "rotate-180" : ""}`}>
+        <div
+          className="text-muted-foreground/40 transition-transform duration-300 ease-in-out"
+          style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+        >
           <ChevronDownIcon size={14} />
         </div>
       </button>
 
-      {isOpen && (
-        <div className="border border-t-0 border-border/60 rounded-b-2xl bg-card overflow-hidden">
+      {/* Accordion body — CSS grid-template-rows trick for smooth expand/collapse */}
+      <div
+        className={`accordion-wrap border border-t-0 border-border/60 rounded-b-2xl bg-card ${
+          isOpen ? "accordion-open" : ""
+        }`}
+      >
+        <div className="accordion-inner">
           {conclusion ? (
             <>
               <div className="px-5 py-4">
@@ -77,7 +86,7 @@ export default function ConclusionCard({ runCount, conclusion }: Props) {
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

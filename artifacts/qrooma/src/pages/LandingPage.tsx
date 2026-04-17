@@ -1,8 +1,39 @@
+import { useRef, useEffect, useState } from "react";
 import { Link } from "wouter";
 import { useLocale, type Locale } from "../context/LocaleContext";
 import { useAuth } from "../context/AuthContext";
 import { ArrowRightIcon, CheckIcon } from "lucide-react";
 
+// ─── useFadeSection — scroll-triggered fade-up ────────────────────────────────
+function useFadeSection() {
+  const ref = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.05, rootMargin: "0px 0px -32px 0px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return {
+    ref,
+    style: {
+      transition: "opacity 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.5s cubic-bezier(0.16,1,0.3,1)",
+      opacity: visible ? 1 : 0,
+      transform: visible ? "translateY(0)" : "translateY(10px)",
+    } as React.CSSProperties,
+  };
+}
+
+// ─── LocaleToggle ─────────────────────────────────────────────────────────────
 function LocaleToggle() {
   const { locale, setLocale } = useLocale();
   return (
@@ -11,7 +42,7 @@ function LocaleToggle() {
         <button
           key={l}
           onClick={() => setLocale(l)}
-          className={`px-3 py-1.5 text-xs rounded-full transition-all ${
+          className={`px-3 py-1.5 text-xs rounded-full transition-all duration-200 active:scale-[0.95] ${
             locale === l
               ? "bg-foreground text-background"
               : "text-muted-foreground hover:text-foreground hover:bg-accent"
@@ -24,6 +55,7 @@ function LocaleToggle() {
   );
 }
 
+// ─── SectionTitle ─────────────────────────────────────────────────────────────
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
@@ -32,6 +64,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ─── ProductPreview ───────────────────────────────────────────────────────────
 const AGENT_COLORS = ["#10a37f", "#d97706", "#4285f4"] as const;
 
 function ProductPreview() {
@@ -71,7 +104,7 @@ function ProductPreview() {
             {previewRooms.map((room) => (
               <div
                 key={room.name}
-                className={`px-2.5 py-1.5 rounded-lg text-xs truncate transition-colors ${
+                className={`px-2.5 py-1.5 rounded-lg text-xs truncate transition-colors duration-150 ${
                   room.active
                     ? "bg-sidebar-accent text-foreground font-medium"
                     : "text-muted-foreground"
@@ -129,6 +162,30 @@ function ProductPreview() {
   );
 }
 
+// ─── Primary CTA button ───────────────────────────────────────────────────────
+function PrimaryBtn({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <button
+      className={`inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-foreground text-background rounded-full
+        hover:opacity-85 active:scale-[0.97] transition-all duration-150 ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SecondaryBtn({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <button
+      className={`inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-foreground border border-border
+        rounded-full bg-card/70 hover:bg-accent active:scale-[0.97] transition-all duration-150 ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ─── Main Landing Page ────────────────────────────────────────────────────────
 export default function LandingPage() {
   const { t } = useLocale();
   const { user } = useAuth();
@@ -149,9 +206,16 @@ export default function LandingPage() {
     t.landingByokItem4,
   ];
 
+  // Scroll-triggered sections
+  const secCards  = useFadeSection();
+  const secHow    = useFadeSection();
+  const secModes  = useFadeSection();
+  const secByok   = useFadeSection();
+  const secFooter = useFadeSection();
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* Soft ambient blobs */}
+      {/* Ambient blobs */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute left-1/2 top-[-100px] h-[320px] w-[320px] -translate-x-1/2 rounded-full bg-foreground/[0.04] blur-3xl" />
         <div className="absolute right-[6%] top-[20%] h-[240px] w-[240px] rounded-full bg-foreground/[0.03] blur-3xl" />
@@ -162,27 +226,25 @@ export default function LandingPage() {
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-5 sm:px-6 h-14 flex items-center justify-between gap-4">
           <Link href="/">
-            <button className="text-sm font-semibold tracking-tight text-foreground">Qrooma</button>
+            <button className="text-sm font-semibold tracking-tight text-foreground transition-opacity duration-150 hover:opacity-70">
+              Qrooma
+            </button>
           </Link>
           <div className="flex items-center gap-2.5 shrink-0">
             <LocaleToggle />
             {user ? (
               <Link href="/rooms">
-                <button className="whitespace-nowrap px-4 py-1.5 text-sm font-medium bg-foreground text-background rounded-full hover:opacity-85 transition-opacity">
-                  {t.landingGoToApp}
-                </button>
+                <PrimaryBtn>{t.landingGoToApp}</PrimaryBtn>
               </Link>
             ) : (
               <>
                 <Link href="/login">
-                  <button className="whitespace-nowrap hidden sm:inline-block px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <button className="whitespace-nowrap hidden sm:inline-block px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground active:scale-[0.97] transition-all duration-150">
                     {t.loginBtn}
                   </button>
                 </Link>
                 <Link href="/signup">
-                  <button className="whitespace-nowrap px-4 py-1.5 text-sm font-medium bg-foreground text-background rounded-full hover:opacity-85 transition-opacity">
-                    {t.landingGetStarted}
-                  </button>
+                  <PrimaryBtn>{t.landingGetStarted}</PrimaryBtn>
                 </Link>
               </>
             )}
@@ -208,28 +270,22 @@ export default function LandingPage() {
           <div className="animate-fade-up anim-d3 flex items-center justify-center gap-3 flex-wrap mb-12">
             {user ? (
               <Link href="/rooms">
-                <button className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-foreground text-background rounded-full hover:opacity-85 transition-opacity">
-                  {t.landingGoToApp} <ArrowRightIcon size={13} />
-                </button>
+                <PrimaryBtn>{t.landingGoToApp} <ArrowRightIcon size={13} /></PrimaryBtn>
               </Link>
             ) : (
               <>
                 <Link href="/signup">
-                  <button className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-foreground text-background rounded-full hover:opacity-85 transition-opacity">
-                    {t.landingGetStarted} <ArrowRightIcon size={13} />
-                  </button>
+                  <PrimaryBtn>{t.landingGetStarted} <ArrowRightIcon size={13} /></PrimaryBtn>
                 </Link>
                 <Link href="/login">
-                  <button className="px-6 py-2.5 text-sm font-medium text-foreground border border-border rounded-full bg-card/70 hover:bg-accent transition-colors">
-                    {t.loginBtn}
-                  </button>
+                  <SecondaryBtn>{t.loginBtn}</SecondaryBtn>
                 </Link>
               </>
             )}
           </div>
         </div>
 
-        {/* Product preview — real UI mockup */}
+        {/* Product preview */}
         <div className="animate-fade-up anim-d4 max-w-4xl mx-auto">
           <ProductPreview />
           <p className="mt-3 text-center text-xs text-muted-foreground/50">
@@ -239,26 +295,32 @@ export default function LandingPage() {
       </section>
 
       {/* Appeal cards */}
-      <section className="max-w-6xl mx-auto px-5 sm:px-6 pb-20 sm:pb-24">
+      <section
+        ref={secCards.ref as React.RefObject<HTMLElement>}
+        style={secCards.style}
+        className="max-w-6xl mx-auto px-5 sm:px-6 pb-20 sm:pb-24"
+      >
         <div className="grid sm:grid-cols-3 gap-3">
           {cards.map((card, i) => (
             <div
               key={i}
-              className="rounded-[20px] border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.05)]"
+              className="rounded-[20px] border border-border bg-card p-6 cursor-default
+                transition-all duration-200
+                hover:-translate-y-1 hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] hover:border-foreground/10"
             >
-              <p className="text-sm font-semibold text-foreground leading-snug mb-2">
-                {card.title}
-              </p>
-              <p className="text-sm text-muted-foreground leading-7">
-                {card.body}
-              </p>
+              <p className="text-sm font-semibold text-foreground leading-snug mb-2">{card.title}</p>
+              <p className="text-sm text-muted-foreground leading-7">{card.body}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* How it works */}
-      <section className="border-t border-border/60 bg-card/50">
+      <section
+        ref={secHow.ref as React.RefObject<HTMLElement>}
+        style={secHow.style}
+        className="border-t border-border/60 bg-card/50"
+      >
         <div className="max-w-6xl mx-auto px-5 sm:px-6 py-14 sm:py-18">
           <div className="max-w-2xl mb-8">
             <SectionTitle>{t.landingHowTitle}</SectionTitle>
@@ -280,18 +342,22 @@ export default function LandingPage() {
       </section>
 
       {/* Modes */}
-      <section className="max-w-6xl mx-auto px-5 sm:px-6 py-16 sm:py-20">
+      <section
+        ref={secModes.ref as React.RefObject<HTMLElement>}
+        style={secModes.style}
+        className="max-w-6xl mx-auto px-5 sm:px-6 py-16 sm:py-20"
+      >
         <div className="max-w-2xl mb-10">
           <SectionTitle>{t.landingModesTitle}</SectionTitle>
         </div>
         <div className="grid sm:grid-cols-2 gap-3">
-          <div className="rounded-[20px] border border-border bg-card p-6 hover:border-foreground/15 transition-colors">
+          <div className="rounded-[20px] border border-border bg-card p-6 transition-all duration-200 hover:border-foreground/15 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2.5">
               {t.structuredDebate}
             </p>
             <p className="text-sm text-foreground leading-7">{t.debateDesc}</p>
           </div>
-          <div className="rounded-[20px] border border-border bg-card p-6 hover:border-foreground/15 transition-colors">
+          <div className="rounded-[20px] border border-border bg-card p-6 transition-all duration-200 hover:border-foreground/15 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2.5">
               {t.freeTalk}
             </p>
@@ -301,13 +367,15 @@ export default function LandingPage() {
       </section>
 
       {/* BYOK */}
-      <section className="border-t border-border/60 bg-card/50">
+      <section
+        ref={secByok.ref as React.RefObject<HTMLElement>}
+        style={secByok.style}
+        className="border-t border-border/60 bg-card/50"
+      >
         <div className="max-w-6xl mx-auto px-5 sm:px-6 py-16 sm:py-20">
           <div className="max-w-xl">
             <SectionTitle>{t.landingByokTitle}</SectionTitle>
-            <p className="mt-3 text-sm text-muted-foreground leading-7">
-              {t.landingByokLead}
-            </p>
+            <p className="mt-3 text-sm text-muted-foreground leading-7">{t.landingByokLead}</p>
             <ul className="mt-7 space-y-3.5">
               {byokItems.map((item, i) => (
                 <li key={i} className="flex items-start gap-3">
@@ -323,7 +391,11 @@ export default function LandingPage() {
       </section>
 
       {/* Footer CTA */}
-      <section className="border-t border-border/60">
+      <section
+        ref={secFooter.ref as React.RefObject<HTMLElement>}
+        style={secFooter.style}
+        className="border-t border-border/60"
+      >
         <div className="max-w-6xl mx-auto px-5 sm:px-6 py-20 sm:py-24 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-7">
             {t.landingFooterCta}
@@ -331,21 +403,15 @@ export default function LandingPage() {
           <div className="flex items-center justify-center gap-3 flex-wrap">
             {user ? (
               <Link href="/rooms">
-                <button className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-foreground text-background rounded-full hover:opacity-85 transition-opacity">
-                  {t.landingGoToApp} <ArrowRightIcon size={13} />
-                </button>
+                <PrimaryBtn>{t.landingGoToApp} <ArrowRightIcon size={13} /></PrimaryBtn>
               </Link>
             ) : (
               <>
                 <Link href="/signup">
-                  <button className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-foreground text-background rounded-full hover:opacity-85 transition-opacity">
-                    {t.landingGetStarted} <ArrowRightIcon size={13} />
-                  </button>
+                  <PrimaryBtn>{t.landingGetStarted} <ArrowRightIcon size={13} /></PrimaryBtn>
                 </Link>
                 <Link href="/login">
-                  <button className="px-6 py-2.5 text-sm font-medium text-foreground border border-border rounded-full bg-card/70 hover:bg-accent transition-colors">
-                    {t.loginBtn}
-                  </button>
+                  <SecondaryBtn>{t.loginBtn}</SecondaryBtn>
                 </Link>
               </>
             )}
