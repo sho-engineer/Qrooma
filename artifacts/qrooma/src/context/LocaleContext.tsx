@@ -72,13 +72,25 @@ export interface Translations {
   // Role labels
   roleLabel: (side: "A" | "B" | "C", mode: DefaultMode) => string;
   roleSubLabel: (side: "A" | "B" | "C") => string;
-  // API key / BYOK
+  // API key / BYOK — basic
   apiKeyNotSet: string;
   apiKeyByokBannerTitle: string;
   apiKeyByokBannerDesc: string;
   apiKeyMissingRunTitle: string;
   apiKeyMissingRunDesc: string;
   goToSettings: string;
+  // API key setup — friendly, step-by-step
+  apiKeySetupTitle: string;
+  apiKeySetupLead: string;
+  apiKeySetupSupportText: string;
+  apiKeySetupStep1: string;
+  apiKeySetupStep2: string;
+  apiKeySetupStep3: string;
+  apiKeySetupStep4: string;
+  getApiKey: string;
+  apiKeyNeededWarning: string;
+  apiKeyNeededAction: string;
+  apiKeySecureNote: string;
   // Landing page
   landingHero: string;
   landingSubcopy: string;
@@ -138,7 +150,7 @@ const ja: Translations = {
   keyPoints: "要点",
   settingsTitle: "設定",
   settingsDesc: "変更は自動的に保存されます。",
-  apiKeys: "API キー",
+  apiKeys: "APIキーの設定",
   apiKeysTempWarningTitle: "一時的な保存",
   apiKeysTempWarningDesc:
     "APIキーは現在ブラウザの localStorage に保存されています。これは仮実装です。本実装ではサーバーサイドで暗号化して保存され、クライアントに平文で返されることはありません。",
@@ -175,7 +187,6 @@ const ja: Translations = {
   emptyStateDesc: "下の入力欄にトピックや質問を入力してください。AIチームがそれぞれの視点で議論します。",
   agentCount: "参加エージェント数",
   duplicateModelError: "同じモデルは複数の枠に設定できません",
-  // Role labels — debate: 推進 / 批判 / 統合, free-talk: Side A/B/C
   roleLabel: (side, mode) => {
     if (mode === "structured-debate") {
       return side === "A" ? "推進" : side === "B" ? "批判" : "統合";
@@ -183,14 +194,28 @@ const ja: Translations = {
     return `Side ${side}`;
   },
   roleSubLabel: (side) => `Side ${side}`,
-  // API key / BYOK
+  // API key / BYOK — basic
   apiKeyNotSet: "APIキー未設定",
-  apiKeyByokBannerTitle: "Bring Your Own Key",
+  apiKeyByokBannerTitle: "APIキーの設定",
   apiKeyByokBannerDesc:
-    "Qrooma は BYOK 方式です。議論を実行するには、利用するプロバイダーの API キーが必要です。キーは暗号化保存されます（本実装）。",
+    "QroomaでAIに議論してもらうには、各AIサービスのAPIキーが必要です。APIキーは、そのサービスを使うための「利用キー」のようなものです。",
   apiKeyMissingRunTitle: "APIキーが設定されていません",
-  apiKeyMissingRunDesc: "現在の構成で必要なAPIキーが未設定のため、議論を実行できません。",
+  apiKeyMissingRunDesc: "このAIを使うにはAPIキーが必要です。まずは「APIキーを取得」から設定してください。",
   goToSettings: "設定で入力する",
+  // API key setup — friendly, step-by-step
+  apiKeySetupTitle: "APIキーの設定",
+  apiKeySetupLead:
+    "QroomaでAIに議論してもらうには、各AIサービスのAPIキーが必要です。APIキーは、そのサービスを使うための「利用キー」のようなものです。一度設定すると、QroomaからそのAIを使って議論を実行できるようになります。",
+  apiKeySetupSupportText:
+    "「APIキーを取得」を押すと、各サービスの公式ページが開きます。そこでAPIキーを作成し、Qroomaに貼り付けてください。",
+  apiKeySetupStep1: "使いたいAIサービスを選ぶ",
+  apiKeySetupStep2: "「APIキーを取得」を押して公式ページを開く",
+  apiKeySetupStep3: "公式ページでAPIキーを作成してコピーする",
+  apiKeySetupStep4: "Qroomaに戻って貼り付ける",
+  getApiKey: "APIキーを取得",
+  apiKeyNeededWarning: "このAIを使うにはAPIキーが必要です",
+  apiKeyNeededAction: "上の「APIキーを取得」から公式ページを開き、キーをコピーして貼り付けてください。",
+  apiKeySecureNote: "APIキーはブラウザに安全に保存されます。",
   // Landing page
   landingHero: "ひとりのAIではなく、\n考えてくれるAIチームを。",
   landingSubcopy: "Qrooma は、複数のAIがそれぞれの視点で議論し、壁打ちで終わらず、ひとつの結論まで導く AI チームルームです。",
@@ -250,7 +275,7 @@ const en: Translations = {
   keyPoints: "Key points",
   settingsTitle: "Settings",
   settingsDesc: "Changes are saved automatically.",
-  apiKeys: "API Keys",
+  apiKeys: "Set up your API keys",
   apiKeysTempWarningTitle: "Temporary storage",
   apiKeysTempWarningDesc:
     "API keys are currently stored in your browser's localStorage. This is a placeholder. In production, keys are encrypted server-side and never exposed to the client.",
@@ -288,7 +313,6 @@ const en: Translations = {
   emptyStateDesc: "Post a topic or question below. The AI team will each share their perspective — then you can dig deeper.",
   agentCount: "Number of agents",
   duplicateModelError: "The same model cannot be assigned to multiple sides",
-  // Role labels — debate: Advocate / Critic / Synthesizer, free-talk: Side A/B/C
   roleLabel: (side, mode) => {
     if (mode === "structured-debate") {
       return side === "A" ? "Advocate" : side === "B" ? "Critic" : "Synthesizer";
@@ -296,14 +320,28 @@ const en: Translations = {
     return `Side ${side}`;
   },
   roleSubLabel: (side) => `Side ${side}`,
-  // API key / BYOK
+  // API key / BYOK — basic
   apiKeyNotSet: "No API key",
-  apiKeyByokBannerTitle: "Bring Your Own Key",
+  apiKeyByokBannerTitle: "Set up your API keys",
   apiKeyByokBannerDesc:
-    "Qrooma is BYOK — discussions require API keys from your own provider accounts. Keys are encrypted server-side in production.",
-  apiKeyMissingRunTitle: "API key not set",
-  apiKeyMissingRunDesc: "One or more API keys required for the current agent configuration are missing.",
+    "To run discussions in Qrooma, you need API keys from the AI services you want to use. An API key is like a personal access pass — it lets Qrooma call that AI on your behalf.",
+  apiKeyMissingRunTitle: "API key required",
+  apiKeyMissingRunDesc: 'An API key is needed to use this AI. Click "Get API key" to get one from the official page.',
   goToSettings: "Set up in Settings",
+  // API key setup — friendly, step-by-step
+  apiKeySetupTitle: "Set up your API keys",
+  apiKeySetupLead:
+    "To run discussions in Qrooma, you need API keys from the AI services you want to use. An API key is like a personal access pass that lets Qrooma call that AI on your behalf. Once set, Qrooma will use it to run discussions automatically.",
+  apiKeySetupSupportText:
+    'Click "Get API key" to open the provider\'s official page, create a key there, then come back and paste it into Qrooma.',
+  apiKeySetupStep1: "Choose the AI service you want to use",
+  apiKeySetupStep2: 'Click "Get API key" to open the official page',
+  apiKeySetupStep3: "Create and copy your API key there",
+  apiKeySetupStep4: "Come back to Qrooma and paste it here",
+  getApiKey: "Get API key",
+  apiKeyNeededWarning: "An API key is required to use this AI",
+  apiKeyNeededAction: 'Click "Get API key" above to open the official page, copy your key, and paste it here.',
+  apiKeySecureNote: "Your API key is stored securely in your browser.",
   // Landing page
   landingHero: "Not one AI.\nAn AI team that thinks together.",
   landingSubcopy: "Qrooma is an async AI team room where multiple AIs debate from their own perspectives — guiding you all the way to a conclusion, not just a quick reply.",

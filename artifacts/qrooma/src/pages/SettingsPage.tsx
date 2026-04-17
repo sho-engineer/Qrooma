@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useSettings } from "../context/SettingsContext";
 import { useLocale, type Locale } from "../context/LocaleContext";
 import type { AgentSideConfig, Provider, DefaultMode } from "../types";
-import { AlertCircleIcon, KeyRoundIcon } from "lucide-react";
+import { AlertCircleIcon, ArrowUpRightIcon, CheckIcon } from "lucide-react";
+
+// ─── Provider metadata ────────────────────────────────────────────────────────
 
 const PROVIDER_COLORS: Record<Provider, string> = {
   openai:    "#10a37f",
@@ -14,6 +16,12 @@ const PROVIDER_LABELS: Record<Provider, string> = {
   openai:    "OpenAI",
   anthropic: "Anthropic",
   google:    "Google",
+};
+
+const PROVIDER_API_KEY_URLS: Record<Provider, string> = {
+  openai:    "https://platform.openai.com/api-keys",
+  anthropic: "https://console.anthropic.com/settings/keys",
+  google:    "https://aistudio.google.com/app/apikey",
 };
 
 const PROVIDER_MODELS: Record<Provider, { value: string; label: string }[]> = {
@@ -39,31 +47,123 @@ function comboKey(provider: Provider, model: string) {
   return `${provider}:${model}`;
 }
 
-function ApiKeyField({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
+// ─── Step Guide ───────────────────────────────────────────────────────────────
+
+function ApiKeyStepGuide() {
+  const { t } = useLocale();
+  const steps = [
+    t.apiKeySetupStep1,
+    t.apiKeySetupStep2,
+    t.apiKeySetupStep3,
+    t.apiKeySetupStep4,
+  ];
+
+  return (
+    <div className="rounded-2xl border border-border bg-card px-4 py-4">
+      <p className="text-xs font-semibold text-foreground mb-3">{t.apiKeySetupTitle}</p>
+      <p className="text-xs text-muted-foreground leading-relaxed mb-4">{t.apiKeySetupLead}</p>
+      <ol className="space-y-2.5">
+        {steps.map((step, i) => (
+          <li key={i} className="flex items-start gap-3">
+            <span className="mt-px w-5 h-5 shrink-0 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold text-muted-foreground">
+              {i + 1}
+            </span>
+            <span className="text-xs text-foreground/80 leading-relaxed pt-0.5">{step}</span>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-4 text-[11px] text-muted-foreground/60 leading-relaxed border-t border-border pt-3">
+        {t.apiKeySetupSupportText}
+      </p>
+    </div>
+  );
+}
+
+// ─── Per-provider API Key Field ───────────────────────────────────────────────
+
+interface ApiKeyFieldProps {
+  provider: Provider;
   value: string;
   onChange: (v: string) => void;
-  placeholder: string;
-}) {
+}
+
+function ApiKeyField({ provider, value, onChange }: ApiKeyFieldProps) {
+  const { t } = useLocale();
+  const color = PROVIDER_COLORS[provider];
+  const label = PROVIDER_LABELS[provider];
+  const url = PROVIDER_API_KEY_URLS[provider];
+  const hasKey = !!value;
+
+  const placeholders: Record<Provider, string> = {
+    openai:    "sk-...",
+    anthropic: "sk-ant-...",
+    google:    "AIza...",
+  };
+
   return (
-    <div>
-      <label className="block text-xs font-medium text-foreground mb-1.5">{label}</label>
+    <div className={`rounded-2xl border px-4 py-4 bg-card transition-colors ${
+      hasKey ? "border-border" : "border-border/70"
+    }`}>
+      {/* Provider header row */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className="w-2 h-2 rounded-full shrink-0"
+            style={{ backgroundColor: color }}
+          />
+          <span className="text-xs font-semibold text-foreground">{label}</span>
+          {hasKey ? (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-medium leading-none">
+              <CheckIcon size={8} strokeWidth={2.5} />
+              設定済
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground/60 text-[10px] font-medium leading-none">
+              {t.apiKeyNotSet}
+            </span>
+          )}
+        </div>
+
+        {/* "Get API key" link button */}
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors shrink-0 whitespace-nowrap"
+        >
+          {t.getApiKey}
+          <ArrowUpRightIcon size={10} strokeWidth={2} />
+        </a>
+      </div>
+
+      {/* Input field */}
       <input
         type="password"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
+        placeholder={placeholders[provider]}
         autoComplete="new-password"
         className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring font-mono placeholder:font-sans placeholder:text-muted-foreground"
       />
+
+      {/* Warning when key is missing */}
+      {!hasKey && (
+        <p className="mt-2.5 text-[11px] text-muted-foreground/70 leading-relaxed">
+          {t.apiKeyNeededWarning}
+        </p>
+      )}
+
+      {/* Secure storage note when key IS set */}
+      {hasKey && (
+        <p className="mt-2 text-[11px] text-muted-foreground/50 leading-relaxed">
+          {t.apiKeySecureNote}
+        </p>
+      )}
     </div>
   );
 }
+
+// ─── SideConfig ───────────────────────────────────────────────────────────────
 
 function SideConfig({
   sideKey,
@@ -88,7 +188,6 @@ function SideConfig({
     <div className={`border rounded-2xl p-4 bg-card transition-colors ${
       isDuplicate ? "border-destructive/40" : "border-border"
     }`}>
-      {/* Side header */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <div className="w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center shrink-0">
           <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
@@ -107,7 +206,6 @@ function SideConfig({
         )}
       </div>
 
-      {/* Provider + Model selects — stack on mobile, side-by-side on sm+ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <label className="block text-[11px] text-muted-foreground mb-1">{t.provider}</label>
@@ -145,6 +243,8 @@ function SideConfig({
     </div>
   );
 }
+
+// ─── Main Settings Page ───────────────────────────────────────────────────────
 
 export default function SettingsPage() {
   const { settings, updateSettings } = useSettings();
@@ -198,7 +298,7 @@ export default function SettingsPage() {
 
         <div className="space-y-8">
 
-          {/* UI Language */}
+          {/* ── UI Language ──────────────────────────────────────────────── */}
           <section>
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
               {t.uiLanguage}
@@ -220,57 +320,38 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* API Keys */}
+          {/* ── API Keys ─────────────────────────────────────────────────── */}
           <section>
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
               {t.apiKeys}
             </h3>
 
-            {/* BYOK explanation */}
-            <div className="mb-4 px-4 py-3.5 bg-card border border-border rounded-2xl">
-              <div className="flex items-start gap-2.5">
-                <KeyRoundIcon size={14} className="shrink-0 text-muted-foreground/50 mt-px" />
-                <div>
-                  <p className="text-xs font-semibold text-foreground mb-1">
-                    {t.apiKeyByokBannerTitle}
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {t.apiKeyByokBannerDesc}
-                  </p>
-                </div>
-              </div>
+            {/* Step-by-step guide card */}
+            <div className="mb-4">
+              <ApiKeyStepGuide />
             </div>
 
-            {/* Temp storage notice */}
-            <div className="mb-4 px-3.5 py-2.5 bg-muted/40 border border-border/60 rounded-xl">
-              <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
-                ⚠ {t.apiKeysTempWarningDesc}
-              </p>
-            </div>
-
+            {/* Per-provider key fields */}
             <div className="space-y-3">
               <ApiKeyField
-                label="OpenAI API Key"
+                provider="openai"
                 value={settings.openaiApiKey}
                 onChange={(v) => updateSettings({ openaiApiKey: v })}
-                placeholder="sk-..."
               />
               <ApiKeyField
-                label="Anthropic API Key"
+                provider="anthropic"
                 value={settings.anthropicApiKey}
                 onChange={(v) => updateSettings({ anthropicApiKey: v })}
-                placeholder="sk-ant-..."
               />
               <ApiKeyField
-                label="Google API Key"
+                provider="google"
                 value={settings.googleApiKey}
                 onChange={(v) => updateSettings({ googleApiKey: v })}
-                placeholder="AIza..."
               />
             </div>
           </section>
 
-          {/* Default Mode */}
+          {/* ── Default Mode ─────────────────────────────────────────────── */}
           <section>
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
               {t.defaultMode}
@@ -301,7 +382,7 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* Agent Configuration */}
+          {/* ── Agent Configuration ──────────────────────────────────────── */}
           <section>
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
               {t.agentConfig}
