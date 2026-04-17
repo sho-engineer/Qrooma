@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useSettings } from "../context/SettingsContext";
 import { useLocale, type Locale } from "../context/LocaleContext";
+import { usePlan } from "../context/PlanContext";
 import type { AgentSideConfig, Provider, DefaultMode } from "../types";
 import { AlertCircleIcon, ArrowUpRightIcon, CheckIcon } from "lucide-react";
 
@@ -235,6 +237,79 @@ function SideConfig({
   );
 }
 
+// ─── Plan Cards ───────────────────────────────────────────────────────────────
+
+function FreePlanCard() {
+  const { t, locale } = useLocale();
+  return (
+    <section>
+      <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+        {locale === "ja" ? "現在のプラン" : "Current plan"}
+      </h3>
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+            Free
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {locale === "ja" ? "体験版" : "Trial"}
+          </span>
+        </div>
+        <ul className="space-y-2 mb-4">
+          {[t.planFreeFeature1, t.planFreeFeature2, t.planFreeFeature3, t.planFreeFeature4].map((f, i) => (
+            <li key={i} className="flex items-center gap-2">
+              <CheckIcon size={11} className="text-muted-foreground/40 shrink-0" />
+              <span className="text-xs text-muted-foreground">{f}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="text-[11px] text-muted-foreground/60 leading-relaxed mb-4 border-t border-border/60 pt-3">
+          {t.pricingFreeLimit}
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <Link href="/signup">
+            <button className="w-full py-2 text-xs font-semibold rounded-xl bg-foreground text-background hover:opacity-85 active:scale-[0.98] transition-all">
+              Connect — $9/mo
+            </button>
+          </Link>
+          <Link href="/signup">
+            <button className="w-full py-2 text-xs font-semibold rounded-xl border border-border text-foreground hover:bg-accent active:scale-[0.98] transition-all">
+              Pro — $20/mo
+            </button>
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProPlanCard() {
+  const { t, locale } = useLocale();
+  return (
+    <section>
+      <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+        {locale === "ja" ? "現在のプラン" : "Current plan"}
+      </h3>
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-foreground text-background">
+            Pro
+          </span>
+          <span className="text-xs font-semibold text-foreground">$20 / mo</span>
+        </div>
+        <ul className="space-y-2">
+          {[t.planProFeature1, t.planProFeature2, t.planProFeature3, t.planProFeature4].map((f, i) => (
+            <li key={i} className="flex items-center gap-2">
+              <CheckIcon size={11} className="text-foreground/40 shrink-0" />
+              <span className="text-xs text-muted-foreground">{f}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 // ─── Draft type ───────────────────────────────────────────────────────────────
 
 type DraftSettings = {
@@ -253,8 +328,8 @@ type DraftSettings = {
 export default function SettingsPage() {
   const { settings, updateSettings } = useSettings();
   const { t, locale, setLocale }     = useLocale();
+  const { plan }                     = usePlan();
 
-  // Local draft — all field changes go here; committed on "Save"
   const [draft, setDraft] = useState<DraftSettings>({
     openaiApiKey:    settings.openaiApiKey,
     anthropicApiKey: settings.anthropicApiKey,
@@ -266,7 +341,6 @@ export default function SettingsPage() {
     sideC:           settings.sideC,
   });
 
-  // "Saved" feedback lasts 2.5 s
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [showDupError, setShowDupError] = useState(false);
 
@@ -275,7 +349,6 @@ export default function SettingsPage() {
     setSavedAt(null);
   }
 
-  // Check if draft differs from what's currently saved
   const savedSnap: DraftSettings = {
     openaiApiKey:    settings.openaiApiKey,
     anthropicApiKey: settings.anthropicApiKey,
@@ -338,25 +411,56 @@ export default function SettingsPage() {
     { value: "free-talk",         label: t.freeTalk,         description: t.freeTalkDesc },
   ];
 
-  const sides = activeSides();
-  const canSave = isDirty && !hasDuplicate();
+  const sides    = activeSides();
+  const canSave  = isDirty && !hasDuplicate();
+  const isFree   = plan === "free";
+  const isPro    = plan === "pro";
+  const isConnect = plan === "connect";
+
+  // Save button JSX (reused in header + bottom)
+  const saveBtn = (fullWidth = false) => (
+    <button
+      onClick={save}
+      disabled={!canSave}
+      className={`${fullWidth ? "w-full py-2.5 text-sm font-semibold rounded-2xl" : "shrink-0 flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-xl border"} transition-all active:scale-[0.97] ${
+        savedAt
+          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+          : canSave
+          ? "bg-foreground text-background border-transparent hover:opacity-85"
+          : "bg-muted text-muted-foreground/50 border-transparent cursor-not-allowed"
+      }`}
+    >
+      {savedAt ? (
+        <span className="flex items-center justify-center gap-1.5">
+          <CheckIcon size={fullWidth ? 14 : 11} strokeWidth={2.5} />
+          {t.settingsSaved}
+        </span>
+      ) : (
+        t.saveSettings
+      )}
+    </button>
+  );
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
 
-      {/* ── Sticky header + Save button ──────────────────────────────── */}
+      {/* ── Sticky header ──────────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-border/60">
         <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 max-w-xl">
           <div className="min-w-0">
             <h2 className="text-sm font-semibold text-foreground leading-none">{t.settingsTitle}</h2>
             <p className={`text-[11px] mt-0.5 transition-colors ${
-              savedAt
+              isFree
+                ? "text-muted-foreground/50"
+                : savedAt
                 ? "text-emerald-600"
                 : isDirty
                 ? "text-amber-600"
                 : "text-muted-foreground/50"
             }`}>
-              {savedAt
+              {isFree
+                ? locale === "ja" ? "Free プラン" : "Free plan"
+                : savedAt
                 ? t.settingsSaved
                 : isDirty
                 ? t.settingsUnsaved
@@ -365,34 +469,14 @@ export default function SettingsPage() {
                 : "Edit fields, then save"}
             </p>
           </div>
-
-          <button
-            onClick={save}
-            disabled={!canSave}
-            className={`shrink-0 flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-xl border transition-all active:scale-[0.97] ${
-              savedAt
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                : canSave
-                ? "bg-foreground text-background border-transparent hover:opacity-85"
-                : "bg-muted text-muted-foreground/50 border-transparent cursor-not-allowed"
-            }`}
-          >
-            {savedAt ? (
-              <>
-                <CheckIcon size={11} strokeWidth={2.5} />
-                {t.settingsSaved}
-              </>
-            ) : (
-              t.saveSettings
-            )}
-          </button>
+          {!isFree && saveBtn()}
         </div>
       </div>
 
       <div className="px-4 py-5 sm:px-6 sm:py-7 max-w-xl">
         <div className="space-y-8">
 
-          {/* ── UI Language (auto-save, no Save button needed) ─────── */}
+          {/* ── UI Language (always) ────────────────────────────────────── */}
           <section>
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
               {t.uiLanguage}
@@ -419,176 +503,152 @@ export default function SettingsPage() {
             </p>
           </section>
 
-          {/* ── Plan overview ────────────────────────────────────────── */}
-          <section>
-            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
-              {t.settingsPlanTitle}
-            </h3>
-            <div className="rounded-2xl border border-border bg-card divide-y divide-border/70 overflow-hidden">
-              {[
-                { name: "Free",    desc: t.settingsPlanFreeDesc },
-                { name: "Connect", desc: t.settingsPlanConnectDesc },
-                { name: "Pro",     desc: t.settingsPlanProDesc },
-              ].map(({ name, desc }) => (
-                <div key={name} className="flex items-start gap-3 px-4 py-3">
-                  <span className="shrink-0 mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
-                    {name}
-                  </span>
-                  <span className="text-xs text-muted-foreground leading-relaxed">{desc}</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-2.5 text-[11px] text-muted-foreground/50 leading-relaxed">
-              {t.settingsPlanApiKeyDesc}
-            </p>
-          </section>
+          {/* ── Free plan card ──────────────────────────────────────────── */}
+          {isFree && <FreePlanCard />}
 
-          {/* ── API Keys ─────────────────────────────────────────────── */}
-          <section>
-            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
-              {t.apiKeys}
-            </h3>
+          {/* ── Pro plan card ───────────────────────────────────────────── */}
+          {isPro && <ProPlanCard />}
 
-            <div className="mb-4">
-              <ApiKeyStepGuide />
-            </div>
-
-            <div className="space-y-3">
-              <ApiKeyField
-                provider="openai"
-                value={draft.openaiApiKey}
-                onChange={(v) => patchDraft({ openaiApiKey: v })}
-              />
-              <ApiKeyField
-                provider="anthropic"
-                value={draft.anthropicApiKey}
-                onChange={(v) => patchDraft({ anthropicApiKey: v })}
-              />
-              <ApiKeyField
-                provider="google"
-                value={draft.googleApiKey}
-                onChange={(v) => patchDraft({ googleApiKey: v })}
-              />
-            </div>
-          </section>
-
-          {/* ── Default Mode ──────────────────────────────────────────── */}
-          <section>
-            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
-              {t.defaultMode}
-            </h3>
-            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-              {t.agentConfigDesc}
-            </p>
-
-            <div className="space-y-2">
-              {modes.map(({ value, label, description }) => (
-                <button
-                  key={value}
-                  onClick={() => patchDraft({ defaultMode: value })}
-                  className={`w-full text-left px-4 py-3 rounded-2xl border transition-all duration-200 active:scale-[0.99] ${
-                    draft.defaultMode === value
-                      ? "border-foreground/20 bg-card"
-                      : "border-border bg-background hover:bg-card"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2 mb-0.5 min-w-0">
-                    <span className="text-xs font-semibold text-foreground">{label}</span>
-                    {draft.defaultMode === value && (
-                      <CheckIcon size={12} className="text-foreground/60 shrink-0" />
-                    )}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground/70 leading-relaxed">{description}</p>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* ── Agent Configuration ───────────────────────────────────── */}
-          <section>
-            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
-              {t.agentConfig}
-            </h3>
-            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-              {t.agentConfigDesc}
-            </p>
-
-            {/* 2 / 3 agent count toggle */}
-            <div className="flex items-center justify-between mb-4 px-4 py-3 bg-card border border-border rounded-2xl min-w-0">
-              <div className="min-w-0">
-                <span className="text-xs font-medium text-foreground">{t.agentCount}</span>
-                <p className="text-[11px] text-muted-foreground/60 mt-0.5">
-                  {draft.agentCount === 2
-                    ? locale === "ja"
-                      ? "サイド A / B のみ有効"
-                      : "Only Side A / B active"
-                    : locale === "ja"
-                      ? "サイド A / B / C すべて有効"
-                      : "All sides A / B / C active"}
-                </p>
+          {/* ── API Keys (Connect only) ─────────────────────────────────── */}
+          {isConnect && (
+            <section>
+              <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+                {t.apiKeys}
+              </h3>
+              <div className="mb-4">
+                <ApiKeyStepGuide />
               </div>
-              <div className="flex gap-1 rounded-full border border-border bg-background p-0.5 shrink-0 ml-3">
-                {([2, 3] as const).map((n) => (
+              <div className="space-y-3">
+                <ApiKeyField
+                  provider="openai"
+                  value={draft.openaiApiKey}
+                  onChange={(v) => patchDraft({ openaiApiKey: v })}
+                />
+                <ApiKeyField
+                  provider="anthropic"
+                  value={draft.anthropicApiKey}
+                  onChange={(v) => patchDraft({ anthropicApiKey: v })}
+                />
+                <ApiKeyField
+                  provider="google"
+                  value={draft.googleApiKey}
+                  onChange={(v) => patchDraft({ googleApiKey: v })}
+                />
+              </div>
+            </section>
+          )}
+
+          {/* ── Default Mode (Connect + Pro) ────────────────────────────── */}
+          {!isFree && (
+            <section>
+              <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
+                {t.defaultMode}
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                {t.agentConfigDesc}
+              </p>
+              <div className="space-y-2">
+                {modes.map(({ value, label, description }) => (
                   <button
-                    key={n}
-                    onClick={() => patchDraft({ agentCount: n })}
-                    className={`w-8 h-6 text-xs font-medium rounded-full transition-all ${
-                      draft.agentCount === n
-                        ? "bg-foreground text-background"
-                        : "text-muted-foreground hover:text-foreground"
+                    key={value}
+                    onClick={() => patchDraft({ defaultMode: value })}
+                    className={`w-full text-left px-4 py-3 rounded-2xl border transition-all duration-200 active:scale-[0.99] ${
+                      draft.defaultMode === value
+                        ? "border-foreground/20 bg-card"
+                        : "border-border bg-background hover:bg-card"
                     }`}
                   >
-                    {n}
+                    <div className="flex items-center justify-between gap-2 mb-0.5 min-w-0">
+                      <span className="text-xs font-semibold text-foreground">{label}</span>
+                      {draft.defaultMode === value && (
+                        <CheckIcon size={12} className="text-foreground/60 shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground/70 leading-relaxed">{description}</p>
                   </button>
                 ))}
               </div>
-            </div>
+            </section>
+          )}
 
-            {/* Duplicate error */}
-            {(showDupError || hasDuplicate()) && (
-              <div className="flex items-start gap-2 mb-3 px-3.5 py-2.5 bg-destructive/8 border border-destructive/20 rounded-xl">
-                <AlertCircleIcon size={13} className="text-destructive/70 shrink-0 mt-0.5" />
-                <p className="text-xs text-destructive/80">{t.duplicateModelError}</p>
+          {/* ── Agent Configuration (Connect + Pro) ─────────────────────── */}
+          {!isFree && (
+            <section>
+              <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
+                {t.agentConfig}
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                {t.agentConfigDesc}
+              </p>
+
+              {/* 2 / 3 count toggle */}
+              <div className="flex items-center justify-between mb-4 px-4 py-3 bg-card border border-border rounded-2xl min-w-0">
+                <div className="min-w-0">
+                  <span className="text-xs font-medium text-foreground">{t.agentCount}</span>
+                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                    {draft.agentCount === 2
+                      ? locale === "ja" ? "サイド A / B のみ有効" : "Only Side A / B active"
+                      : locale === "ja" ? "サイド A / B / C すべて有効" : "All sides A / B / C active"}
+                  </p>
+                </div>
+                <div className="flex gap-1 rounded-full border border-border bg-background p-0.5 shrink-0 ml-3">
+                  {([2, 3] as const).map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => patchDraft({ agentCount: n })}
+                      className={`w-8 h-6 text-xs font-medium rounded-full transition-all ${
+                        draft.agentCount === n
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
 
-            <div className="space-y-2.5">
-              {sides.map(({ key, config }) => (
-                <SideConfig
-                  key={key}
-                  sideKey={key}
-                  config={config}
-                  hasApiKey={!!apiKeyForProvider(config.provider)}
-                  otherCombos={getCombosExcluding(key)}
-                  onChange={(c) => handleSideChange(key, c)}
-                />
-              ))}
-            </div>
-          </section>
-
-          {/* ── Bottom save (convenience) ──────────────────────────── */}
-          <div className="pb-4">
-            <button
-              onClick={save}
-              disabled={!canSave}
-              className={`w-full py-2.5 text-sm font-semibold rounded-2xl transition-all active:scale-[0.99] ${
-                savedAt
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  : canSave
-                  ? "bg-foreground text-background hover:opacity-85"
-                  : "bg-muted text-muted-foreground cursor-not-allowed"
-              }`}
-            >
-              {savedAt ? (
-                <span className="flex items-center justify-center gap-1.5">
-                  <CheckIcon size={14} strokeWidth={2.5} />
-                  {t.settingsSaved}
-                </span>
-              ) : (
-                t.saveSettings
+              {/* Connect: full SideConfig with model selection */}
+              {isConnect && (
+                <>
+                  {(showDupError || hasDuplicate()) && (
+                    <div className="flex items-start gap-2 mb-3 px-3.5 py-2.5 bg-destructive/8 border border-destructive/20 rounded-xl">
+                      <AlertCircleIcon size={13} className="text-destructive/70 shrink-0 mt-0.5" />
+                      <p className="text-xs text-destructive/80">{t.duplicateModelError}</p>
+                    </div>
+                  )}
+                  <div className="space-y-2.5">
+                    {sides.map(({ key, config }) => (
+                      <SideConfig
+                        key={key}
+                        sideKey={key}
+                        config={config}
+                        hasApiKey={!!apiKeyForProvider(config.provider)}
+                        otherCombos={getCombosExcluding(key)}
+                        onChange={(c) => handleSideChange(key, c)}
+                      />
+                    ))}
+                  </div>
+                </>
               )}
-            </button>
-          </div>
+
+              {/* Pro: model auto-selected by Qrooma */}
+              {isPro && (
+                <p className="text-[11px] text-muted-foreground/60 leading-relaxed px-1">
+                  {locale === "ja"
+                    ? "Pro プランではモデルは Qrooma が自動選択します。"
+                    : "On Pro, models are automatically selected by Qrooma."}
+                </p>
+              )}
+            </section>
+          )}
+
+          {/* ── Bottom save (Connect + Pro) ─────────────────────────────── */}
+          {!isFree && (
+            <div className="pb-4">
+              {saveBtn(true)}
+            </div>
+          )}
 
         </div>
       </div>

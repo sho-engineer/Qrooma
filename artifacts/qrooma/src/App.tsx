@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { RoomsProvider } from "./context/RoomsContext";
 import { LocaleProvider } from "./context/LocaleContext";
+import { PlanProvider, usePlan, type Plan } from "./context/PlanContext";
 import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import RoomsPage from "./pages/RoomsPage";
@@ -46,6 +47,38 @@ function GuestGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// ─── Dev Plan Switcher (floating) ────────────────────────────────────────────
+function DevPlanSwitcher() {
+  const { plan, setPlan } = usePlan();
+  const planLabels: Record<Plan, string> = {
+    free:    "Free",
+    connect: "Connect",
+    pro:     "Pro",
+  };
+  return (
+    <div className="fixed bottom-5 right-5 z-[200] flex items-center gap-0.5 px-1 py-1 rounded-full border border-border bg-card/95 backdrop-blur shadow-lg shadow-black/5">
+      <span className="text-[9px] font-bold text-muted-foreground/40 pl-2 pr-1.5 uppercase tracking-widest select-none">
+        DEV
+      </span>
+      {(["free", "connect", "pro"] as Plan[]).map((p) => (
+        <button
+          key={p}
+          onClick={() => setPlan(p)}
+          className={`px-2.5 py-1 text-[10px] font-semibold rounded-full transition-all duration-150 ${
+            plan === p
+              ? "bg-foreground text-background"
+              : "text-muted-foreground hover:text-foreground hover:bg-accent"
+          }`}
+        >
+          {planLabels[p]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── App Shell ───────────────────────────────────────────────────────────────
+
 function AppShell() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
@@ -66,7 +99,6 @@ function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Mobile backdrop — fades in when sidebar opens */}
       {isMobile && sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/40 md:hidden animate-fade-in"
@@ -82,7 +114,6 @@ function AppShell() {
       />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile-only top nav bar */}
         <div className="md:hidden shrink-0 flex items-center gap-3 px-4 h-12 border-b border-border bg-card">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -107,10 +138,8 @@ function AppShell() {
 function Router() {
   return (
     <Switch>
-      {/* Public: landing page */}
       <Route path="/" component={LandingPage} />
 
-      {/* Guest-only: redirect to /rooms if already signed in */}
       <Route path="/login">
         <GuestGuard>
           <AuthPage initialMode="login" />
@@ -122,7 +151,6 @@ function Router() {
         </GuestGuard>
       </Route>
 
-      {/* Auth-required: app shell */}
       <Route>
         <AuthGuard>
           <AppShell />
@@ -132,18 +160,30 @@ function Router() {
   );
 }
 
+// ─── Root (inside all providers) ─────────────────────────────────────────────
+function Root() {
+  return (
+    <>
+      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        <Router />
+      </WouterRouter>
+      <DevPlanSwitcher />
+    </>
+  );
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <LocaleProvider>
-          <SettingsProvider>
-            <RoomsProvider>
-              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-                <Router />
-              </WouterRouter>
-            </RoomsProvider>
-          </SettingsProvider>
+          <PlanProvider>
+            <SettingsProvider>
+              <RoomsProvider>
+                <Root />
+              </RoomsProvider>
+            </SettingsProvider>
+          </PlanProvider>
         </LocaleProvider>
       </AuthProvider>
     </QueryClientProvider>

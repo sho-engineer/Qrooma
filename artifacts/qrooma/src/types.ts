@@ -1,4 +1,5 @@
 export type Provider = "openai" | "anthropic" | "google";
+export type Plan = "free" | "connect" | "pro";
 
 export interface Room {
   id: string;

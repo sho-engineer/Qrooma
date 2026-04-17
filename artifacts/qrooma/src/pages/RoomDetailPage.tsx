@@ -23,6 +23,7 @@ import { runsService, type RunPayload, type RealRunParams } from "../services/ru
 import { useSettings } from "../context/SettingsContext";
 import { useRooms } from "../context/RoomsContext";
 import { useLocale } from "../context/LocaleContext";
+import { usePlan } from "../context/PlanContext";
 import type { Message, RunStatus, Provider } from "../types";
 import RoomHeader from "../components/RoomHeader";
 import MessageBubble from "../components/MessageBubble";
@@ -90,6 +91,7 @@ export default function RoomDetailPage() {
   const { settings } = useSettings();
   const { getRoomById, updateRoom } = useRooms();
   const { t } = useLocale();
+  const { plan } = usePlan();
 
   const room = getRoomById(roomId);
   const roomName = room?.name ?? "Room";
@@ -124,20 +126,21 @@ export default function RoomDetailPage() {
 
   // ─── Derived values ─────────────────────────────────────────────────────────
 
-  const agentCount  = settings.agentCount ?? 3;
+  // Free plan always uses 2 agents; Connect/Pro use settings
+  const agentCount  = plan === "free" ? 2 : (settings.agentCount ?? 3);
   const activeSides = agentCount === 2
     ? [settings.sideA, settings.sideB]
     : [settings.sideA, settings.sideB, settings.sideC];
 
-  // true = ALL active agents have API keys (shown in RoomHeader as "fully ready")
-  const canRun = useMemo(() => {
-    return activeSides.every((side) => hasApiKeyFor(side.provider, settings));
-  }, [settings.openaiApiKey, settings.anthropicApiKey, settings.googleApiKey, agentCount]);
-
-  // true = AT LEAST ONE active agent has an API key (enables real AI calls + Rerun button)
+  // Real API calls only on Connect plan when keys are present
+  // Free and Pro always use simulation
   const hasSomeKey = useMemo(() => {
+    if (plan !== "connect") return false;
     return activeSides.some((side) => hasApiKeyFor(side.provider, settings));
-  }, [settings.openaiApiKey, settings.anthropicApiKey, settings.googleApiKey, agentCount]);
+  }, [plan, settings.openaiApiKey, settings.anthropicApiKey, settings.googleApiKey, agentCount]);
+
+  // canRun: Free/Pro always true (simulation); Connect requires a key
+  const canRun = plan !== "connect" ? true : hasSomeKey;
 
   const sideModelMap = useMemo(() => ({
     A: shortenModel(settings.sideA.model),
@@ -231,8 +234,7 @@ export default function RoomDetailPage() {
     }
 
     if (hasSomeKey) {
-      // ── BYOK: real AI call (only agents with valid keys) ───────────────────
-      const agentCount = settings.agentCount ?? 3;
+      // ── Connect plan: real AI call (only agents with valid keys) ───────────
       const sides = (agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[];
       const sideConfigs = [settings.sideA, settings.sideB, settings.sideC];
 
@@ -279,12 +281,12 @@ export default function RoomDetailPage() {
       );
       cancelRun.current = cancel;
     } else {
-      // ── Free mode: local simulation ────────────────────────────────────────
+      // ── Free / Pro: local simulation ───────────────────────────────────────
       const payload: RunPayload = {
         roomId,
         userId:     "demo",
         mode:       settings.defaultMode,
-        agentCount: settings.agentCount ?? 3,
+        agentCount, // plan-aware: Free=2, Pro/Connect=settings value
       };
       const cancel = runsService.simulateRun(runId, payload, onMessage, onStatus);
       cancelRun.current = cancel;
@@ -332,9 +334,9 @@ export default function RoomDetailPage() {
         roomName={roomName}
         runStatus={runStatus}
         modeLabel={modeLabel}
-        activeModels={activeModels}
+        activeModels={plan === "free" ? activeModels.slice(0, 2) : activeModels}
         hasMessages={hasMessages}
-        canRun={hasSomeKey}
+        canRun={canRun}
         onRerun={rerun}
       />
 
@@ -381,12 +383,24 @@ export default function RoomDetailPage() {
         <ConclusionCard runCount={runCount} conclusion={conclusion} />
       )}
 
+      {/* Free plan banner */}
+      {plan === "free" && (
+        <div className="shrink-0 px-4 py-2 border-t border-border/60 bg-muted/30 flex items-center justify-between gap-3 min-w-0">
+          <p className="text-[11px] text-muted-foreground/70 leading-relaxed truncate min-w-0">
+            {t.freeModeBanner}
+          </p>
+          <a href="/signup" className="shrink-0 text-[11px] font-medium text-foreground/60 hover:text-foreground transition-colors whitespace-nowrap">
+            {t.freeUpgradeHint} →
+          </a>
+        </div>
+      )}
+
       <MessageInput
         value={input}
         onChange={setInput}
         onSend={sendMessage}
         isRunning={runStatus === "running"}
-        apiKeysReady={hasSomeKey}
+        apiKeysReady={plan === "free" || plan === "pro" ? true : hasSomeKey}
       />
     </div>
   );

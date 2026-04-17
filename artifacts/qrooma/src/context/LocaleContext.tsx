@@ -163,6 +163,9 @@ export interface Translations {
   planProFeature3: string;
   planProFeature4: string;
   planProCta: string;
+  // Room detail plan banners
+  freeModeBanner: string;
+  freeUpgradeHint: string;
   // Settings plan overview
   settingsPlanTitle: string;
   settingsPlanFreeDesc: string;
@@ -345,6 +348,8 @@ const ja: Translations = {
   settingsPlanConnectDesc: "APIキー設定で本格利用 — モデル選択・2/3エージェント",
   settingsPlanProDesc: "APIキー不要 · 月30回の議論を含む",
   settingsPlanApiKeyDesc: "Connect プランでは、APIキーを設定することでモデルや構成を柔軟に選べます。Pro では APIキー不要で利用できます。",
+  freeModeBanner: "Free · 2エージェント · 固定モデル · 1日3回まで",
+  freeUpgradeHint: "本格利用は Connect / Pro",
 };
 
 const en: Translations = {
@@ -522,6 +527,8 @@ const en: Translations = {
   settingsPlanConnectDesc: "Use your API keys for full access — choose models and agent count",
   settingsPlanProDesc: "No API keys — 30 discussions / month included",
   settingsPlanApiKeyDesc: "On Connect, adding API keys unlocks model selection and full configuration. Pro includes usage so no keys are needed.",
+  freeModeBanner: "Free · 2 agents · fixed models · 3 runs/day",
+  freeUpgradeHint: "Upgrade to Connect or Pro",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };
