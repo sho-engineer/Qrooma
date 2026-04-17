@@ -91,6 +91,19 @@ export interface Translations {
   apiKeyNeededWarning: string;
   apiKeyNeededAction: string;
   apiKeySecureNote: string;
+  // Product preview (landing page mock UI)
+  previewRooms: string;
+  previewRoomActive: string;
+  previewRoom2: string;
+  previewRoom3: string;
+  previewMeta: string;
+  previewRole1: string;
+  previewRole2: string;
+  previewRole3: string;
+  previewMsg1: string;
+  previewMsg2: string;
+  previewMsg3: string;
+  previewConclusionText: string;
   // Landing page
   landingHero: string;
   landingSubcopy: string;
@@ -216,6 +229,19 @@ const ja: Translations = {
   apiKeyNeededWarning: "このAIを使うにはAPIキーが必要です",
   apiKeyNeededAction: "上の「APIキーを取得」から公式ページを開き、キーをコピーして貼り付けてください。",
   apiKeySecureNote: "APIキーはブラウザに安全に保存されます。",
+  // Product preview
+  previewRooms: "ルーム",
+  previewRoomActive: "Q3 プロダクトロードマップ",
+  previewRoom2: "価格戦略",
+  previewRoom3: "技術スタック検討",
+  previewMeta: "3エージェント · Run 2",
+  previewRole1: "推進",
+  previewRole2: "批判",
+  previewRole3: "統合",
+  previewMsg1: "機能数よりも先に、開発リソースの制約を見直すべきです。スコープを絞ってリリースし、四半期ごとに再評価する方が確実です。",
+  previewMsg2: "それだけでは不十分です。問題はリソースだけでなく、成功指標が不明確なことです。最重要指標をひとつ決めることが先決では？",
+  previewMsg3: "中間案として、北極星指標をひとつ決めることで、優先順位とスコープの両方を自動的に整理できます。",
+  previewConclusionText: "まず最重要指標をひとつ決めることが、優先順位と開発負荷の両方を整理する近道です。",
   // Landing page
   landingHero: "ひとりのAIではなく、\n考えてくれるAIチームを。",
   landingSubcopy: "Qrooma は、複数のAIがそれぞれの視点で議論し、壁打ちで終わらず、ひとつの結論まで導く AI チームルームです。",
@@ -342,6 +368,19 @@ const en: Translations = {
   apiKeyNeededWarning: "An API key is required to use this AI",
   apiKeyNeededAction: 'Click "Get API key" above to open the official page, copy your key, and paste it here.',
   apiKeySecureNote: "Your API key is stored securely in your browser.",
+  // Product preview
+  previewRooms: "Rooms",
+  previewRoomActive: "Product Roadmap Q3",
+  previewRoom2: "Pricing Strategy",
+  previewRoom3: "Tech Stack Decision",
+  previewMeta: "3 agents · Run 2",
+  previewRole1: "Advocate",
+  previewRole2: "Critic",
+  previewRole3: "Synthesizer",
+  previewMsg1: "The real bottleneck isn't the feature list — it's engineering bandwidth. I'd ship a tighter scope and revisit quarterly.",
+  previewMsg2: "I'd push back. The issue isn't just bandwidth — it's unclear success criteria. What's the one metric that matters most?",
+  previewMsg3: "A middle path: lock one north star metric, then let it drive scope decisions automatically. Both problems solved.",
+  previewConclusionText: "Align on one north star metric first — it resolves both the prioritization and bandwidth problems simultaneously.",
   // Landing page
   landingHero: "Not one AI.\nAn AI team that thinks together.",
   landingSubcopy: "Qrooma is an async AI team room where multiple AIs debate from their own perspectives — guiding you all the way to a conclusion, not just a quick reply.",

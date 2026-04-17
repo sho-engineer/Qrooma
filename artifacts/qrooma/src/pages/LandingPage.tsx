@@ -32,25 +32,23 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-const PREVIEW_MESSAGES = [
-  {
-    name: "ChatGPT",
-    color: "#10a37f",
-    text: "The real bottleneck isn't the feature list — it's engineering bandwidth. I'd ship a tighter scope and revisit quarterly.",
-  },
-  {
-    name: "Claude",
-    color: "#d97706",
-    text: "I'd push back. The issue isn't just bandwidth — it's unclear success criteria. What's the one metric that matters most?",
-  },
-  {
-    name: "Gemini",
-    color: "#4285f4",
-    text: "A middle path: lock one north star metric, then let it drive scope decisions automatically. Both problems solved.",
-  },
-];
+const AGENT_COLORS = ["#10a37f", "#d97706", "#4285f4"] as const;
 
 function ProductPreview() {
+  const { t } = useLocale();
+
+  const previewMessages = [
+    { role: t.previewRole1, color: AGENT_COLORS[0], text: t.previewMsg1 },
+    { role: t.previewRole2, color: AGENT_COLORS[1], text: t.previewMsg2 },
+    { role: t.previewRole3, color: AGENT_COLORS[2], text: t.previewMsg3 },
+  ];
+
+  const previewRooms = [
+    { name: t.previewRoomActive, active: true },
+    { name: t.previewRoom2,      active: false },
+    { name: t.previewRoom3,      active: false },
+  ];
+
   return (
     <div className="rounded-[28px] border border-border bg-card/90 shadow-[0_12px_48px_rgba(0,0,0,0.06)] overflow-hidden">
       {/* Window chrome */}
@@ -66,15 +64,11 @@ function ProductPreview() {
         <div className="hidden md:flex flex-col border-r border-border bg-sidebar">
           <div className="px-3 pt-3 pb-1">
             <p className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest px-2 py-1">
-              Rooms
+              {t.previewRooms}
             </p>
           </div>
           <nav className="flex-1 px-1.5 space-y-0.5">
-            {[
-              { name: "Product Roadmap Q3", active: true },
-              { name: "Pricing Strategy",   active: false },
-              { name: "Tech Stack Decision", active: false },
-            ].map((room) => (
+            {previewRooms.map((room) => (
               <div
                 key={room.name}
                 className={`px-2.5 py-1.5 rounded-lg text-xs truncate transition-colors ${
@@ -90,27 +84,27 @@ function ProductPreview() {
         </div>
 
         {/* Main pane */}
-        <div className="flex flex-col min-h-0">
+        <div className="flex flex-col min-h-0 overflow-hidden">
           {/* Room header */}
-          <div className="border-b border-border px-4 py-2.5 flex items-center justify-between bg-card/60">
-            <div>
-              <p className="text-[11px] font-semibold text-foreground">Product Roadmap Q3</p>
-              <p className="text-[10px] text-muted-foreground/60 mt-0.5">3 agents · Run 2</p>
+          <div className="border-b border-border px-4 py-2.5 flex items-center gap-3 bg-card/60 min-w-0">
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-semibold text-foreground truncate">{t.previewRoomActive}</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-0.5">{t.previewMeta}</p>
             </div>
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-              Debate Mode
+            <span className="shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
+              {t.structuredDebate}
             </span>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 px-4 py-4 space-y-3 bg-background/40">
-            {PREVIEW_MESSAGES.map((msg) => (
-              <div key={msg.name} className="flex gap-2.5 max-w-[90%]">
+          <div className="flex-1 px-4 py-4 space-y-3 bg-background/40 overflow-hidden">
+            {previewMessages.map((msg) => (
+              <div key={msg.role} className="flex gap-2.5 max-w-[92%]">
                 <div className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-card border border-border flex items-center justify-center">
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: msg.color }} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-medium text-muted-foreground mb-1">{msg.name}</p>
+                  <p className="text-[10px] font-medium text-muted-foreground mb-1">{msg.role}</p>
                   <div className="bg-card border border-border/60 rounded-xl px-3 py-2">
                     <p className="text-[11px] text-foreground leading-relaxed">{msg.text}</p>
                   </div>
@@ -120,13 +114,13 @@ function ProductPreview() {
           </div>
 
           {/* Conclusion */}
-          <div className="border-t border-border bg-card/80 px-4 py-3">
+          <div className="border-t border-border bg-card/80 px-4 py-3 overflow-hidden">
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-muted-foreground/40 text-sm leading-none">◈</span>
-              <span className="text-xs font-semibold text-foreground">Conclusion</span>
+              <span className="text-muted-foreground/40 text-sm leading-none shrink-0">◈</span>
+              <span className="text-xs font-semibold text-foreground">{t.conclusion}</span>
             </div>
             <p className="text-[11px] text-foreground/70 leading-relaxed pl-4">
-              Align on one north star metric first — it resolves both the prioritization and bandwidth problems simultaneously.
+              {t.previewConclusionText}
             </p>
           </div>
         </div>
