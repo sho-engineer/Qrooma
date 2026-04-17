@@ -1,31 +1,24 @@
 import type { Message, DefaultMode } from "../types";
 import { useLocale } from "../context/LocaleContext";
 
-// Fixed side mapping for the MVP dummy data
-// In production, this would be derived from the run's agent configuration.
+// Fixed side mapping for the MVP
 const AGENT_SIDE_MAP: Record<string, "A" | "B" | "C"> = {
-  gpt: "A",
+  gpt:    "A",
   claude: "B",
   gemini: "C",
+};
+
+// Short brand names used in the combined label "提案（GPT）" / "Proposal (GPT)"
+const AGENT_BRAND: Record<string, string> = {
+  gpt:    "GPT",
+  claude: "Claude",
+  gemini: "Gemini",
 };
 
 const SIDE_COLORS: Record<"A" | "B" | "C", string> = {
   A: "#10a37f",
   B: "#d97706",
   C: "#4285f4",
-};
-
-const MODEL_SHORT: Record<string, string> = {
-  "gpt-4o":                      "GPT-4o",
-  "gpt-4o-mini":                 "GPT-4o mini",
-  "gpt-4-turbo":                 "GPT-4 Turbo",
-  "gpt-3.5-turbo":               "GPT-3.5 Turbo",
-  "claude-3-5-sonnet-20241022":  "Claude 3.5 Sonnet",
-  "claude-3-opus-20240229":      "Claude 3 Opus",
-  "claude-3-haiku-20240307":     "Claude 3 Haiku",
-  "gemini-1.5-pro":              "Gemini 1.5 Pro",
-  "gemini-1.5-flash":            "Gemini 1.5 Flash",
-  "gemini-1.0-pro":              "Gemini 1.0 Pro",
 };
 
 function formatTime(iso: string): string {
@@ -70,14 +63,13 @@ function RichContent({ text }: { text: string }) {
 }
 
 interface Props {
-  message: Message;
-  mode: DefaultMode;
-  /** Shortened model name per side (A/B/C → "GPT-4o" etc.) */
+  message:      Message;
+  mode:         DefaultMode;
   sideModelMap: Record<"A" | "B" | "C", string>;
 }
 
-export default function MessageBubble({ message, mode, sideModelMap }: Props) {
-  const { t } = useLocale();
+export default function MessageBubble({ message, mode, sideModelMap: _sideModelMap }: Props) {
+  const { t, locale } = useLocale();
 
   if (message.role === "user") {
     return (
@@ -89,11 +81,16 @@ export default function MessageBubble({ message, mode, sideModelMap }: Props) {
     );
   }
 
-  const agentId = message.agentId ?? "";
-  const side = AGENT_SIDE_MAP[agentId] ?? "A";
-  const color = SIDE_COLORS[side];
+  const agentId   = message.agentId ?? "";
+  const side      = AGENT_SIDE_MAP[agentId] ?? "A";
+  const color     = SIDE_COLORS[side];
   const roleLabel = t.roleLabel(side, mode);
-  const modelLabel = sideModelMap[side];
+  const brand     = AGENT_BRAND[agentId] ?? agentId;
+
+  // Combined display: "提案（GPT）" / "Proposal (GPT)"
+  const displayLabel = locale === "ja"
+    ? `${roleLabel}（${brand}）`
+    : `${roleLabel} (${brand})`;
 
   return (
     <div className="flex gap-3 max-w-[95%] sm:max-w-[88%] overflow-hidden">
@@ -103,19 +100,14 @@ export default function MessageBubble({ message, mode, sideModelMap }: Props) {
       </div>
 
       <div className="min-w-0 flex-1">
-        {/* Role label (primary) + model name (secondary) */}
-        <div className="flex items-baseline gap-2 mb-1.5 flex-wrap">
-          <span className="text-xs font-semibold text-foreground tracking-[-0.01em]">
-            {roleLabel}
+        {/* Combined role + model label */}
+        <div className="flex items-center gap-1.5 mb-1.5 min-w-0">
+          <span className="text-xs font-semibold text-foreground tracking-[-0.01em] truncate">
+            {displayLabel}
           </span>
-          {modelLabel && (
-            <span className="text-[10px] text-muted-foreground/50 font-normal">
-              {modelLabel}
-            </span>
-          )}
         </div>
 
-        <div className="bg-card border border-border/70 rounded-xl px-4 py-3 text-sm text-foreground leading-relaxed">
+        <div className="bg-card border border-border/70 rounded-xl px-4 py-3 text-sm text-foreground leading-relaxed overflow-hidden">
           <RichContent text={message.content} />
         </div>
 

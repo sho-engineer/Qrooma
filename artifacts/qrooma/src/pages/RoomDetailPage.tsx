@@ -243,7 +243,7 @@ export default function RoomDetailPage() {
   }
 
   function sendMessage() {
-    if (!input.trim() || runStatus === "running" || !canRun) return;
+    if (!input.trim() || runStatus === "running") return;
 
     const newRunId = `run-${Date.now()}`;
     const userMsg: Message = {
@@ -267,7 +267,7 @@ export default function RoomDetailPage() {
   }
 
   function rerun() {
-    if (runStatus === "running" || messages.length === 0 || !canRun) return;
+    if (runStatus === "running" || messages.length === 0) return;
     const newRunId = `run-${Date.now()}`;
     shouldScrollToBottom.current = true;
     setRunCount((n) => n + 1);

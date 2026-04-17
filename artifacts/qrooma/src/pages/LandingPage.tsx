@@ -167,7 +167,7 @@ function PrimaryBtn({ children, className = "" }: { children: React.ReactNode; c
   return (
     <button
       className={`inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-foreground text-background rounded-full
-        hover:opacity-85 active:scale-[0.97] transition-all duration-150 ${className}`}
+        whitespace-nowrap hover:opacity-85 active:scale-[0.97] transition-all duration-150 ${className}`}
     >
       {children}
     </button>
@@ -178,7 +178,7 @@ function SecondaryBtn({ children, className = "" }: { children: React.ReactNode;
   return (
     <button
       className={`inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-foreground border border-border
-        rounded-full bg-card/70 hover:bg-accent active:scale-[0.97] transition-all duration-150 ${className}`}
+        rounded-full bg-card/70 whitespace-nowrap hover:bg-accent active:scale-[0.97] transition-all duration-150 ${className}`}
     >
       {children}
     </button>
@@ -366,26 +366,48 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* BYOK */}
+      {/* Free / BYOK comparison */}
       <section
         ref={secByok.ref as React.RefObject<HTMLElement>}
         style={secByok.style}
         className="border-t border-border/60 bg-card/50"
       >
         <div className="max-w-6xl mx-auto px-5 sm:px-6 py-16 sm:py-20">
-          <div className="max-w-xl">
+          <div className="max-w-2xl mb-8">
             <SectionTitle>{t.landingByokTitle}</SectionTitle>
             <p className="mt-3 text-sm text-muted-foreground leading-7">{t.landingByokLead}</p>
-            <ul className="mt-7 space-y-3.5">
-              {byokItems.map((item, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <div className="mt-1 w-4 h-4 rounded-full border border-border bg-background flex items-center justify-center shrink-0">
-                    <CheckIcon size={8} className="text-muted-foreground" />
-                  </div>
-                  <span className="text-sm text-foreground leading-7">{item}</span>
-                </li>
-              ))}
-            </ul>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3 max-w-2xl">
+            {/* Free tier */}
+            <div className="rounded-[20px] border border-border bg-background p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold tracking-wide uppercase">
+                  Free
+                </span>
+              </div>
+              <li className="flex items-start gap-2.5 list-none">
+                <CheckIcon size={12} className="text-muted-foreground/50 shrink-0 mt-0.5" />
+                <span className="text-xs text-muted-foreground leading-relaxed">{byokItems[0]}</span>
+              </li>
+            </div>
+
+            {/* BYOK tier */}
+            <div className="rounded-[20px] border border-foreground/10 bg-card p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-foreground text-background text-[10px] font-semibold tracking-wide uppercase">
+                  BYOK
+                </span>
+              </div>
+              <ul className="space-y-2.5">
+                {byokItems.slice(1).map((item, i) => (
+                  <li key={i} className="flex items-start gap-2.5">
+                    <CheckIcon size={12} className="text-foreground/50 shrink-0 mt-0.5" />
+                    <span className="text-xs text-foreground/80 leading-relaxed">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>

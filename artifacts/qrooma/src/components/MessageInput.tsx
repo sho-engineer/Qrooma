@@ -1,13 +1,13 @@
 import { Link } from "wouter";
-import { SendIcon, KeyRoundIcon } from "lucide-react";
+import { SendIcon, ZapIcon, KeyRoundIcon } from "lucide-react";
 import { useLocale } from "../context/LocaleContext";
 
 interface Props {
-  value: string;
-  onChange: (v: string) => void;
-  onSend: () => void;
-  isRunning: boolean;
-  /** false = required API keys are missing → block sending */
+  value:        string;
+  onChange:     (v: string) => void;
+  onSend:       () => void;
+  isRunning:    boolean;
+  /** false = BYOK keys not set → Free mode (still allows sending, with banner) */
   apiKeysReady: boolean;
 }
 
@@ -23,28 +23,28 @@ export default function MessageInput({
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (apiKeysReady) onSend();
+      if (!isRunning) onSend();
     }
   }
 
-  const isDisabled = isRunning || !apiKeysReady;
+  const isFreeMode = !apiKeysReady;
 
   return (
     <div className="shrink-0 px-3 pb-3 pt-1 sm:px-4 sm:pb-4">
-      {/* API key missing banner */}
-      {!apiKeysReady && (
-        <div className="flex items-start justify-between gap-3 mb-2 px-3.5 py-2.5 rounded-xl bg-card border border-border/80">
-          <div className="flex items-start gap-2.5 min-w-0">
-            <KeyRoundIcon size={13} className="shrink-0 text-muted-foreground/50 mt-px" />
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-foreground">{t.apiKeyMissingRunTitle}</p>
-              <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-relaxed">
-                {t.apiKeyMissingRunDesc}
-              </p>
-            </div>
+      {/* Free mode banner */}
+      {isFreeMode && (
+        <div className="flex items-center justify-between gap-3 mb-2 px-3.5 py-2 rounded-xl bg-card border border-border/80">
+          <div className="flex items-center gap-2 min-w-0">
+            <ZapIcon size={12} className="shrink-0 text-amber-500" />
+            <span className="text-[11px] font-medium text-foreground">{t.freeMode}</span>
+            <span className="text-[11px] text-muted-foreground/60 hidden sm:block">—</span>
+            <span className="text-[11px] text-muted-foreground/60 hidden sm:block leading-snug">
+              {t.freeModeHint}
+            </span>
           </div>
           <Link href="/settings" className="shrink-0">
-            <span className="text-[11px] font-medium text-foreground underline underline-offset-2 hover:opacity-70 transition-opacity whitespace-nowrap">
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap">
+              <KeyRoundIcon size={10} />
               {t.goToSettings}
             </span>
           </Link>
@@ -53,36 +53,30 @@ export default function MessageInput({
 
       <div
         className={`flex gap-2 bg-card border rounded-2xl px-3 py-2 transition-opacity ${
-          isDisabled ? "opacity-50" : ""
+          isRunning ? "opacity-60" : ""
         }`}
       >
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={
-            !apiKeysReady
-              ? t.apiKeyMissingRunTitle
-              : isRunning
-              ? t.agentsResponding
-              : t.messagePlaceholder
-          }
+          placeholder={isRunning ? t.agentsResponding : t.messagePlaceholder}
           rows={2}
-          disabled={isDisabled}
+          disabled={isRunning}
           className="flex-1 resize-none text-sm bg-transparent outline-none placeholder:text-muted-foreground/50 disabled:cursor-not-allowed leading-relaxed"
         />
         <button
-          onClick={() => apiKeysReady && onSend()}
-          disabled={!value.trim() || isDisabled}
-          className="self-end p-1.5 text-foreground/50 hover:text-foreground/80 disabled:opacity-30 transition-colors"
-          title={!apiKeysReady ? t.apiKeyMissingRunTitle : t.sendingAutoRun}
+          onClick={() => !isRunning && onSend()}
+          disabled={!value.trim() || isRunning}
+          className="self-end p-1.5 text-foreground/50 hover:text-foreground/80 disabled:opacity-30 transition-colors active:scale-[0.92]"
+          title={t.sendingAutoRun}
         >
           <SendIcon size={15} />
         </button>
       </div>
 
       <p className="mt-1 text-[11px] text-muted-foreground/40 text-right">
-        {apiKeysReady ? t.sendingAutoRun : ""}
+        {isFreeMode ? t.freeModeDesc : t.sendingAutoRun}
       </p>
     </div>
   );

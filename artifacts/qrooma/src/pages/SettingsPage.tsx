@@ -83,15 +83,15 @@ function ApiKeyStepGuide() {
 
 interface ApiKeyFieldProps {
   provider: Provider;
-  value: string;
+  value:    string;
   onChange: (v: string) => void;
 }
 
 function ApiKeyField({ provider, value, onChange }: ApiKeyFieldProps) {
   const { t } = useLocale();
-  const color = PROVIDER_COLORS[provider];
-  const label = PROVIDER_LABELS[provider];
-  const url = PROVIDER_API_KEY_URLS[provider];
+  const color  = PROVIDER_COLORS[provider];
+  const label  = PROVIDER_LABELS[provider];
+  const url    = PROVIDER_API_KEY_URLS[provider];
   const hasKey = !!value;
 
   const placeholders: Record<Provider, string> = {
@@ -104,27 +104,22 @@ function ApiKeyField({ provider, value, onChange }: ApiKeyFieldProps) {
     <div className={`rounded-2xl border px-4 py-4 bg-card transition-colors ${
       hasKey ? "border-border" : "border-border/70"
     }`}>
-      {/* Provider header row */}
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="w-2 h-2 rounded-full shrink-0"
-            style={{ backgroundColor: color }}
-          />
-          <span className="text-xs font-semibold text-foreground">{label}</span>
+      <div className="flex items-center justify-between gap-2 mb-3 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+          <span className="text-xs font-semibold text-foreground shrink-0">{label}</span>
           {hasKey ? (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-medium leading-none">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-medium leading-none shrink-0">
               <CheckIcon size={8} strokeWidth={2.5} />
-              設定済
+              {t.settingsSaved.split("").slice(0, 3).join("")}
             </span>
           ) : (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground/60 text-[10px] font-medium leading-none">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground/60 text-[10px] font-medium leading-none shrink-0">
               {t.apiKeyNotSet}
             </span>
           )}
         </div>
 
-        {/* "Get API key" link button */}
         <a
           href={url}
           target="_blank"
@@ -136,7 +131,6 @@ function ApiKeyField({ provider, value, onChange }: ApiKeyFieldProps) {
         </a>
       </div>
 
-      {/* Input field */}
       <input
         type="password"
         value={value}
@@ -146,14 +140,11 @@ function ApiKeyField({ provider, value, onChange }: ApiKeyFieldProps) {
         className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring font-mono placeholder:font-sans placeholder:text-muted-foreground"
       />
 
-      {/* Warning when key is missing */}
       {!hasKey && (
         <p className="mt-2.5 text-[11px] text-muted-foreground/70 leading-relaxed">
           {t.apiKeyNeededWarning}
         </p>
       )}
-
-      {/* Secure storage note when key IS set */}
       {hasKey && (
         <p className="mt-2 text-[11px] text-muted-foreground/50 leading-relaxed">
           {t.apiKeySecureNote}
@@ -172,23 +163,23 @@ function SideConfig({
   otherCombos,
   onChange,
 }: {
-  sideKey: string;
-  config: AgentSideConfig;
-  hasApiKey: boolean;
+  sideKey:     string;
+  config:      AgentSideConfig;
+  hasApiKey:   boolean;
   otherCombos: Set<string>;
-  onChange: (c: AgentSideConfig) => void;
+  onChange:    (c: AgentSideConfig) => void;
 }) {
   const { t } = useLocale();
-  const models = PROVIDER_MODELS[config.provider];
-  const color = PROVIDER_COLORS[config.provider];
+  const models            = PROVIDER_MODELS[config.provider];
+  const color             = PROVIDER_COLORS[config.provider];
   const currentModelValue = models.find((m) => m.value === config.model)?.value ?? models[0].value;
-  const isDuplicate = otherCombos.has(comboKey(config.provider, currentModelValue));
+  const isDuplicate       = otherCombos.has(comboKey(config.provider, currentModelValue));
 
   return (
     <div className={`border rounded-2xl p-4 bg-card transition-colors ${
       isDuplicate ? "border-destructive/40" : "border-border"
     }`}>
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
+      <div className="flex items-center gap-2 mb-3 flex-wrap min-w-0">
         <div className="w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center shrink-0">
           <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
         </div>
@@ -201,7 +192,7 @@ function SideConfig({
         {isDuplicate && (
           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-destructive/8 text-destructive/80 flex items-center gap-1 leading-none">
             <AlertCircleIcon size={9} />
-            重複
+            {t.duplicateModelError.slice(0, 4)}
           </span>
         )}
       </div>
@@ -244,45 +235,102 @@ function SideConfig({
   );
 }
 
+// ─── Draft type ───────────────────────────────────────────────────────────────
+
+type DraftSettings = {
+  openaiApiKey:    string;
+  anthropicApiKey: string;
+  googleApiKey:    string;
+  defaultMode:     DefaultMode;
+  agentCount:      2 | 3;
+  sideA:           AgentSideConfig;
+  sideB:           AgentSideConfig;
+  sideC:           AgentSideConfig;
+};
+
 // ─── Main Settings Page ───────────────────────────────────────────────────────
 
 export default function SettingsPage() {
   const { settings, updateSettings } = useSettings();
-  const { t, locale, setLocale } = useLocale();
+  const { t, locale, setLocale }     = useLocale();
+
+  // Local draft — all field changes go here; committed on "Save"
+  const [draft, setDraft] = useState<DraftSettings>({
+    openaiApiKey:    settings.openaiApiKey,
+    anthropicApiKey: settings.anthropicApiKey,
+    googleApiKey:    settings.googleApiKey,
+    defaultMode:     settings.defaultMode,
+    agentCount:      settings.agentCount ?? 3,
+    sideA:           settings.sideA,
+    sideB:           settings.sideB,
+    sideC:           settings.sideC,
+  });
+
+  // "Saved" feedback lasts 2.5 s
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   const [showDupError, setShowDupError] = useState(false);
 
-  function apiKeyForProvider(provider: Provider): string {
-    if (provider === "openai") return settings.openaiApiKey;
-    if (provider === "anthropic") return settings.anthropicApiKey;
-    return settings.googleApiKey;
+  function patchDraft(patch: Partial<DraftSettings>) {
+    setDraft((prev) => ({ ...prev, ...patch }));
+    setSavedAt(null);
   }
 
-  const agentCount = settings.agentCount ?? 3;
+  // Check if draft differs from what's currently saved
+  const savedSnap: DraftSettings = {
+    openaiApiKey:    settings.openaiApiKey,
+    anthropicApiKey: settings.anthropicApiKey,
+    googleApiKey:    settings.googleApiKey,
+    defaultMode:     settings.defaultMode,
+    agentCount:      settings.agentCount ?? 3,
+    sideA:           settings.sideA,
+    sideB:           settings.sideB,
+    sideC:           settings.sideC,
+  };
+  const isDirty = JSON.stringify(draft) !== JSON.stringify(savedSnap);
 
-  const sides = agentCount === 2
-    ? [{ key: "A", config: settings.sideA }, { key: "B", config: settings.sideB }]
-    : [{ key: "A", config: settings.sideA }, { key: "B", config: settings.sideB }, { key: "C", config: settings.sideC }];
+  function activeSides() {
+    return draft.agentCount === 2
+      ? [{ key: "A", config: draft.sideA }, { key: "B", config: draft.sideB }]
+      : [
+          { key: "A", config: draft.sideA },
+          { key: "B", config: draft.sideB },
+          { key: "C", config: draft.sideC },
+        ];
+  }
+
+  function hasDuplicate(): boolean {
+    const keys = activeSides().map((s) => comboKey(s.config.provider, s.config.model));
+    return new Set(keys).size !== keys.length;
+  }
 
   function getCombosExcluding(excludeKey: string): Set<string> {
     return new Set(
-      sides
+      activeSides()
         .filter((s) => s.key !== excludeKey)
         .map((s) => comboKey(s.config.provider, s.config.model))
     );
   }
 
-  function hasDuplicate(): boolean {
-    const keys = sides.map((s) => comboKey(s.config.provider, s.config.model));
-    return new Set(keys).size !== keys.length;
-  }
-
   function handleSideChange(key: string, c: AgentSideConfig) {
     const patch = key === "A" ? { sideA: c } : key === "B" ? { sideB: c } : { sideC: c };
-    updateSettings(patch);
-    const afterKeys = sides.map((s) =>
+    patchDraft(patch);
+    const afterKeys = activeSides().map((s) =>
       s.key === key ? comboKey(c.provider, c.model) : comboKey(s.config.provider, s.config.model)
     );
     setShowDupError(new Set(afterKeys).size !== afterKeys.length);
+  }
+
+  function save() {
+    if (hasDuplicate()) return;
+    updateSettings(draft);
+    setSavedAt(Date.now());
+    setTimeout(() => setSavedAt(null), 2500);
+  }
+
+  function apiKeyForProvider(provider: Provider): string {
+    if (provider === "openai")    return draft.openaiApiKey;
+    if (provider === "anthropic") return draft.anthropicApiKey;
+    return draft.googleApiKey;
   }
 
   const modes: { value: DefaultMode; label: string; description: string }[] = [
@@ -290,15 +338,61 @@ export default function SettingsPage() {
     { value: "free-talk",         label: t.freeTalk,         description: t.freeTalkDesc },
   ];
 
-  return (
-    <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 sm:px-6 sm:py-7">
-      <div className="max-w-xl">
-        <h2 className="text-base font-semibold text-foreground mb-0.5">{t.settingsTitle}</h2>
-        <p className="text-xs text-muted-foreground mb-7">{t.settingsDesc}</p>
+  const sides = activeSides();
+  const canSave = isDirty && !hasDuplicate();
 
+  return (
+    <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
+
+      {/* ── Sticky header + Save button ──────────────────────────────── */}
+      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-border/60">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 max-w-xl">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-foreground leading-none">{t.settingsTitle}</h2>
+            <p className={`text-[11px] mt-0.5 transition-colors ${
+              savedAt
+                ? "text-emerald-600"
+                : isDirty
+                ? "text-amber-600"
+                : "text-muted-foreground/50"
+            }`}>
+              {savedAt
+                ? t.settingsSaved
+                : isDirty
+                ? t.settingsUnsaved
+                : locale === "ja"
+                ? "変更すると保存ボタンが有効になります"
+                : "Edit fields, then save"}
+            </p>
+          </div>
+
+          <button
+            onClick={save}
+            disabled={!canSave}
+            className={`shrink-0 flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-xl border transition-all active:scale-[0.97] ${
+              savedAt
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : canSave
+                ? "bg-foreground text-background border-transparent hover:opacity-85"
+                : "bg-muted text-muted-foreground/50 border-transparent cursor-not-allowed"
+            }`}
+          >
+            {savedAt ? (
+              <>
+                <CheckIcon size={11} strokeWidth={2.5} />
+                {t.settingsSaved}
+              </>
+            ) : (
+              t.saveSettings
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="px-4 py-5 sm:px-6 sm:py-7 max-w-xl">
         <div className="space-y-8">
 
-          {/* ── UI Language ──────────────────────────────────────────────── */}
+          {/* ── UI Language (auto-save, no Save button needed) ─────── */}
           <section>
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
               {t.uiLanguage}
@@ -318,71 +412,75 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
+            <p className="mt-2 text-[11px] text-muted-foreground/50">
+              {locale === "ja"
+                ? "言語設定は即時反映（保存不要）"
+                : "Language applies immediately — no save needed"}
+            </p>
           </section>
 
-          {/* ── API Keys ─────────────────────────────────────────────────── */}
+          {/* ── API Keys ─────────────────────────────────────────────── */}
           <section>
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
               {t.apiKeys}
             </h3>
 
-            {/* Step-by-step guide card */}
             <div className="mb-4">
               <ApiKeyStepGuide />
             </div>
 
-            {/* Per-provider key fields */}
             <div className="space-y-3">
               <ApiKeyField
                 provider="openai"
-                value={settings.openaiApiKey}
-                onChange={(v) => updateSettings({ openaiApiKey: v })}
+                value={draft.openaiApiKey}
+                onChange={(v) => patchDraft({ openaiApiKey: v })}
               />
               <ApiKeyField
                 provider="anthropic"
-                value={settings.anthropicApiKey}
-                onChange={(v) => updateSettings({ anthropicApiKey: v })}
+                value={draft.anthropicApiKey}
+                onChange={(v) => patchDraft({ anthropicApiKey: v })}
               />
               <ApiKeyField
                 provider="google"
-                value={settings.googleApiKey}
-                onChange={(v) => updateSettings({ googleApiKey: v })}
+                value={draft.googleApiKey}
+                onChange={(v) => patchDraft({ googleApiKey: v })}
               />
             </div>
           </section>
 
-          {/* ── Default Mode ─────────────────────────────────────────────── */}
+          {/* ── Default Mode ──────────────────────────────────────────── */}
           <section>
-            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
               {t.defaultMode}
             </h3>
+            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+              {t.agentConfigDesc}
+            </p>
+
             <div className="space-y-2">
-              {modes.map((mode) => {
-                const active = settings.defaultMode === mode.value;
-                return (
-                  <button
-                    key={mode.value}
-                    onClick={() => updateSettings({ defaultMode: mode.value })}
-                    className={`w-full text-left px-4 py-3.5 rounded-2xl border transition-all duration-200 active:scale-[0.99] ${
-                      active
-                        ? "bg-card border-foreground/20"
-                        : "bg-background border-border hover:border-foreground/10 hover:bg-card"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active ? "bg-foreground" : "bg-border"}`} />
-                      <span className={`text-sm font-medium ${active ? "text-foreground" : "text-foreground/70"}`}>
-                        {mode.label}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground pl-3.5 leading-relaxed">{mode.description}</p>
-                  </button>
-                );
-              })}
+              {modes.map(({ value, label, description }) => (
+                <button
+                  key={value}
+                  onClick={() => patchDraft({ defaultMode: value })}
+                  className={`w-full text-left px-4 py-3 rounded-2xl border transition-all duration-200 active:scale-[0.99] ${
+                    draft.defaultMode === value
+                      ? "border-foreground/20 bg-card"
+                      : "border-border bg-background hover:bg-card"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-0.5 min-w-0">
+                    <span className="text-xs font-semibold text-foreground">{label}</span>
+                    {draft.defaultMode === value && (
+                      <CheckIcon size={12} className="text-foreground/60 shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/70 leading-relaxed">{description}</p>
+                </button>
+              ))}
             </div>
           </section>
 
-          {/* ── Agent Configuration ──────────────────────────────────────── */}
+          {/* ── Agent Configuration ───────────────────────────────────── */}
           <section>
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
               {t.agentConfig}
@@ -391,16 +489,27 @@ export default function SettingsPage() {
               {t.agentConfigDesc}
             </p>
 
-            {/* Agent count toggle */}
-            <div className="flex items-center justify-between mb-4 px-4 py-3 bg-card border border-border rounded-2xl">
-              <span className="text-xs font-medium text-foreground">{t.agentCount}</span>
-              <div className="flex gap-1 rounded-full border border-border bg-background p-0.5 shrink-0">
+            {/* 2 / 3 agent count toggle */}
+            <div className="flex items-center justify-between mb-4 px-4 py-3 bg-card border border-border rounded-2xl min-w-0">
+              <div className="min-w-0">
+                <span className="text-xs font-medium text-foreground">{t.agentCount}</span>
+                <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                  {draft.agentCount === 2
+                    ? locale === "ja"
+                      ? "サイド A / B のみ有効"
+                      : "Only Side A / B active"
+                    : locale === "ja"
+                      ? "サイド A / B / C すべて有効"
+                      : "All sides A / B / C active"}
+                </p>
+              </div>
+              <div className="flex gap-1 rounded-full border border-border bg-background p-0.5 shrink-0 ml-3">
                 {([2, 3] as const).map((n) => (
                   <button
                     key={n}
-                    onClick={() => updateSettings({ agentCount: n })}
+                    onClick={() => patchDraft({ agentCount: n })}
                     className={`w-8 h-6 text-xs font-medium rounded-full transition-all ${
-                      agentCount === n
+                      draft.agentCount === n
                         ? "bg-foreground text-background"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
@@ -432,6 +541,30 @@ export default function SettingsPage() {
               ))}
             </div>
           </section>
+
+          {/* ── Bottom save (convenience) ──────────────────────────── */}
+          <div className="pb-4">
+            <button
+              onClick={save}
+              disabled={!canSave}
+              className={`w-full py-2.5 text-sm font-semibold rounded-2xl transition-all active:scale-[0.99] ${
+                savedAt
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : canSave
+                  ? "bg-foreground text-background hover:opacity-85"
+                  : "bg-muted text-muted-foreground cursor-not-allowed"
+              }`}
+            >
+              {savedAt ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <CheckIcon size={14} strokeWidth={2.5} />
+                  {t.settingsSaved}
+                </span>
+              ) : (
+                t.saveSettings
+              )}
+            </button>
+          </div>
 
         </div>
       </div>

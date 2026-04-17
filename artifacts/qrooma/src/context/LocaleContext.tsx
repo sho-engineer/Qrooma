@@ -69,6 +69,15 @@ export interface Translations {
   emptyStateDesc: string;
   agentCount: string;
   duplicateModelError: string;
+  // Free / BYOK mode
+  freeMode: string;
+  freeModeDesc: string;
+  freeModeHint: string;
+  byokMode: string;
+  // Settings save button
+  saveSettings: string;
+  settingsSaved: string;
+  settingsUnsaved: string;
   // Role labels
   roleLabel: (side: "A" | "B" | "C", mode: DefaultMode) => string;
   roleSubLabel: (side: "A" | "B" | "C") => string;
@@ -162,7 +171,7 @@ const ja: Translations = {
   conclusion: "結論",
   keyPoints: "要点",
   settingsTitle: "設定",
-  settingsDesc: "変更は自動的に保存されます。",
+  settingsDesc: "変更後に「保存する」ボタンで保存してください。",
   apiKeys: "APIキーの設定",
   apiKeysTempWarningTitle: "一時的な保存",
   apiKeysTempWarningDesc:
@@ -200,6 +209,15 @@ const ja: Translations = {
   emptyStateDesc: "下の入力欄にトピックや質問を入力してください。AIチームがそれぞれの視点で議論します。",
   agentCount: "参加エージェント数",
   duplicateModelError: "同じモデルは複数の枠に設定できません",
+  // Free / BYOK mode
+  freeMode: "Free モード",
+  freeModeDesc: "2エージェント・固定モデルで体験できます",
+  freeModeHint: "APIキーなしで試せます。本格利用には設定が必要です。",
+  byokMode: "BYOK",
+  // Settings save button
+  saveSettings: "保存する",
+  settingsSaved: "保存しました",
+  settingsUnsaved: "未保存の変更があります",
   roleLabel: (side, mode) => {
     if (mode === "structured-debate") {
       return side === "A" ? "提案" : side === "B" ? "検証" : "実行";
@@ -261,12 +279,12 @@ const ja: Translations = {
   landingHowStep3: "テーマを投げる",
   landingHowStep3Label: "AIチームが議論し、結論を生成",
   landingModesTitle: "2つのモード",
-  landingByokTitle: "Bring Your Own Key",
-  landingByokLead: "Qrooma は BYOK 方式です。",
-  landingByokItem1: "利用には OpenAI・Anthropic・Google の APIキー設定が必要です",
-  landingByokItem2: "APIキーはサーバーサイドで暗号化保存されます（本実装）",
-  landingByokItem3: "利用料金はユーザー自身の契約ベースで発生します",
-  landingByokItem4: "Qrooma への課金は月額プランのみ",
+  landingByokTitle: "Free / BYOK",
+  landingByokLead: "まず APIキーなしで試せます。本格的に使うなら、自分の APIキーで動かせます。",
+  landingByokItem1: "Free：APIキー不要・すぐ試せる・2エージェント・固定モデル",
+  landingByokItem2: "BYOK：APIキー必要・2 / 3エージェント・モデル選択・実務向け",
+  landingByokItem3: "APIキーはサーバーサイドで暗号化保存（本実装）",
+  landingByokItem4: "Qrooma の月額プランのみで利用可能",
   landingFooterCta: "今すぐ Qrooma をはじめる",
   landingNav: "Qrooma について",
 };
@@ -300,7 +318,7 @@ const en: Translations = {
   conclusion: "Conclusion",
   keyPoints: "Key points",
   settingsTitle: "Settings",
-  settingsDesc: "Changes are saved automatically.",
+  settingsDesc: "Make changes, then click Save.",
   apiKeys: "Set up your API keys",
   apiKeysTempWarningTitle: "Temporary storage",
   apiKeysTempWarningDesc:
@@ -339,6 +357,15 @@ const en: Translations = {
   emptyStateDesc: "Post a topic or question below. The AI team will each share their perspective — then you can dig deeper.",
   agentCount: "Number of agents",
   duplicateModelError: "The same model cannot be assigned to multiple sides",
+  // Free / BYOK mode
+  freeMode: "Free mode",
+  freeModeDesc: "2 agents, fixed models — try it out",
+  freeModeHint: "Try without API keys. Set keys for full access.",
+  byokMode: "BYOK",
+  // Settings save button
+  saveSettings: "Save",
+  settingsSaved: "Saved",
+  settingsUnsaved: "Unsaved changes",
   roleLabel: (side, mode) => {
     if (mode === "structured-debate") {
       return side === "A" ? "Proposal" : side === "B" ? "Review" : "Execution";
@@ -400,11 +427,11 @@ const en: Translations = {
   landingHowStep3: "Post a topic",
   landingHowStep3Label: "The AI team debates and delivers a conclusion",
   landingModesTitle: "Two modes",
-  landingByokTitle: "Bring Your Own Key",
-  landingByokLead: "Qrooma is BYOK — you bring the keys.",
-  landingByokItem1: "Requires API keys from OpenAI, Anthropic, and/or Google",
-  landingByokItem2: "Keys are encrypted server-side in production — never exposed to the client",
-  landingByokItem3: "API usage is billed directly through your own provider accounts",
+  landingByokTitle: "Free or BYOK",
+  landingByokLead: "Try it first without any API keys. Go further with your own keys.",
+  landingByokItem1: "Free: no API keys, instant start, 2 agents, fixed models",
+  landingByokItem2: "BYOK: bring your keys, 2/3 agents, model choice, full power",
+  landingByokItem3: "API keys are encrypted server-side in production",
   landingByokItem4: "Qrooma charges a flat monthly subscription only",
   landingFooterCta: "Start using Qrooma today",
   landingNav: "About Qrooma",
