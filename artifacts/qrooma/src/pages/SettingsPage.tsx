@@ -419,6 +419,30 @@ export default function SettingsPage() {
             </p>
           </section>
 
+          {/* ── Plan overview ────────────────────────────────────────── */}
+          <section>
+            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+              {t.settingsPlanTitle}
+            </h3>
+            <div className="rounded-2xl border border-border bg-card divide-y divide-border/70 overflow-hidden">
+              {[
+                { name: "Free",    desc: t.settingsPlanFreeDesc },
+                { name: "Connect", desc: t.settingsPlanConnectDesc },
+                { name: "Pro",     desc: t.settingsPlanProDesc },
+              ].map(({ name, desc }) => (
+                <div key={name} className="flex items-start gap-3 px-4 py-3">
+                  <span className="shrink-0 mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
+                    {name}
+                  </span>
+                  <span className="text-xs text-muted-foreground leading-relaxed">{desc}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2.5 text-[11px] text-muted-foreground/50 leading-relaxed">
+              {t.settingsPlanApiKeyDesc}
+            </p>
+          </section>
+
           {/* ── API Keys ─────────────────────────────────────────────── */}
           <section>
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">

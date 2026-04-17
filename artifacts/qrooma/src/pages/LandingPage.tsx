@@ -162,6 +162,122 @@ function ProductPreview() {
   );
 }
 
+// ─── PricingSection ───────────────────────────────────────────────────────────
+function PricingSection() {
+  const { t } = useLocale();
+
+  const plans = [
+    {
+      name: "Free",
+      price: "$0",
+      period: "",
+      desc: t.planFreeDesc,
+      features: [t.planFreeFeature1, t.planFreeFeature2, t.planFreeFeature3, t.planFreeFeature4],
+      cta: t.planFreeCta,
+      href: "/signup",
+      badge: null,
+      highlight: false,
+      note: t.pricingFreeLimit,
+    },
+    {
+      name: "Connect",
+      price: "$9",
+      period: "/ mo",
+      desc: t.planConnectDesc,
+      features: [t.planConnectFeature1, t.planConnectFeature2, t.planConnectFeature3, t.planConnectFeature4],
+      cta: t.planConnectCta,
+      href: "/signup",
+      badge: t.planConnectBadge,
+      highlight: true,
+      note: null,
+    },
+    {
+      name: "Pro",
+      price: "$20",
+      period: "/ mo",
+      desc: t.planProDesc,
+      features: [t.planProFeature1, t.planProFeature2, t.planProFeature3, t.planProFeature4],
+      cta: t.planProCta,
+      href: "/signup",
+      badge: null,
+      highlight: false,
+      note: null,
+    },
+  ];
+
+  return (
+    <div className="grid sm:grid-cols-3 gap-3">
+      {plans.map((plan) => (
+        <div
+          key={plan.name}
+          className={`rounded-[20px] border p-6 flex flex-col transition-all duration-200
+            ${plan.highlight
+              ? "border-foreground/15 bg-card shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_28px_rgba(0,0,0,0.08)]"
+              : "border-border bg-background hover:border-foreground/10 hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+            }`}
+        >
+          {/* Plan name + badge */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className={`text-[11px] font-semibold tracking-widest uppercase
+              ${plan.highlight ? "text-foreground" : "text-muted-foreground/70"}`}>
+              {plan.name}
+            </span>
+            {plan.badge && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-foreground text-background leading-none">
+                {plan.badge}
+              </span>
+            )}
+          </div>
+
+          {/* Price */}
+          <div className="flex items-baseline gap-1 mb-1">
+            <span className="text-3xl font-bold tracking-tight text-foreground">{plan.price}</span>
+            {plan.period && (
+              <span className="text-xs text-muted-foreground">{plan.period}</span>
+            )}
+          </div>
+
+          {/* Desc */}
+          <p className="text-xs text-muted-foreground leading-relaxed mb-5">{plan.desc}</p>
+
+          {/* Features */}
+          <ul className="space-y-2 mb-6 flex-1">
+            {plan.features.map((f, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <CheckIcon
+                  size={11}
+                  className={`shrink-0 mt-[3px] ${plan.highlight ? "text-foreground/50" : "text-muted-foreground/40"}`}
+                />
+                <span className={`text-xs leading-relaxed ${plan.highlight ? "text-foreground/80" : "text-muted-foreground"}`}>
+                  {f}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          {/* CTA */}
+          <Link href={plan.href}>
+            <button
+              className={`w-full py-2 text-sm font-medium rounded-full transition-all duration-150 active:scale-[0.97]
+                ${plan.highlight
+                  ? "bg-foreground text-background hover:opacity-85"
+                  : "border border-border bg-transparent text-foreground hover:bg-accent"
+                }`}
+            >
+              {plan.cta}
+            </button>
+          </Link>
+
+          {/* Free-tier note */}
+          {plan.note && (
+            <p className="mt-3 text-center text-[10px] text-muted-foreground/50">{plan.note}</p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Primary CTA button ───────────────────────────────────────────────────────
 function PrimaryBtn({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
@@ -199,19 +315,12 @@ export default function LandingPage() {
   const steps = [t.landingHowStep1, t.landingHowStep2, t.landingHowStep3];
   const stepLabels = [t.landingHowStep1Label, t.landingHowStep2Label, t.landingHowStep3Label];
 
-  const byokItems = [
-    t.landingByokItem1,
-    t.landingByokItem2,
-    t.landingByokItem3,
-    t.landingByokItem4,
-  ];
-
   // Scroll-triggered sections
-  const secCards  = useFadeSection();
-  const secHow    = useFadeSection();
-  const secModes  = useFadeSection();
-  const secByok   = useFadeSection();
-  const secFooter = useFadeSection();
+  const secCards   = useFadeSection();
+  const secHow     = useFadeSection();
+  const secModes   = useFadeSection();
+  const secPricing = useFadeSection();
+  const secFooter  = useFadeSection();
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -366,49 +475,18 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Free / BYOK comparison */}
+      {/* Pricing */}
       <section
-        ref={secByok.ref as React.RefObject<HTMLElement>}
-        style={secByok.style}
+        ref={secPricing.ref as React.RefObject<HTMLElement>}
+        style={secPricing.style}
         className="border-t border-border/60 bg-card/50"
       >
         <div className="max-w-6xl mx-auto px-5 sm:px-6 py-16 sm:py-20">
-          <div className="max-w-2xl mb-8">
-            <SectionTitle>{t.landingByokTitle}</SectionTitle>
-            <p className="mt-3 text-sm text-muted-foreground leading-7">{t.landingByokLead}</p>
+          <div className="max-w-2xl mb-10">
+            <SectionTitle>{t.pricingTitle}</SectionTitle>
+            <p className="mt-3 text-sm text-muted-foreground leading-7">{t.pricingSub}</p>
           </div>
-
-          <div className="grid sm:grid-cols-2 gap-3 max-w-2xl">
-            {/* Free tier */}
-            <div className="rounded-[20px] border border-border bg-background p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold tracking-wide uppercase">
-                  Free
-                </span>
-              </div>
-              <li className="flex items-start gap-2.5 list-none">
-                <CheckIcon size={12} className="text-muted-foreground/50 shrink-0 mt-0.5" />
-                <span className="text-xs text-muted-foreground leading-relaxed">{byokItems[0]}</span>
-              </li>
-            </div>
-
-            {/* BYOK tier */}
-            <div className="rounded-[20px] border border-foreground/10 bg-card p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-foreground text-background text-[10px] font-semibold tracking-wide uppercase">
-                  BYOK
-                </span>
-              </div>
-              <ul className="space-y-2.5">
-                {byokItems.slice(1).map((item, i) => (
-                  <li key={i} className="flex items-start gap-2.5">
-                    <CheckIcon size={12} className="text-foreground/50 shrink-0 mt-0.5" />
-                    <span className="text-xs text-foreground/80 leading-relaxed">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+          <PricingSection />
         </div>
       </section>
 

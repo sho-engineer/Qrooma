@@ -140,6 +140,35 @@ export interface Translations {
   landingByokItem4: string;
   landingFooterCta: string;
   landingNav: string;
+  // Pricing section
+  pricingTitle: string;
+  pricingSub: string;
+  pricingFreeLimit: string;
+  planFreeDesc: string;
+  planFreeFeature1: string;
+  planFreeFeature2: string;
+  planFreeFeature3: string;
+  planFreeFeature4: string;
+  planFreeCta: string;
+  planConnectBadge: string;
+  planConnectDesc: string;
+  planConnectFeature1: string;
+  planConnectFeature2: string;
+  planConnectFeature3: string;
+  planConnectFeature4: string;
+  planConnectCta: string;
+  planProDesc: string;
+  planProFeature1: string;
+  planProFeature2: string;
+  planProFeature3: string;
+  planProFeature4: string;
+  planProCta: string;
+  // Settings plan overview
+  settingsPlanTitle: string;
+  settingsPlanFreeDesc: string;
+  settingsPlanConnectDesc: string;
+  settingsPlanProDesc: string;
+  settingsPlanApiKeyDesc: string;
 }
 
 const ja: Translations = {
@@ -272,8 +301,8 @@ const ja: Translations = {
   landingCard3Title: "浅い壁打ちではなく、深く考えたい人へ",
   landingCard3Body: "思いつきの返答ではなく、論点整理、反論、実行案まで踏み込みたい。",
   landingHowTitle: "使い方",
-  landingHowStep1: "API キーを設定",
-  landingHowStep1Label: "OpenAI・Anthropic・Google のキーを入力",
+  landingHowStep1: "サインアップ",
+  landingHowStep1Label: "APIキー不要で無料からはじめられます",
   landingHowStep2: "ルームを作成",
   landingHowStep2Label: "議題ごとにルームを分けて管理",
   landingHowStep3: "テーマを投げる",
@@ -287,6 +316,35 @@ const ja: Translations = {
   landingByokItem4: "Qrooma の月額プランのみで利用可能",
   landingFooterCta: "今すぐ Qrooma をはじめる",
   landingNav: "Qrooma について",
+  // Pricing section
+  pricingTitle: "料金プラン",
+  pricingSub: "APIキー不要で無料からはじめられます。本格利用には Connect または Pro へ。",
+  pricingFreeLimit: "無料枠には利用制限があります",
+  planFreeDesc: "まず試したい方へ。APIキー不要、すぐ使える体験版。",
+  planFreeFeature1: "APIキー不要",
+  planFreeFeature2: "2エージェントまで",
+  planFreeFeature3: "1日3回まで",
+  planFreeFeature4: "自動結論あり",
+  planFreeCta: "無料で試す",
+  planConnectBadge: "おすすめ",
+  planConnectDesc: "自分のAPIキーで本格利用。モデルや構成を自由に選べます。",
+  planConnectFeature1: "自分のAPIキーで利用",
+  planConnectFeature2: "2 / 3エージェント選択",
+  planConnectFeature3: "モデル選択可",
+  planConnectFeature4: "ディベート / フリートーク両対応",
+  planConnectCta: "APIキーで使う",
+  planProDesc: "APIキー不要で本格利用。月30回の議論を含む。",
+  planProFeature1: "APIキー不要",
+  planProFeature2: "月30回の議論を含む",
+  planProFeature3: "超過分は従量課金",
+  planProFeature4: "2 / 3エージェント利用可",
+  planProCta: "Pro ではじめる",
+  // Settings plan overview
+  settingsPlanTitle: "プランについて",
+  settingsPlanFreeDesc: "APIキーなしで試せます（利用制限あり）",
+  settingsPlanConnectDesc: "APIキー設定で本格利用 — モデル選択・2/3エージェント",
+  settingsPlanProDesc: "APIキー不要 · 月30回の議論を含む",
+  settingsPlanApiKeyDesc: "Connect プランでは、APIキーを設定することでモデルや構成を柔軟に選べます。Pro では APIキー不要で利用できます。",
 };
 
 const en: Translations = {
@@ -420,8 +478,8 @@ const en: Translations = {
   landingCard3Title: "For those who want depth, not just a sounding board",
   landingCard3Body: "Not a quick reply — structured arguments, counterpoints, and action items.",
   landingHowTitle: "How it works",
-  landingHowStep1: "Set your API keys",
-  landingHowStep1Label: "Enter keys for OpenAI, Anthropic, or Google",
+  landingHowStep1: "Sign up",
+  landingHowStep1Label: "Start free — no API keys required",
   landingHowStep2: "Create a room",
   landingHowStep2Label: "Organize discussions by topic",
   landingHowStep3: "Post a topic",
@@ -435,6 +493,35 @@ const en: Translations = {
   landingByokItem4: "Qrooma charges a flat monthly subscription only",
   landingFooterCta: "Start using Qrooma today",
   landingNav: "About Qrooma",
+  // Pricing section
+  pricingTitle: "Pricing",
+  pricingSub: "Start free with no API keys. Upgrade to Connect or Pro for full access.",
+  pricingFreeLimit: "Free tier has usage limits",
+  planFreeDesc: "Try it out with no commitment. No API keys needed.",
+  planFreeFeature1: "No API keys required",
+  planFreeFeature2: "Up to 2 agents",
+  planFreeFeature3: "3 discussions per day",
+  planFreeFeature4: "Auto-generated conclusion",
+  planFreeCta: "Try for free",
+  planConnectBadge: "Popular",
+  planConnectDesc: "Bring your own API keys and use Qrooma your way.",
+  planConnectFeature1: "Use your own API keys",
+  planConnectFeature2: "2 or 3 agents",
+  planConnectFeature3: "Choose your models",
+  planConnectFeature4: "Debate or Free Talk modes",
+  planConnectCta: "Use with your API keys",
+  planProDesc: "No API keys needed. 30 discussions included each month.",
+  planProFeature1: "No API keys required",
+  planProFeature2: "30 discussions / month included",
+  planProFeature3: "Additional usage billed separately",
+  planProFeature4: "2 or 3 agents",
+  planProCta: "Start Pro",
+  // Settings plan overview
+  settingsPlanTitle: "Plans",
+  settingsPlanFreeDesc: "Try without API keys (usage limits apply)",
+  settingsPlanConnectDesc: "Use your API keys for full access — choose models and agent count",
+  settingsPlanProDesc: "No API keys — 30 discussions / month included",
+  settingsPlanApiKeyDesc: "On Connect, adding API keys unlocks model selection and full configuration. Pro includes usage so no keys are needed.",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };
