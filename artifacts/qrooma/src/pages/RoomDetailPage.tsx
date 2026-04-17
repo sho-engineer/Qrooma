@@ -129,8 +129,14 @@ export default function RoomDetailPage() {
     ? [settings.sideA, settings.sideB]
     : [settings.sideA, settings.sideB, settings.sideC];
 
+  // true = ALL active agents have API keys (shown in RoomHeader as "fully ready")
   const canRun = useMemo(() => {
     return activeSides.every((side) => hasApiKeyFor(side.provider, settings));
+  }, [settings.openaiApiKey, settings.anthropicApiKey, settings.googleApiKey, agentCount]);
+
+  // true = AT LEAST ONE active agent has an API key (enables real AI calls + Rerun button)
+  const hasSomeKey = useMemo(() => {
+    return activeSides.some((side) => hasApiKeyFor(side.provider, settings));
   }, [settings.openaiApiKey, settings.anthropicApiKey, settings.googleApiKey, agentCount]);
 
   const sideModelMap = useMemo(() => ({
@@ -224,17 +230,25 @@ export default function RoomDetailPage() {
       }
     }
 
-    if (canRun) {
-      // ── BYOK: real AI call ─────────────────────────────────────────────────
+    if (hasSomeKey) {
+      // ── BYOK: real AI call (only agents with valid keys) ───────────────────
       const agentCount = settings.agentCount ?? 3;
       const sides = (agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[];
       const sideConfigs = [settings.sideA, settings.sideB, settings.sideC];
 
-      const agentConfig = sides.map((side, i) => ({
+      const allAgentConfig = sides.map((side, i) => ({
         side,
         provider: sideConfigs[i]!.provider,
         model:    sideConfigs[i]!.model,
       }));
+
+      // Filter to agents that actually have an API key
+      const apiKeyMap: Record<string, string | undefined> = {
+        openai:    settings.openaiApiKey    || undefined,
+        anthropic: settings.anthropicApiKey || undefined,
+        google:    settings.googleApiKey    || undefined,
+      };
+      const agentConfig = allAgentConfig.filter((a) => !!apiKeyMap[a.provider]);
 
       const params: RealRunParams = {
         roomId,
@@ -320,7 +334,7 @@ export default function RoomDetailPage() {
         modeLabel={modeLabel}
         activeModels={activeModels}
         hasMessages={hasMessages}
-        canRun={canRun}
+        canRun={hasSomeKey}
         onRerun={rerun}
       />
 
@@ -372,7 +386,7 @@ export default function RoomDetailPage() {
         onChange={setInput}
         onSend={sendMessage}
         isRunning={runStatus === "running"}
-        apiKeysReady={canRun}
+        apiKeysReady={hasSomeKey}
       />
     </div>
   );

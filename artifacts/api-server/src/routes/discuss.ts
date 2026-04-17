@@ -158,13 +158,21 @@ router.post("/discuss", async (req, res) => {
 
       sseWrite(res, { type: "agent_start", side, agentId });
 
-      const content = await callAI({
-        provider: provider as Provider,
-        model,
-        systemPrompt,
-        messages,
-        apiKey,
-      });
+      let content: string;
+      try {
+        content = await callAI({
+          provider: provider as Provider,
+          model,
+          systemPrompt,
+          messages,
+          apiKey,
+        });
+      } catch (agentErr: unknown) {
+        // One agent failing does NOT abort the whole run — skip and continue
+        const errMsg = agentErr instanceof Error ? agentErr.message : "Unknown error";
+        sseWrite(res, { type: "agent_error", side, agentId, message: errMsg });
+        continue;
+      }
 
       const message = {
         id:        `${runId}-${side}-${Date.now()}`,

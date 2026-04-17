@@ -180,8 +180,14 @@ export const runsService = {
             } else if (data["type"] === "done") {
               onComplete("completed");
             } else if (data["type"] === "error") {
+              // Fatal error from the server
               console.error("API discussion error:", data["message"]);
               onComplete("error");
+            } else if (data["type"] === "agent_error") {
+              // One agent failed — log and continue (other agents may still respond)
+              console.warn(`Agent ${data["side"]} error:`, data["message"]);
+            } else if (data["type"] === "warning") {
+              console.info("API warning:", data["message"]);
             }
           }
         }
