@@ -168,8 +168,11 @@ export interface Translations {
   freeUpgradeHint: string;
   // Archive / delete rooms
   archiveRoom: string;
+  archivedRooms: string;
+  restoreRoom: string;
   deleteRoom: string;
   deleteRoomConfirm: string;
+  archivedEmptyState: string;
   // API call errors (room detail)
   errorMissingKeys: string;
   errorAiFailed: string;
@@ -359,8 +362,11 @@ const ja: Translations = {
   freeModeBanner: "Free · 2エージェント · 固定モデル · 1日3回まで",
   freeUpgradeHint: "本格利用は Connect / Pro",
   archiveRoom: "アーカイブ",
+  archivedRooms: "アーカイブ済み",
+  restoreRoom: "戻す",
   deleteRoom: "削除",
   deleteRoomConfirm: "本当に削除しますか？",
+  archivedEmptyState: "アーカイブ済みのルームはありません",
   errorMissingKeys: "このエージェントのAPIキーが設定されていません",
   errorAiFailed: "AIの呼び出しに失敗しました",
   errorAgentSkipped: (side) => `エージェント ${side} をスキップしました（APIキーなし）`,
@@ -544,8 +550,11 @@ const en: Translations = {
   freeModeBanner: "Free · 2 agents · fixed models · 3 runs/day",
   freeUpgradeHint: "Upgrade to Connect or Pro",
   archiveRoom: "Archive",
+  archivedRooms: "Archived",
+  restoreRoom: "Restore",
   deleteRoom: "Delete",
   deleteRoomConfirm: "Delete this room?",
+  archivedEmptyState: "No archived rooms",
   errorMissingKeys: "No API key set for this agent",
   errorAiFailed: "AI call failed",
   errorAgentSkipped: (side) => `Agent ${side} skipped — no API key`,

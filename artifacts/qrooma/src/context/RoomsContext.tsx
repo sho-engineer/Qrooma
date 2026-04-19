@@ -28,6 +28,7 @@ interface RoomsContextValue {
   addRoom:     (name: string) => Room;
   updateRoom:  (id: string, patch: Partial<Room>) => void;
   archiveRoom: (id: string) => void;
+  restoreRoom: (id: string) => void;
   deleteRoom:  (id: string) => void;
   getRoomById: (id: string) => Room | undefined;
 }
@@ -80,12 +81,18 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
   }
 
   function archiveRoom(id: string): void {
+    const archivedAt = new Date().toISOString();
     setRooms((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, archived: true, archivedAt: new Date().toISOString() } : r
-      )
+      prev.map((r) => r.id === id ? { ...r, archived: true, archivedAt } : r)
     );
-    roomsService.update(id, { archived: true, archivedAt: new Date().toISOString() }).catch(console.error);
+    roomsService.update(id, { archived: true, archivedAt }).catch(console.error);
+  }
+
+  function restoreRoom(id: string): void {
+    setRooms((prev) =>
+      prev.map((r) => r.id === id ? { ...r, archived: false, archivedAt: undefined } : r)
+    );
+    roomsService.update(id, { archived: false, archivedAt: undefined }).catch(console.error);
   }
 
   function deleteRoom(id: string): void {
@@ -98,7 +105,7 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <RoomsContext.Provider value={{ rooms, isLoading, addRoom, updateRoom, archiveRoom, deleteRoom, getRoomById }}>
+    <RoomsContext.Provider value={{ rooms, isLoading, addRoom, updateRoom, archiveRoom, restoreRoom, deleteRoom, getRoomById }}>
       {children}
     </RoomsContext.Provider>
   );
