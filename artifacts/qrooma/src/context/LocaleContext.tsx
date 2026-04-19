@@ -187,6 +187,28 @@ export interface Translations {
   sponsoredLabel: string;
   sponsoredSectionTitle: string;
   sponsoredLearnMore: string;
+  // Writing Style settings
+  writingStyleSection: string;
+  writingToneLabel: string;
+  writingToneNatural: string;
+  writingToneProfessional: string;
+  writingToneConcise: string;
+  writingToneCasual: string;
+  writingToneNaturalDesc: string;
+  writingToneProfessionalDesc: string;
+  writingToneConciseDesc: string;
+  writingToneCasualDesc: string;
+  conclusionFormatLabel: string;
+  conclusionFormatParagraph: string;
+  conclusionFormatBullets: string;
+  jpHardnessLabel: string;
+  jpHardnessSoft: string;
+  jpHardnessStandard: string;
+  jpHardnessFormal: string;
+  // Conclusion states
+  conclusionLoading: string;
+  conclusionError: string;
+  conclusionErrorRetry: string;
 }
 
 const ja: Translations = {
@@ -378,6 +400,28 @@ const ja: Translations = {
   sponsoredLabel: "スポンサー",
   sponsoredSectionTitle: "おすすめツール",
   sponsoredLearnMore: "詳しく見る",
+  // Writing Style settings
+  writingStyleSection: "表現設定",
+  writingToneLabel: "表現トーン",
+  writingToneNatural: "ナチュラル",
+  writingToneProfessional: "プロフェッショナル",
+  writingToneConcise: "簡潔",
+  writingToneCasual: "カジュアル",
+  writingToneNaturalDesc: "読みやすく自然な文体（推奨）",
+  writingToneProfessionalDesc: "ビジネス向けで整理された表現",
+  writingToneConciseDesc: "結論先行・短め・冗長さを削る",
+  writingToneCasualDesc: "少しやわらかく、でも軽すぎない",
+  conclusionFormatLabel: "結論の形式",
+  conclusionFormatParagraph: "段落",
+  conclusionFormatBullets: "箇条書き",
+  jpHardnessLabel: "日本語の硬さ",
+  jpHardnessSoft: "やわらかめ",
+  jpHardnessStandard: "標準",
+  jpHardnessFormal: "かため",
+  // Conclusion states
+  conclusionLoading: "結論を生成中…",
+  conclusionError: "結論を生成できませんでした。再実行してください",
+  conclusionErrorRetry: "再実行",
 };
 
 const en: Translations = {
@@ -570,6 +614,28 @@ const en: Translations = {
   sponsoredLabel: "Sponsored",
   sponsoredSectionTitle: "Recommended tools",
   sponsoredLearnMore: "Learn more",
+  // Writing Style settings
+  writingStyleSection: "Writing Style",
+  writingToneLabel: "Tone",
+  writingToneNatural: "Natural",
+  writingToneProfessional: "Professional",
+  writingToneConcise: "Concise",
+  writingToneCasual: "Casual",
+  writingToneNaturalDesc: "Easy to read, conversational (recommended)",
+  writingToneProfessionalDesc: "Organized and polished, not stiff",
+  writingToneConciseDesc: "Conclusion-first, short, no padding",
+  writingToneCasualDesc: "A little warmer, but still professional",
+  conclusionFormatLabel: "Conclusion format",
+  conclusionFormatParagraph: "Paragraph",
+  conclusionFormatBullets: "Bullet points",
+  jpHardnessLabel: "Japanese formality",
+  jpHardnessSoft: "Soft",
+  jpHardnessStandard: "Standard",
+  jpHardnessFormal: "Formal",
+  // Conclusion states
+  conclusionLoading: "Generating conclusion…",
+  conclusionError: "Could not generate a conclusion. Try re-running the discussion.",
+  conclusionErrorRetry: "Re-run",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };

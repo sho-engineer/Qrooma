@@ -321,4 +321,9 @@ export const DEFAULT_SETTINGS: Settings = {
   sideC: { side: "C", provider: "google",    model: "gemini-1.5-pro" },
   defaultMode: "structured-debate",
   agentCount: 3,
+  writingStyle: {
+    tone:             "natural",
+    conclusionFormat: "paragraph",
+    jpHardness:       "soft",
+  },
 };

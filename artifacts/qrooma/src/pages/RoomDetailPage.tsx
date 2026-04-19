@@ -24,7 +24,7 @@ import { useSettings } from "../context/SettingsContext";
 import { useRooms } from "../context/RoomsContext";
 import { useLocale } from "../context/LocaleContext";
 import { usePlan } from "../context/PlanContext";
-import type { ConclusionData, Message, RunStatus, Provider } from "../types";
+import type { ConclusionData, ConclusionStatus, Message, RunStatus, Provider } from "../types";
 import RoomHeader from "../components/RoomHeader";
 import MessageBubble from "../components/MessageBubble";
 import ConclusionCard from "../components/ConclusionCard";
@@ -122,9 +122,10 @@ export default function RoomDetailPage() {
   const [currentRound,   setCurrentRound]   = useState<{ round: number; label: string } | null>(null);
   const [agentErrors,    setAgentErrors]    = useState<string[]>([]);
   const [fatalError,     setFatalError]     = useState<string | null>(null);
-  const [conclusions,    setConclusions]    = useState<ConclusionData[]>(
+  const [conclusions,       setConclusions]       = useState<ConclusionData[]>(
     () => messagesService.getConclusions(roomId),
   );
+  const [conclusionStatus,  setConclusionStatus]  = useState<ConclusionStatus>("idle");
 
   const cancelRun = useRef<(() => void) | null>(null);
 
@@ -192,6 +193,7 @@ export default function RoomDetailPage() {
     setAgentErrors([]);
     setFatalError(null);
     setConclusions(messagesService.getConclusions(roomId));
+    setConclusionStatus("idle");
     isFirstMount.current = true;
     shouldScrollToBottom.current = false;
   }, [roomId]);
@@ -226,6 +228,7 @@ export default function RoomDetailPage() {
     setCurrentRound(null);
     setAgentErrors([]);
     setFatalError(null);
+    setConclusionStatus("loading");
 
     let responseCount = 0;
 
@@ -295,6 +298,7 @@ export default function RoomDetailPage() {
             agentId: m.agentId,
             content: m.content,
           })),
+        writingStyle: settings.writingStyle,
       };
 
       const cancel = runsService.realRun(
@@ -308,26 +312,18 @@ export default function RoomDetailPage() {
           };
           messagesService.saveConclusion(roomId, enriched);
           setConclusions(messagesService.getConclusions(roomId));
+          setConclusionStatus("success");
         },
         (status) => {
-          if (isFree && status === "error") {
-            const payload: RunPayload = {
-              roomId,
-              userId:     "demo",
-              mode:       settings.defaultMode,
-              agentCount: 2,
-              agentIds:   ["gpt", "gemini"],
-            };
-            const cancelSim = runsService.simulateRun(runId, payload, onMessage, onStatus);
-            cancelRun.current = cancelSim;
-          } else {
-            onStatus(status);
+          onStatus(status);
+          // If API failed entirely, mark conclusion as error
+          if (status === "error") {
+            setConclusionStatus((prev) => prev === "loading" ? "error" : prev);
           }
         },
         onAgentError,
         (evt) => setCurrentRound(evt),
         (evt) => {
-          // Round summary → persist as a special "summary" message
           const summaryMsg: Message = {
             id:        evt.id,
             roomId,
@@ -340,9 +336,15 @@ export default function RoomDetailPage() {
           messagesService.append(summaryMsg);
           setMessages((prev) => [...prev, summaryMsg]);
         },
+        () => {
+          // conclusion_error: server could not generate conclusion
+          setConclusionStatus("error");
+        },
       );
       cancelRun.current = cancel;
     } else {
+      // No API keys → simulate (no conclusion generated)
+      setConclusionStatus("idle");
       const payload: RunPayload = {
         roomId,
         userId:     "demo",
@@ -493,7 +495,12 @@ export default function RoomDetailPage() {
       </div>
 
       {hasMessages && (
-        <ConclusionCard runCount={runCount} conclusions={conclusions} />
+        <ConclusionCard
+          runCount={runCount}
+          conclusions={conclusions}
+          conclusionStatus={conclusionStatus}
+          onRerun={rerun}
+        />
       )}
 
       {plan === "free" && (

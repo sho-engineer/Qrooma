@@ -16,7 +16,7 @@
  * The Trigger.dev task retrieves them server-side from Supabase.
  */
 
-import type { AgentId, ConclusionData, Message, RunStatus } from "../types";
+import type { AgentId, ConclusionData, Message, RunStatus, WritingStyle } from "../types";
 import { AGENTS, DEBATE_POOL, FREETALK_POOL } from "../data/dummy";
 
 export interface RunPayload {
@@ -36,6 +36,7 @@ export interface RealRunParams {
   agentConfig:      { side: "A" | "B" | "C"; provider: string; model: string }[];
   apiKeys:          { openai?: string; anthropic?: string; google?: string };
   previousMessages: { role: string; agentId?: string; content: string }[];
+  writingStyle?:    WritingStyle;
 }
 
 export interface RoundStartEvent {
@@ -101,13 +102,14 @@ export const runsService = {
    * Streams SSE events: round_start → agent messages → round_summary → conclusion → done.
    */
   realRun(
-    params:           RealRunParams,
-    onMessage:        (msg: Message) => void,
-    onConclusion:     (conclusion: ConclusionData) => void,
-    onComplete:       (status: RunStatus) => void,
-    onAgentError?:    (side: string, message: string) => void,
-    onRoundStart?:    (event: RoundStartEvent) => void,
-    onRoundSummary?:  (event: RoundSummaryEvent) => void,
+    params:              RealRunParams,
+    onMessage:           (msg: Message) => void,
+    onConclusion:        (conclusion: ConclusionData) => void,
+    onComplete:          (status: RunStatus) => void,
+    onAgentError?:       (side: string, message: string) => void,
+    onRoundStart?:       (event: RoundStartEvent) => void,
+    onRoundSummary?:     (event: RoundSummaryEvent) => void,
+    onConclusionError?:  () => void,
   ): () => void {
     const controller = new AbortController();
 
@@ -164,7 +166,14 @@ export const runsService = {
                 createdAt: String(data["createdAt"] ?? new Date().toISOString()),
               });
             } else if (data["type"] === "conclusion") {
-              onConclusion(data["conclusion"] as ConclusionData);
+              const conc = data["conclusion"] as ConclusionData;
+              if (conc?.summary && conc.summary.trim().length > 0) {
+                onConclusion(conc);
+              } else {
+                onConclusionError?.();
+              }
+            } else if (data["type"] === "conclusion_error") {
+              onConclusionError?.();
             } else if (data["type"] === "done") {
               onComplete("completed");
             } else if (data["type"] === "error") {

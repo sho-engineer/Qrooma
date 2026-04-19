@@ -8,6 +8,9 @@
  *
  * Self-reference is prevented by explicitly naming the opponent(s) each agent
  * must address. Agents are never allowed to quote themselves.
+ *
+ * Writing style is injected into every system prompt via a tone suffix
+ * built from the writingStyle payload field.
  */
 
 import { Router } from "express";
@@ -25,6 +28,12 @@ const ROLE_LABEL: Record<string, string> = {
 
 type Side = "A" | "B" | "C";
 
+interface WritingStyle {
+  tone?:             "natural" | "professional" | "concise" | "casual";
+  conclusionFormat?: "paragraph" | "bullets";
+  jpHardness?:       "soft" | "standard" | "formal";
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function agentIdForProvider(provider: string): string {
@@ -38,9 +47,64 @@ function sseWrite(res: import("express").Response, data: object) {
   res.write(`data: ${JSON.stringify(data)}\n\n`);
 }
 
+// ─── Writing style → prompt suffix ───────────────────────────────────────────
+
+function buildToneSuffix(style: WritingStyle): string {
+  const lines: string[] = ["\n\n— WRITING STYLE INSTRUCTIONS —"];
+
+  const toneInstructions: Record<string, string> = {
+    natural:      "Write in a natural, readable tone. Don't over-explain. Use language a person would naturally read.",
+    professional: "Write in a polished, organized business tone. Be thorough but not stiff.",
+    concise:      "Lead with your conclusion. Be short. Cut all padding and redundancy.",
+    casual:       "Write in a slightly warmer tone, but remain professional enough for a SaaS product.",
+  };
+
+  const jpHardnessInstructions: Record<string, string> = {
+    soft:     "If writing in Japanese: use soft, readable phrasing such as 「〜が考えられます」「〜するとよさそうです」. Avoid assertive endings. Prioritize readability.",
+    standard: "If writing in Japanese: use standard, natural product text. Avoid stiff bureaucratic phrasing.",
+    formal:   "If writing in Japanese: use polished, clear Japanese. Be direct and easy to parse.",
+  };
+
+  if (style.tone) lines.push(toneInstructions[style.tone]);
+  if (style.jpHardness) lines.push(jpHardnessInstructions[style.jpHardness]);
+
+  lines.push("Do NOT use bureaucratic phrases like 「〜が確認された」「〜が強調された」「〜が求められる」.");
+  lines.push("Prefer判断文 over 要約文: e.g. 「論点はここに絞られてきた」「この時点では〜が強い」「いったんの結論としては〜が妥当」.");
+
+  return lines.join("\n");
+}
+
+function buildConclusionToneSuffix(style: WritingStyle): string {
+  const lines: string[] = ["\n\n— CONCLUSION WRITING STYLE —"];
+
+  if (style.conclusionFormat === "bullets") {
+    lines.push("Format each section as 2–4 concise bullet points, not prose sentences.");
+  } else {
+    lines.push("Format each section as 1–2 natural prose sentences. Keep it human-readable.");
+  }
+
+  const toneInstructions: Record<string, string> = {
+    natural:      "Sound like a sharp colleague summarizing a meeting — clear, readable, no jargon.",
+    professional: "Sound like a well-written executive summary — organized, specific, not bloated.",
+    concise:      "Be maximally brief. One sentence per section if possible. Cut all fluff.",
+    casual:       "A little warmer than typical AI output, but still serious enough to act on.",
+  };
+
+  if (style.tone) lines.push(toneInstructions[style.tone]);
+
+  const jpLines: Record<string, string> = {
+    soft:     "If in Japanese: 「いったんの結論としては〜が妥当」「〜という進め方が現実的」など、柔らかく判断しやすい表現で。",
+    standard: "If in Japanese: 自然なビジネス文体で。硬すぎず、読みやすく。",
+    formal:   "If in Japanese: 丁寧で明確な文体で。ただし読みにくくしない。",
+  };
+
+  if (style.jpHardness) lines.push(jpLines[style.jpHardness]);
+
+  return lines.join("\n");
+}
+
 // ─── System prompts — 2-agent ─────────────────────────────────────────────────
 // A = Proposal (GPT),  B = Review (Gemini)
-// No self-reference: A only references B, B only references A.
 
 const PROMPTS_2AGENT = {
   "structured-debate": {
@@ -56,7 +120,7 @@ Rules:
 — Give the single strongest reason in one sentence.
 — Do NOT hedge or say "it depends."
 — Do NOT start with "I" or "Agent A."
-— 3–5 sentences max.
+— 2–4 sentences max.
 
 Respond in the SAME LANGUAGE as the user's message.`,
 
@@ -71,7 +135,7 @@ Rules:
 — State concretely: "This fails when ___" or "The hidden assumption is ___."
 — Do NOT just offer a complementary angle — challenge A's specific words.
 — Do NOT start with "I" or "Agent B."
-— 3–5 sentences max.
+— 2–4 sentences max.
 
 Respond in the SAME LANGUAGE as the discussion.`,
       },
@@ -89,7 +153,7 @@ Rules:
 — Do NOT repeat your Round 1 proposal verbatim.
 — Close with any tension that still remains.
 — Do NOT start with "I" or "Agent A."
-— 3–5 sentences.
+— 2–4 sentences.
 
 Respond in the SAME LANGUAGE as the discussion.`,
 
@@ -104,7 +168,7 @@ Rules:
 — Then state the ONE remaining concern that is still unresolved.
 — Do NOT simply repeat your Round 1 critique.
 — Do NOT start with "I" or "Agent B."
-— 3–5 sentences.
+— 2–4 sentences.
 
 Respond in the SAME LANGUAGE as the discussion.`,
       },
@@ -113,60 +177,51 @@ Respond in the SAME LANGUAGE as the discussion.`,
     roundSummary: {
       1: `You are the MODERATOR. Round 1 of a 2-agent debate (Proposal vs. Review) has just completed.
 
-The agents' Round 1 messages are in the context above.
-
-Write a concise Round 1 Summary that identifies:
-1. A's core proposal (one sentence)
-2. B's core critique (one sentence)
-3. The key tension/question the debate must resolve (one sentence)
+Write a Round 1 Summary — not a retelling, but a judgment call on what matters.
+Include:
+【提案】 A's core proposal (one sentence)
+【検証】 B's core critique (one sentence)
+【争点】 The key tension that must be resolved (one sentence)
 
 Rules:
-— Label each point with "【提案】", "【検証】", "【争点】" (or English equivalents if the discussion is in English).
-— Do NOT introduce new information.
-— 3–4 sentences total.
-— No fluff, no "it depends."
+— Do NOT restate both sides' content — synthesize what they mean.
+— Prefer: 「論点はここに絞られてきた」「この時点では〜という見方が強い」
+— 3 sentences total. No fluff.
 
 Respond in the SAME LANGUAGE as the discussion.`,
 
       2: `You are the MODERATOR. Round 2 of a 2-agent debate (Proposal vs. Review) has just completed.
 
-All rounds are in the context above.
-
-Write a concise Round 2 Summary that identifies:
-1. What A changed/improved from Round 1 (one sentence)
-2. What B's remaining concern is (one sentence)
-3. Whether the debate converged or the tension persists (one sentence)
+Write a Round 2 Summary focusing on what moved and what didn't.
+Include:
+【改訂】 What A changed and why it matters (one sentence)
+【残課題】 B's remaining concern (one sentence)
+【収束度】 Whether the debate converged or tension persists (one sentence)
 
 Rules:
-— Label each point with "【改訂案】", "【残課題】", "【収束度】" (or English equivalents).
-— Do NOT repeat Round 1 summary verbatim.
-— 3–4 sentences total.
+— Do NOT repeat Round 1 summary.
+— Prefer judgment language over description: 「修正されたが、核心は残っている」など
+— 3 sentences max.
 
 Respond in the SAME LANGUAGE as the discussion.`,
     },
 
     conclusion: `You are the MODERATOR delivering the FINAL VERDICT of a 2-agent debate (Proposal vs. Review).
 
-All debate rounds are in the context above. This is a decision, not a summary.
+All debate rounds are in the context above. This is a judgment, not a summary.
 
-Format with EXACTLY these four sections:
+Use EXACTLY these four section headers, each followed by content:
 
 [採用] Adopted approach:
-One clear sentence — what is recommended.
-
-[棄却] Rejected or deferred:
-What was considered but should not be pursued now, and why — one sentence.
-
+[棄却] Rejected / deferred:
 [残論点] Open question:
-What the debate did not fully resolve — one sentence.
-
 [次アクション] Next action:
-The single most important concrete step — one sentence.
 
 Rules:
-— Each section: 1–2 sentences maximum.
+— Each section: 1–2 sentences.
 — Do NOT write "it depends."
-— Reflect what emerged from the debate; do not introduce new information.
+— Sound like a sharp colleague making a call, not an AI summarizing.
+— Use natural judgment language: 「〜が妥当」「〜という進め方が現実的」「いったんは〜で進める」
 Respond in the SAME LANGUAGE as the discussion.`,
   },
 
@@ -182,7 +237,7 @@ Rules:
 — Be specific and opinionated — not neutral.
 — State your view and the core reason behind it.
 — Do NOT start with "I" or "Agent A."
-— 3–4 sentences max.
+— 2–3 sentences max.
 
 Respond in the SAME LANGUAGE as the user's message.`,
 
@@ -196,7 +251,7 @@ Rules:
 — Reference A's perspective: "Aは〜と言ったが..." / "A's point about X is..."
 — Be specific. If you disagree, say so directly.
 — Do NOT start with "I" or "Agent B."
-— 3–4 sentences max.
+— 2–3 sentences max.
 
 Respond in the SAME LANGUAGE as the discussion.`,
       },
@@ -213,7 +268,7 @@ Rules:
 — Agree, push back, or add a condition — but take a clear stance.
 — Do NOT just add a new angle without connecting to what B said.
 — Do NOT start with "I" or "Agent A."
-— 3–4 sentences.
+— 2–3 sentences.
 
 Respond in the SAME LANGUAGE as the discussion.`,
 
@@ -228,7 +283,7 @@ Rules:
 — Take a clear stance: agree, partially agree, or push back.
 — End with your own conclusion on the topic.
 — Do NOT start with "I" or "Agent B."
-— 3–4 sentences.
+— 2–3 sentences.
 
 Respond in the SAME LANGUAGE as the discussion.`,
       },
@@ -237,44 +292,33 @@ Respond in the SAME LANGUAGE as the discussion.`,
     roundSummary: {
       1: `You are the MODERATOR. Round 1 of a 2-person discussion has completed.
 
-Write a brief Round 1 Summary:
-1. What A's main view is
-2. What B's main view is
-3. Where they agree or diverge
+Write a brief Round 1 judgment — not a retelling:
+1. Where A and B align
+2. Where they diverge
+3. Which view currently seems stronger
 
-Rules: 3 sentences max, no fluff. Respond in the SAME LANGUAGE as the discussion.`,
+Rules: 3 sentences max. Prefer judgment over description. Respond in the SAME LANGUAGE as the discussion.`,
 
       2: `You are the MODERATOR. Round 2 of a 2-person discussion has completed.
 
-Write a brief Round 2 Summary covering what changed or solidified from Round 1.
+Write a brief Round 2 judgment: what changed or solidified from Round 1, and what the conversation landed on.
 Rules: 3 sentences max. Respond in the SAME LANGUAGE as the discussion.`,
     },
 
     conclusion: `You are the MODERATOR of a 2-person AI discussion.
 
-Write a concise conclusion with EXACTLY these four sections:
+Use EXACTLY these four section headers, each followed by content:
 
 [採用] Key insight:
-The most useful takeaway — one sentence.
-
 [棄却] What to avoid:
-The approach or framing that proved problematic — one sentence.
-
 [残論点] Open question:
-What the discussion did not fully resolve — one sentence.
-
 [次アクション] Next step:
-The concrete action most worth taking — one sentence.
 
-Rules: Be direct. No "it depends." Respond in the SAME LANGUAGE as the discussion.`,
+Rules: Be direct. No "it depends." Sound like a sharp colleague. Respond in the SAME LANGUAGE as the discussion.`,
   },
 };
 
 // ─── System prompts — 3-agent ─────────────────────────────────────────────────
-// A = Proposal,  B = Review,  C = Execution
-// A may reference B or C but NOT A.
-// B references A specifically.
-// C references A and B but NOT C.
 
 const PROMPTS_3AGENT = {
   "structured-debate": {
@@ -289,7 +333,7 @@ Rules:
 — Give the single strongest reason in one sentence.
 — Do NOT hedge or say "it depends."
 — Do NOT start with "I" or "Agent A."
-— 3–5 sentences max.
+— 2–4 sentences max.
 
 Respond in the SAME LANGUAGE as the user's message.`,
 
@@ -301,7 +345,7 @@ Rules:
 — State concretely: "This fails when ___" or "The hidden assumption is ___."
 — Challenge the premise itself — do NOT just offer a complementary angle.
 — Do NOT start with "I" or "Agent B."
-— 3–5 sentences max.
+— 2–4 sentences max.
 
 Respond in the SAME LANGUAGE as the user's message.`,
 
@@ -314,7 +358,7 @@ Rules:
 — Name the most critical constraint or prerequisite that tends to be ignored.
 — Be specific: who does what, with what resource or condition.
 — Do NOT start with "I" or "Agent C."
-— 3–5 sentences max.
+— 2–4 sentences max.
 
 Respond in the SAME LANGUAGE as the user's message.`,
       },
@@ -330,7 +374,7 @@ Rules:
 — Take a clear stance: push back, partially concede, or modify your proposal.
 — Do NOT just add more support for your original position.
 — Do NOT start with "I" or "Agent A."
-— 3–5 sentences.
+— 2–4 sentences.
 
 Respond in the SAME LANGUAGE as the discussion.`,
 
@@ -344,7 +388,7 @@ Rules:
 — Identify exactly where A's proposal fails or what assumption it rests on.
 — Do NOT reference your own (B's) Round 1 position as if someone else said it.
 — Do NOT start with "I" or "Agent B."
-— 3–5 sentences.
+— 2–4 sentences.
 
 Respond in the SAME LANGUAGE as the discussion.`,
 
@@ -359,7 +403,7 @@ Rules:
 — State your concrete position on how to resolve or navigate that tension.
 — Do NOT reference your own (C's) Round 1 position as if someone else said it.
 — Do NOT start with "I" or "Agent C."
-— 3–5 sentences.
+— 2–4 sentences.
 
 Respond in the SAME LANGUAGE as the discussion.`,
       },
@@ -373,10 +417,9 @@ Task: Revise your proposal based on what emerged in Rounds 1–2.
 Rules:
 — Open by stating what you are CHANGING from Round 1 and WHY. Use: "Round 1では〜と提案したが、Bの指摘を踏まえ〜に修正する。" / "My Round 1 proposal was X; given B's challenge I now revise it to Y because..."
 — Do NOT repeat your Round 1 proposal verbatim.
-— If keeping something unchanged, state briefly why it still holds.
 — Close with any tension that still remains unresolved.
 — Do NOT start with "I" or "Agent A."
-— 3–5 sentences.
+— 2–4 sentences.
 
 Respond in the SAME LANGUAGE as the discussion.`,
 
@@ -389,9 +432,8 @@ Rules:
 — Acknowledge explicitly if any of your Round 1 concerns were addressed by A or C.
 — State the ONE concern that is STILL unresolved and why it still matters.
 — Do NOT repeat your Round 1 critique word-for-word.
-— Do NOT reference your own (B's) earlier statements as if someone else said them.
 — Do NOT start with "I" or "Agent B."
-— 3–5 sentences.
+— 2–4 sentences.
 
 Respond in the SAME LANGUAGE as the discussion.`,
 
@@ -404,9 +446,8 @@ Rules:
 — Reference the key tension between A and B that shaped the debate.
 — Name ONE concrete first step and ONE key condition for it to work.
 — Do NOT repeat your Round 1 position verbatim.
-— Do NOT reference your own (C's) earlier statements as if someone else said them.
 — Do NOT start with "I" or "Agent C."
-— 3–5 sentences.
+— 2–4 sentences.
 
 Respond in the SAME LANGUAGE as the discussion.`,
       },
@@ -415,46 +456,39 @@ Respond in the SAME LANGUAGE as the discussion.`,
     roundSummary: {
       1: `You are the MODERATOR. Round 1 of a 3-agent debate (Proposal / Review / Execution) has just completed.
 
-Write a Round 1 Summary that identifies:
-【提案】 A's core proposal (one sentence)
-【検証】 B's core critique (one sentence)
-【実行】 C's key implementation concern (one sentence)
-【争点】 The central tension the debate must resolve (one sentence)
+Write a Round 1 judgment — not a retelling. What matters now:
+【提案】 A's core proposal in one sentence
+【検証】 B's core critique in one sentence
+【実行】 C's key implementation concern in one sentence
+【争点】 The central tension the debate must resolve in one sentence
 
-Rules: 4 sentences max. No fluff. Respond in the SAME LANGUAGE as the discussion.`,
+Rules: Prefer judgment language. 4 sentences max. No fluff. Respond in the SAME LANGUAGE as the discussion.`,
 
       2: `You are the MODERATOR. Round 2 of a 3-agent debate has just completed.
 
-Write a Round 2 Summary that identifies:
+Write a Round 2 judgment:
 【収束】 What converged or was resolved (one sentence)
 【残争点】 What remains contested (one sentence)
 【優勢案】 Which position gained ground and why (one sentence)
 
-Rules: 3 sentences max. Respond in the SAME LANGUAGE as the discussion.`,
+Rules: 3 sentences max. Prefer: 「この時点では〜が強い」「修正されたが核心は残っている」. Respond in the SAME LANGUAGE as the discussion.`,
     },
 
     conclusion: `You are the MODERATOR delivering the FINAL VERDICT of a 3-agent structured debate.
 
-All rounds are in the context above. This is a decision, not a summary.
+All rounds are in the context above. This is a judgment, not a summary.
 
-Format with EXACTLY these four sections:
+Use EXACTLY these four section headers, each followed by content:
 
 [採用] Adopted approach:
-One clear sentence — what is recommended.
-
-[棄却] Rejected approaches:
-What was considered but should not be pursued, and why — one sentence.
-
+[棄却] Rejected / deferred:
 [残論点] Open questions:
-What remains genuinely unresolved — one sentence.
-
 [次アクション] Next action:
-The single most important concrete step — one sentence.
 
 Rules:
-— Each section: 1–2 sentences maximum.
+— Each section: 1–2 sentences.
 — Do NOT write "it depends."
-— Reflect what emerged from the debate.
+— Sound like a sharp colleague making a call: 「〜が妥当」「〜という進め方が現実的」「いったんは〜で進める」
 Respond in the SAME LANGUAGE as the discussion.`,
   },
 
@@ -469,7 +503,7 @@ Rules:
 — Be specific and opinionated.
 — State your view and the core reason behind it.
 — Do NOT start with "I" or "Agent A."
-— 3–4 sentences max.
+— 2–3 sentences max.
 
 Respond in the SAME LANGUAGE as the user's message.`,
 
@@ -481,7 +515,7 @@ Rules:
 — Be specific. If you disagree with A, say so directly.
 — State your view and what makes you confident in it.
 — Do NOT start with "I" or "Agent B."
-— 3–4 sentences max.
+— 2–3 sentences max.
 
 Respond in the SAME LANGUAGE as the user's message.`,
 
@@ -493,7 +527,7 @@ Rules:
 — Be concrete and opinionated.
 — You may build on A or B, or introduce a contrasting angle.
 — Do NOT start with "I" or "Agent C."
-— 3–4 sentences max.
+— 2–3 sentences max.
 
 Respond in the SAME LANGUAGE as the user's message.`,
       },
@@ -508,7 +542,7 @@ Rules:
 — Quote or paraphrase a specific claim. Use: "Bが言った〜について..." / "On B's point that..."
 — Agree, push back, or add a condition — take a clear stance.
 — Do NOT start with "I" or "Agent A."
-— 3–4 sentences.
+— 2–3 sentences.
 
 Respond in the SAME LANGUAGE as the discussion.`,
 
@@ -518,11 +552,11 @@ Your partners are Agent A and Agent C. Do NOT reference yourself.
 Round 1 perspectives from A and C are in the context above.
 Task: Respond directly to something A or C said in Round 1.
 Rules:
-— Quote or paraphrase a specific claim from A or C. Use: "Aは〜と言ったが..." / "A said X, which I think..."
+— Quote or paraphrase a specific claim from A or C.
 — Take a clear stance: agree, partially agree, or push back.
 — Do NOT reference your own (B's) Round 1 statement as if A or C said it.
 — Do NOT start with "I" or "Agent B."
-— 3–4 sentences.
+— 2–3 sentences.
 
 Respond in the SAME LANGUAGE as the discussion.`,
 
@@ -535,9 +569,9 @@ Rules:
 — Reference at least ONE point from A and ONE from B.
 — Name the exact point of agreement or disagreement between them.
 — State your own conclusion on the topic.
-— Do NOT reference your own (C's) Round 1 statement as if A or B said it.
+— Do NOT reference your own (C's) Round 1 statement.
 — Do NOT start with "I" or "Agent C."
-— 3–4 sentences.
+— 2–3 sentences.
 
 Respond in the SAME LANGUAGE as the discussion.`,
       },
@@ -546,30 +580,23 @@ Respond in the SAME LANGUAGE as the discussion.`,
     roundSummary: {
       1: `You are the MODERATOR. Round 1 of a 3-person discussion has just completed.
 
-Summarize the three perspectives and identify the key point of agreement or tension.
-Rules: 3–4 sentences max. No fluff. Respond in the SAME LANGUAGE as the discussion.`,
+Write a concise judgment — not a summary. What's the key alignment and tension?
+Rules: 3 sentences max. Prefer judgment over description. Respond in the SAME LANGUAGE as the discussion.`,
 
       2: `You are the MODERATOR. Round 2 of a 3-person discussion has just completed.
 
-Summarize what changed from Round 1 and what the group converged on or still disagrees about.
+Write a judgment on what changed from Round 1 and what the group converged on or still disagrees about.
 Rules: 3 sentences max. Respond in the SAME LANGUAGE as the discussion.`,
     },
 
     conclusion: `You are the MODERATOR of a 3-person AI discussion.
 
-Write a concise conclusion with EXACTLY these four sections:
+Use EXACTLY these four section headers, each followed by content:
 
 [採用] Key insight:
-The most useful takeaway — one sentence.
-
 [棄却] What to avoid:
-The approach or framing that proved problematic — one sentence.
-
 [残論点] Open question:
-What the team did not fully resolve — one sentence.
-
 [次アクション] Next step:
-The concrete action most worth taking — one sentence.
 
 Rules: Be direct. No "it depends." Respond in the SAME LANGUAGE as the discussion.`,
   },
@@ -586,6 +613,7 @@ router.post("/discuss", async (req, res) => {
     agentConfig,
     apiKeys: clientApiKeys = {},
     previousMessages = [],
+    writingStyle = {},
   } = req.body as {
     roomId: string;
     runId: string;
@@ -594,6 +622,7 @@ router.post("/discuss", async (req, res) => {
     agentConfig: { side: "A" | "B" | "C"; provider: string; model: string }[];
     apiKeys?: { openai?: string; anthropic?: string; google?: string };
     previousMessages: { role: string; agentId?: string; content: string }[];
+    writingStyle?: WritingStyle;
   };
 
   const apiKeys = {
@@ -622,6 +651,10 @@ router.post("/discuss", async (req, res) => {
         : { 1: "Round 1 — Initial Stance", 2: "Round 2 — Challenge", 3: "Round 3 — Revision" })
     : { 1: "Round 1 — Perspectives", 2: "Round 2 — Responses" };
 
+  // Build writing style suffixes
+  const toneSuffix       = buildToneSuffix(writingStyle);
+  const conclusionSuffix = buildConclusionToneSuffix(writingStyle);
+
   // Build conversation history for context
   const history = previousMessages.slice(-12).map((m) => ({
     role:    (m.role === "user" ? "user" : "assistant") as "user" | "assistant",
@@ -648,7 +681,7 @@ router.post("/discuss", async (req, res) => {
       return await callAI({
         provider:     conf.provider as Provider,
         model:        conf.model,
-        systemPrompt,
+        systemPrompt: systemPrompt + toneSuffix,
         messages:     [{ role: "user", content: contextText }],
         apiKey:       key,
       });
@@ -657,7 +690,6 @@ router.post("/discuss", async (req, res) => {
     }
   }
 
-  // Resolve mode prompts once (outside loops)
   const modePrompts = PROMPTS[modeKey as keyof typeof PROMPTS] ?? PROMPTS["structured-debate"];
 
   try {
@@ -675,20 +707,19 @@ router.post("/discuss", async (req, res) => {
         const agentId   = agentIdForProvider(provider);
         const roleLabel = ROLE_LABEL[side] ?? side;
 
-        // Get prompt — fall back to round 1 if round not defined
         const roundPrompts =
           (modePrompts.rounds as unknown as Record<number, Record<Side, string>>)[round]
           ?? (modePrompts.rounds as unknown as Record<number, Record<Side, string>>)[1]!;
-        const systemPrompt = roundPrompts[side as Side] ?? roundPrompts["A"]!;
+        const baseSystemPrompt = roundPrompts[side as Side] ?? roundPrompts["A"]!;
+        const systemPrompt = baseSystemPrompt + toneSuffix;
 
-        // Build context: separate previous rounds from current round
         const prevRoundsText = allRoundMessages
           .filter((m) => m.round < round)
           .map((m) => `[Round ${m.round} — ${m.roleLabel}]:\n${m.content}`)
           .join("\n\n");
 
         const currRoundText = allRoundMessages
-          .filter((m) => m.round === round && m.side !== side)  // exclude self
+          .filter((m) => m.round === round && m.side !== side)
           .map((m) => `[${m.roleLabel}]:\n${m.content}`)
           .join("\n\n");
 
@@ -730,7 +761,7 @@ router.post("/discuss", async (req, res) => {
         await new Promise((r) => setTimeout(r, 200));
       }
 
-      // ── Round summary (after each round, before final) ─────────────────────
+      // ── Round summary ─────────────────────────────────────────────────────
       const summaryPrompts = (modePrompts as { roundSummary?: Record<number, string> }).roundSummary;
       const summaryPrompt  = summaryPrompts?.[round];
 
@@ -744,15 +775,12 @@ router.post("/discuss", async (req, res) => {
         const summaryContent = await callModerator(summaryPrompt, fullContext);
 
         if (summaryContent) {
-          const summaryLabel = round < numRounds
-            ? `Round ${round} Summary`
-            : `Round ${round} Summary`;
           sseWrite(res, {
-            type:    "round_summary",
+            type:      "round_summary",
             round,
-            label:   summaryLabel,
-            summary: summaryContent,
-            id:      `${runId}-summary-r${round}-${Date.now()}`,
+            label:     `Round ${round} Summary`,
+            summary:   summaryContent,
+            id:        `${runId}-summary-r${round}-${Date.now()}`,
             roomId,
             runId,
             createdAt: new Date().toISOString(),
@@ -761,41 +789,58 @@ router.post("/discuss", async (req, res) => {
       }
     }
 
-    // ── Final conclusion ─────────────────────────────────────────────────────
-    const firstConf = agentConfig[0];
-    const firstKey  = firstConf ? apiKeys[firstConf.provider as keyof typeof apiKeys] : undefined;
+    // ── Final conclusion ───────────────────────────────────────────────────────
+    // Always generate conclusion if any messages were produced.
+    // Uses first available key; wraps in try/catch so errors emit conclusion_error
+    // rather than crashing the whole stream.
 
-    if (firstConf && firstKey && allRoundMessages.length > 0) {
-      const conclusionPrompt = modePrompts.conclusion;
+    if (allRoundMessages.length > 0) {
+      sseWrite(res, { type: "round_start", round: numRounds + 1, label: "Conclusion" });
+
+      const conclusionBasePrompt = modePrompts.conclusion;
+      const conclusionPrompt = conclusionBasePrompt + conclusionSuffix;
 
       const fullDebate = allRoundMessages
         .map((m) => `[Round ${m.round} — ${m.roleLabel}]:\n${m.content}`)
         .join("\n\n");
 
-      sseWrite(res, { type: "round_start", round: numRounds + 1, label: "Conclusion" });
+      const debateContext = `User question: ${userMessage}\n\n${"─".repeat(40)}\nFull debate:\n\n${fullDebate}`;
 
-      const conclusionContent = await callAI({
-        provider: firstConf.provider as Provider,
-        model:    firstConf.model,
-        systemPrompt: conclusionPrompt,
-        messages: [{
-          role:    "user",
-          content: `User question: ${userMessage}\n\n${"─".repeat(40)}\nFull debate:\n\n${fullDebate}`,
-        }],
-        apiKey: firstKey,
-      });
+      // Try agents in order until one succeeds
+      let conclusionContent: string | null = null;
+      for (const conf of agentConfig) {
+        const key = apiKeys[conf.provider as keyof typeof apiKeys];
+        if (!key) continue;
+        try {
+          conclusionContent = await callAI({
+            provider:     conf.provider as Provider,
+            model:        conf.model,
+            systemPrompt: conclusionPrompt,
+            messages:     [{ role: "user", content: debateContext }],
+            apiKey:       key,
+          });
+          if (conclusionContent && conclusionContent.trim().length > 0) break;
+        } catch {
+          conclusionContent = null;
+        }
+      }
 
-      sseWrite(res, {
-        type: "conclusion",
-        conclusion: {
-          id:          `conc-${Date.now()}`,
-          roomId,
-          runId,
-          summary:     conclusionContent,
-          keyPoints:   [],
-          generatedAt: new Date().toISOString(),
-        },
-      });
+      if (conclusionContent && conclusionContent.trim().length > 0) {
+        sseWrite(res, {
+          type: "conclusion",
+          conclusion: {
+            id:          `conc-${Date.now()}`,
+            roomId,
+            runId,
+            summary:     conclusionContent.trim(),
+            keyPoints:   [],
+            generatedAt: new Date().toISOString(),
+          },
+        });
+      } else {
+        // Emit a conclusion_error so the client can show the error state
+        sseWrite(res, { type: "conclusion_error", message: "Failed to generate conclusion" });
+      }
     }
 
     sseWrite(res, { type: "done" });

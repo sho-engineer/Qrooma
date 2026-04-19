@@ -39,6 +39,9 @@ export interface AgentInfo {
 
 export type RunStatus = "idle" | "running" | "completed" | "error";
 
+/** loading = in progress, success = done, error = failed to generate */
+export type ConclusionStatus = "idle" | "loading" | "success" | "error";
+
 export interface ConclusionData {
   summary: string;
   keyPoints: string[];
@@ -57,13 +60,29 @@ export interface AgentSideConfig {
 
 export type DefaultMode = "structured-debate" | "free-talk";
 
+/** Writing tone for agent and moderator output */
+export type WritingTone = "natural" | "professional" | "concise" | "casual";
+
+/** Output format for the final conclusion */
+export type ConclusionFormat = "paragraph" | "bullets";
+
+/** Japanese formality level (affects JP-language outputs only) */
+export type JpHardness = "soft" | "standard" | "formal";
+
+export interface WritingStyle {
+  tone:             WritingTone;
+  conclusionFormat: ConclusionFormat;
+  jpHardness:       JpHardness;
+}
+
 export interface Settings {
-  openaiApiKey: string;
+  openaiApiKey:    string;
   anthropicApiKey: string;
-  googleApiKey: string;
-  sideA: AgentSideConfig;
-  sideB: AgentSideConfig;
-  sideC: AgentSideConfig;
-  defaultMode: DefaultMode;
-  agentCount: 2 | 3;
+  googleApiKey:    string;
+  sideA:           AgentSideConfig;
+  sideB:           AgentSideConfig;
+  sideC:           AgentSideConfig;
+  defaultMode:     DefaultMode;
+  agentCount:      2 | 3;
+  writingStyle:    WritingStyle;
 }

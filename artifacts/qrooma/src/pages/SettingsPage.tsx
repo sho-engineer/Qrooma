@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { useSettings } from "../context/SettingsContext";
 import { useLocale, type Locale } from "../context/LocaleContext";
 import { usePlan } from "../context/PlanContext";
-import type { AgentSideConfig, Provider, DefaultMode } from "../types";
+import type { AgentSideConfig, Provider, DefaultMode, WritingTone, ConclusionFormat, JpHardness, WritingStyle } from "../types";
 import { AlertCircleIcon, ArrowUpRightIcon, CheckIcon } from "lucide-react";
 
 // ─── Provider metadata ────────────────────────────────────────────────────────
@@ -374,6 +374,140 @@ function ProPlanCard() {
   );
 }
 
+// ─── WritingStyleSection ──────────────────────────────────────────────────────
+
+function OptionButton({
+  active,
+  onClick,
+  label,
+  desc,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  desc?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left px-3.5 py-2.5 rounded-xl border transition-all duration-150 active:scale-[0.99] ${
+        active
+          ? "border-foreground/20 bg-card"
+          : "border-border bg-background hover:bg-card"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <span className="text-xs font-medium text-foreground">{label}</span>
+        {active && <CheckIcon size={11} className="text-foreground/50 shrink-0" />}
+      </div>
+      {desc && (
+        <p className="text-[10px] text-muted-foreground/60 mt-0.5 leading-relaxed">{desc}</p>
+      )}
+    </button>
+  );
+}
+
+function WritingStyleSection({
+  value,
+  onChange,
+  isFree,
+}: {
+  value:    WritingStyle;
+  onChange: (ws: WritingStyle) => void;
+  isFree:   boolean;
+}) {
+  const { t, locale } = useLocale();
+
+  function patch(partial: Partial<WritingStyle>) {
+    onChange({ ...value, ...partial });
+  }
+
+  const tones: { v: WritingTone; label: string; desc: string }[] = [
+    { v: "natural",      label: t.writingToneNatural,      desc: t.writingToneNaturalDesc      },
+    { v: "professional", label: t.writingToneProfessional, desc: t.writingToneProfessionalDesc },
+    { v: "concise",      label: t.writingToneConcise,      desc: t.writingToneConciseDesc      },
+    { v: "casual",       label: t.writingToneCasual,       desc: t.writingToneCasualDesc       },
+  ];
+
+  const formats: { v: ConclusionFormat; label: string }[] = [
+    { v: "paragraph", label: t.conclusionFormatParagraph },
+    { v: "bullets",   label: t.conclusionFormatBullets   },
+  ];
+
+  const jpHardnesses: { v: JpHardness; label: string }[] = [
+    { v: "soft",     label: t.jpHardnessSoft     },
+    { v: "standard", label: t.jpHardnessStandard },
+    { v: "formal",   label: t.jpHardnessFormal   },
+  ];
+
+  return (
+    <section>
+      <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+        {t.writingStyleSection}
+      </h3>
+
+      <div className="rounded-2xl border border-border bg-card divide-y divide-border/60 overflow-hidden">
+
+        {/* ── Tone ── */}
+        <div className="p-4">
+          <p className="text-xs font-semibold text-foreground mb-2.5">{t.writingToneLabel}</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {tones.map(({ v, label, desc }) => (
+              <OptionButton
+                key={v}
+                active={value.tone === v}
+                onClick={() => patch({ tone: v })}
+                label={label}
+                desc={desc}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* ── Conclusion format ── */}
+        <div className="p-4">
+          <p className="text-xs font-semibold text-foreground mb-2.5">{t.conclusionFormatLabel}</p>
+          <div className="flex gap-1.5">
+            {formats.map(({ v, label }) => (
+              <OptionButton
+                key={v}
+                active={value.conclusionFormat === v}
+                onClick={() => patch({ conclusionFormat: v })}
+                label={label}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* ── JP hardness (always shown, but labeled differently in EN) ── */}
+        <div className="p-4">
+          <p className="text-xs font-semibold text-foreground mb-2.5">{t.jpHardnessLabel}</p>
+          <div className="flex gap-1.5">
+            {jpHardnesses.map(({ v, label }) => (
+              <OptionButton
+                key={v}
+                active={value.jpHardness === v}
+                onClick={() => patch({ jpHardness: v })}
+                label={label}
+              />
+            ))}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Save note for Free plan */}
+      {isFree && (
+        <p className="mt-2.5 text-[11px] text-muted-foreground/50 leading-relaxed px-0.5">
+          {locale === "ja"
+            ? "表現設定は Free プランでも有効です。変更は即時反映されます。"
+            : "Writing style applies on all plans. Changes are saved immediately."}
+        </p>
+      )}
+    </section>
+  );
+}
+
 // ─── Draft type ───────────────────────────────────────────────────────────────
 
 type DraftSettings = {
@@ -385,6 +519,7 @@ type DraftSettings = {
   sideA:           AgentSideConfig;
   sideB:           AgentSideConfig;
   sideC:           AgentSideConfig;
+  writingStyle:    WritingStyle;
 };
 
 // ─── Main Settings Page ───────────────────────────────────────────────────────
@@ -393,6 +528,10 @@ export default function SettingsPage() {
   const { settings, updateSettings } = useSettings();
   const { t, locale, setLocale }     = useLocale();
   const { plan }                     = usePlan();
+
+  const defaultWritingStyle: WritingStyle = {
+    tone: "natural", conclusionFormat: "paragraph", jpHardness: "soft",
+  };
 
   const [draft, setDraft] = useState<DraftSettings>({
     openaiApiKey:    settings.openaiApiKey,
@@ -403,6 +542,7 @@ export default function SettingsPage() {
     sideA:           settings.sideA,
     sideB:           settings.sideB,
     sideC:           settings.sideC,
+    writingStyle:    settings.writingStyle ?? defaultWritingStyle,
   });
 
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -422,6 +562,7 @@ export default function SettingsPage() {
     sideA:           settings.sideA,
     sideB:           settings.sideB,
     sideC:           settings.sideC,
+    writingStyle:    settings.writingStyle ?? defaultWritingStyle,
   };
   const isDirty = JSON.stringify(draft) !== JSON.stringify(savedSnap);
 
@@ -706,6 +847,21 @@ export default function SettingsPage() {
               )}
             </section>
           )}
+
+          {/* ── Writing Style (all plans) ────────────────────────────────── */}
+          <WritingStyleSection
+            value={draft.writingStyle}
+            onChange={(ws) => {
+              patchDraft({ writingStyle: ws });
+              // Auto-save for Free plan (no save button)
+              if (isFree) {
+                updateSettings({ writingStyle: ws });
+                setSavedAt(Date.now());
+                setTimeout(() => setSavedAt(null), 1500);
+              }
+            }}
+            isFree={isFree}
+          />
 
           {/* ── Bottom save (Connect + Pro) ─────────────────────────────── */}
           {!isFree && (
