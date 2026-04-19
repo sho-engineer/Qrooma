@@ -77,6 +77,11 @@ export interface RealRunParams {
   previousMessages: { role: string; agentId?: string; content: string }[];
 }
 
+export interface RoundStartEvent {
+  round: number;
+  label: string;
+}
+
 // ── Mock simulation (replace with Trigger.dev in production) ──────────────────
 
 export const runsService = {
@@ -130,16 +135,17 @@ export const runsService = {
   },
 
   /**
-   * Run a REAL discussion via the API server (BYOK mode).
-   * Streams SSE events: agent messages → conclusion → done.
+   * Run a REAL multi-round discussion via the API server.
+   * Streams SSE events: round_start → agent messages → conclusion → done.
    * Returns a cancel function (aborts the fetch).
    */
   realRun(
-    params:        RealRunParams,
-    onMessage:     (msg: Message) => void,
-    onConclusion:  (conclusion: ConclusionData) => void,
-    onComplete:    (status: RunStatus) => void,
-    onAgentError?: (side: string, message: string) => void,
+    params:          RealRunParams,
+    onMessage:       (msg: Message) => void,
+    onConclusion:    (conclusion: ConclusionData) => void,
+    onComplete:      (status: RunStatus) => void,
+    onAgentError?:   (side: string, message: string) => void,
+    onRoundStart?:   (event: RoundStartEvent) => void,
   ): () => void {
     const controller = new AbortController();
 
@@ -178,14 +184,18 @@ export const runsService = {
             try { data = JSON.parse(raw); }
             catch { continue; }
 
-            if (data["type"] === "message") {
+            if (data["type"] === "round_start") {
+              onRoundStart?.({
+                round: Number(data["round"]),
+                label: String(data["label"] ?? ""),
+              });
+            } else if (data["type"] === "message") {
               onMessage(data["message"] as Message);
             } else if (data["type"] === "conclusion") {
               onConclusion(data["conclusion"] as ConclusionData);
             } else if (data["type"] === "done") {
               onComplete("completed");
             } else if (data["type"] === "error") {
-              // Fatal error from the server
               console.error("API discussion error:", data["message"]);
               onComplete("error");
             } else if (data["type"] === "agent_error") {
@@ -196,7 +206,6 @@ export const runsService = {
             } else if (data["type"] === "warning") {
               const msg = String(data["message"] ?? "");
               console.info("API warning:", msg);
-              // Surface skipped-agent warnings to the UI
               if (msg.includes("No API key")) {
                 const sideMatch = msg.match(/\(([ABC])\)/);
                 const side = sideMatch?.[1] ?? "?";

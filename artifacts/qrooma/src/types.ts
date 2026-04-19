@@ -33,6 +33,10 @@ export interface Message {
   roomId: string;
   role: "user" | "assistant";
   agentId?: AgentId;
+  /** Which debate side (A = Proposal, B = Review, C = Execution) */
+  side?: "A" | "B" | "C";
+  /** Debate round number (1 = Initial Stance, 2 = Challenge, 3 = Revision) */
+  round?: number;
   content: string;
   createdAt: string;
   /** Groups messages into a single run invocation. */

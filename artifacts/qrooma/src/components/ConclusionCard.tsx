@@ -4,7 +4,7 @@ import type { ConclusionData } from "../types";
 import { useLocale } from "../context/LocaleContext";
 
 interface Props {
-  runCount: number;
+  runCount:   number;
   conclusion: ConclusionData | null;
 }
 
@@ -15,13 +15,82 @@ function formatDate(iso: string, locale: string): string {
   });
 }
 
+// ─── Parse structured conclusion sections ─────────────────────────────────────
+// Supports markers: [採用] [棄却] [残論点] [次アクション]
+// Also supports English variants: [採用] == "Adopted" key insight etc.
+
+interface ConclusionSections {
+  adopted?:   { label: string; content: string };
+  rejected?:  { label: string; content: string };
+  open?:      { label: string; content: string };
+  next?:      { label: string; content: string };
+  fallback?:  string;
+}
+
+const SECTION_PATTERNS: Array<{
+  key:    keyof ConclusionSections;
+  regex:  RegExp;
+}> = [
+  { key: "adopted",  regex: /\[採用\][^\n]*\n?([\s\S]*?)(?=\[棄却\]|\[残論点\]|\[次アクション\]|$)/i },
+  { key: "rejected", regex: /\[棄却\][^\n]*\n?([\s\S]*?)(?=\[採用\]|\[残論点\]|\[次アクション\]|$)/i },
+  { key: "open",     regex: /\[残論点\][^\n]*\n?([\s\S]*?)(?=\[採用\]|\[棄却\]|\[次アクション\]|$)/i },
+  { key: "next",     regex: /\[次アクション\][^\n]*\n?([\s\S]*?)(?=\[採用\]|\[棄却\]|\[残論点\]|$)/i },
+];
+
+const HEADER_LABELS_JA: Record<keyof ConclusionSections, string> = {
+  adopted:  "採用",
+  rejected: "棄却",
+  open:     "残論点",
+  next:     "次アクション",
+  fallback: "",
+};
+const HEADER_LABELS_EN: Record<keyof ConclusionSections, string> = {
+  adopted:  "Adopted",
+  rejected: "Rejected",
+  open:     "Open questions",
+  next:     "Next action",
+  fallback: "",
+};
+
+function parseSections(text: string): ConclusionSections {
+  const hasMarkers = SECTION_PATTERNS.some((p) => p.regex.test(text));
+  if (!hasMarkers) return { fallback: text };
+
+  const result: ConclusionSections = {};
+  for (const { key, regex } of SECTION_PATTERNS) {
+    const m = text.match(regex);
+    const content = m?.[1]?.trim();
+    if (content) {
+      result[key] = { label: key, content };
+    }
+  }
+  return result;
+}
+
+// ─── Section icons ─────────────────────────────────────────────────────────────
+
+const SECTION_META: Record<
+  "adopted" | "rejected" | "open" | "next",
+  { icon: string; color: string; borderColor: string }
+> = {
+  adopted:  { icon: "✓", color: "text-emerald-700 dark:text-emerald-400", borderColor: "border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20" },
+  rejected: { icon: "✗", color: "text-rose-600 dark:text-rose-400",       borderColor: "border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-950/20" },
+  open:     { icon: "?", color: "text-amber-600 dark:text-amber-400",      borderColor: "border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20" },
+  next:     { icon: "→", color: "text-blue-600 dark:text-blue-400",        borderColor: "border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20" },
+};
+
+// ─── Component ─────────────────────────────────────────────────────────────────
+
 export default function ConclusionCard({ runCount, conclusion }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const { t, locale } = useLocale();
+  const labelMap = locale === "ja" ? HEADER_LABELS_JA : HEADER_LABELS_EN;
+
+  const sections = conclusion ? parseSections(conclusion.summary) : null;
+  const isStructured = sections && !sections.fallback;
 
   return (
     <div className="mx-3 sm:mx-4 mb-2">
-      {/* Toggle button */}
       <button
         onClick={() => setIsOpen((p) => !p)}
         className={`w-full flex items-center justify-between px-4 py-2.5 text-sm border transition-all duration-200 ${
@@ -47,37 +116,56 @@ export default function ConclusionCard({ runCount, conclusion }: Props) {
         </div>
       </button>
 
-      {/* Accordion body — CSS grid-template-rows trick for smooth expand/collapse */}
       <div
         className={`accordion-wrap border border-t-0 border-border/60 rounded-b-2xl bg-card ${
           isOpen ? "accordion-open" : ""
         }`}
       >
         <div className="accordion-inner">
-          {conclusion ? (
-            <>
-              <div className="px-5 py-4">
-                <p className="text-sm text-foreground leading-[1.75]">{conclusion.summary}</p>
-              </div>
-              <div className="px-5 py-4 border-t border-border/40 bg-background/30">
-                <p className="text-[10px] font-semibold text-muted-foreground/50 mb-3 uppercase tracking-widest">
-                  {t.keyPoints}
-                </p>
-                <ul className="space-y-2">
-                  {conclusion.keyPoints.map((pt, i) => (
-                    <li key={i} className="flex items-start gap-3 text-[13px] text-foreground/75 leading-relaxed">
-                      <span className="mt-2 w-1 h-1 rounded-full bg-foreground/20 shrink-0" />
-                      {pt}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="px-5 py-2 border-t border-border/30 bg-background/20">
-                <p className="text-[11px] text-muted-foreground/40">
-                  {t.generatedAt}: {formatDate(conclusion.generatedAt, locale)}
-                </p>
-              </div>
-            </>
+          {conclusion && sections ? (
+            isStructured ? (
+              <>
+                <div className="px-4 py-4 space-y-2.5">
+                  {(["adopted", "rejected", "open", "next"] as const).map((key) => {
+                    const sec = sections[key];
+                    if (!sec) return null;
+                    const meta = SECTION_META[key];
+                    return (
+                      <div
+                        key={key}
+                        className={`flex gap-3 px-3.5 py-3 rounded-xl border ${meta.borderColor}`}
+                      >
+                        <span className={`shrink-0 w-5 h-5 flex items-center justify-center text-xs font-bold rounded-full border ${meta.color} border-current mt-0.5`}>
+                          {meta.icon}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-[10px] font-semibold uppercase tracking-widest mb-0.5 ${meta.color}`}>
+                            {labelMap[key]}
+                          </p>
+                          <p className="text-sm text-foreground leading-relaxed">{sec.content}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="px-5 py-2 border-t border-border/30 bg-background/20">
+                  <p className="text-[11px] text-muted-foreground/40">
+                    {t.generatedAt}: {formatDate(conclusion.generatedAt, locale)}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="px-5 py-4">
+                  <p className="text-sm text-foreground leading-[1.75]">{sections.fallback}</p>
+                </div>
+                <div className="px-5 py-2 border-t border-border/30 bg-background/20">
+                  <p className="text-[11px] text-muted-foreground/40">
+                    {t.generatedAt}: {formatDate(conclusion.generatedAt, locale)}
+                  </p>
+                </div>
+              </>
+            )
           ) : (
             <div className="px-5 py-7 text-center">
               <p className="text-sm text-muted-foreground/50">

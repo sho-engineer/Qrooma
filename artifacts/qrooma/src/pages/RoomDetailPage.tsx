@@ -124,6 +124,7 @@ export default function RoomDetailPage() {
   const [runStatus,      setRunStatus]      = useState<RunStatus>(deriveInitialStatus);
   const [runCount,       setRunCount]       = useState(() => messagesService.countRuns(roomId));
   const [respondedCount, setRespondedCount] = useState(0);
+  const [currentRound,   setCurrentRound]   = useState<{ round: number; label: string } | null>(null);
   const [agentErrors,    setAgentErrors]    = useState<string[]>([]);
   const [fatalError,     setFatalError]     = useState<string | null>(null);
 
@@ -196,6 +197,7 @@ export default function RoomDetailPage() {
     setRunCount(messagesService.countRuns(roomId));
     setRunStatus(room?.lastRunStatus ?? (msgs.length > 0 ? "completed" : "idle"));
     setRespondedCount(0);
+    setCurrentRound(null);
     setAgentErrors([]);
     setFatalError(null);
     setConclusion(messagesService.getConclusion(roomId));
@@ -236,6 +238,7 @@ export default function RoomDetailPage() {
   function triggerRun(runId: string, userMessage: string) {
     setRunStatus("running");
     setRespondedCount(0);
+    setCurrentRound(null);
     setAgentErrors([]);
     setFatalError(null);
 
@@ -337,6 +340,7 @@ export default function RoomDetailPage() {
           }
         },
         onAgentError,
+        (evt) => setCurrentRound(evt),
       );
       cancelRun.current = cancel;
     } else {
@@ -418,20 +422,36 @@ export default function RoomDetailPage() {
               />
             )}
             <div className="space-y-4">
-              {group.messages.map((msg) => (
-                <MessageBubble
-                  key={msg.id}
-                  message={msg}
-                  mode={settings.defaultMode}
-                  sideModelMap={sideModelMap}
-                />
-              ))}
+              {group.messages.map((msg, msgIdx) => {
+                const prevMsg = group.messages[msgIdx - 1];
+                const showRoundHeader =
+                  msg.role === "assistant" &&
+                  msg.round != null &&
+                  msg.round !== (prevMsg?.round ?? -1) &&
+                  !(prevMsg == null && msg.round === 1);
+                return (
+                  <div key={msg.id}>
+                    {showRoundHeader && (
+                      <RoundHeader round={msg.round!} mode={settings.defaultMode} locale={locale} />
+                    )}
+                    <MessageBubble
+                      message={msg}
+                      mode={settings.defaultMode}
+                      sideModelMap={sideModelMap}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
 
         {runStatus === "running" && (
-          <ThinkingIndicator respondedCount={respondedCount} agentCount={agentCount} />
+          <ThinkingIndicator
+            respondedCount={respondedCount}
+            agentCount={agentCount}
+            currentRound={currentRound}
+          />
         )}
         {runStatus === "error" && <ErrorState onRerun={rerun} />}
 
@@ -536,56 +556,115 @@ function RunSeparator({ index, firstMsgTime, isRerun, userQuestion }: RunSeparat
   );
 }
 
-// ─── Thinking Indicator ───────────────────────────────────────────────────────
+// ─── Round Header ─────────────────────────────────────────────────────────────
 
-function ThinkingIndicator({ respondedCount, agentCount }: { respondedCount: number; agentCount: number }) {
-  const { t } = useLocale();
-  const activeAgents = AGENTS.slice(0, agentCount);
-  const done    = activeAgents.slice(0, respondedCount);
-  const pending = activeAgents.slice(respondedCount);
-  const nextAgent = pending[0];
-  const remaining = pending.length;
+const ROUND_LABELS_JA: Record<number, string> = {
+  1: "Round 1 — 初期立場",
+  2: "Round 2 — 応酬",
+  3: "Round 3 — 修正案",
+};
+const ROUND_LABELS_EN: Record<number, string> = {
+  1: "Round 1 — Initial Stance",
+  2: "Round 2 — Challenge",
+  3: "Round 3 — Revision",
+};
+
+function RoundHeader({ round, mode, locale }: { round: number; mode: string; locale: string }) {
+  const isConclusion = round > 3;
+  if (isConclusion) return null;
+  const label = locale === "ja"
+    ? (ROUND_LABELS_JA[round] ?? `Round ${round}`)
+    : (ROUND_LABELS_EN[round] ?? `Round ${round}`);
+
+  if (mode === "free-talk" && round === 1) return null;
 
   return (
-    <div className="flex items-center gap-3 mt-5 px-1">
-      <div className="flex items-center gap-2">
-        {done.map((a) => (
-          <span
-            key={a.id}
-            className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[9px] font-bold opacity-30"
-            style={{ backgroundColor: a.color }}
-          >
-            {a.initial}
-          </span>
-        ))}
-
-        {nextAgent && (
-          <div className="flex items-center gap-1.5">
-            <span
-              className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[9px] font-bold"
-              style={{ backgroundColor: nextAgent.color }}
-            >
-              {nextAgent.initial}
-            </span>
-            <div className="flex gap-0.5">
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce"
-                  style={{ animationDelay: `${i * 150}ms` }}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <span className="text-xs text-muted-foreground">
-        {remaining === agentCount && t.agentsResponding}
-        {remaining > 0 && remaining < agentCount && t.agentAndMoreResponding(nextAgent?.name ?? "")}
-        {remaining === 1 && t.agentResponding(nextAgent?.name ?? "")}
-        {remaining === 0 && t.finishingUp}
+    <div className="flex items-center gap-2 my-5">
+      <div className="flex-1 h-px bg-border/40" />
+      <span className="shrink-0 text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest px-2">
+        {label}
       </span>
+      <div className="flex-1 h-px bg-border/40" />
+    </div>
+  );
+}
+
+// ─── Thinking Indicator ───────────────────────────────────────────────────────
+
+function ThinkingIndicator({
+  respondedCount,
+  agentCount,
+  currentRound,
+}: {
+  respondedCount: number;
+  agentCount:     number;
+  currentRound:   { round: number; label: string } | null;
+}) {
+  const { t, locale } = useLocale();
+  const activeAgents  = AGENTS.slice(0, agentCount);
+  const done          = activeAgents.slice(0, respondedCount % agentCount);
+  const pending       = activeAgents.slice(respondedCount % agentCount);
+  const nextAgent     = pending[0];
+  const remaining     = pending.length;
+
+  const isConclusion = currentRound?.label?.toLowerCase().includes("conclusion");
+
+  return (
+    <div className="flex flex-col gap-2 mt-5 px-1">
+      {currentRound && (
+        <span className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest">
+          {locale === "ja" && currentRound.round <= 3
+            ? (ROUND_LABELS_JA[currentRound.round] ?? currentRound.label)
+            : (ROUND_LABELS_EN[currentRound.round] ?? currentRound.label)}
+        </span>
+      )}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {!isConclusion && done.map((a) => (
+            <span
+              key={a.id}
+              className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[9px] font-bold opacity-30"
+              style={{ backgroundColor: a.color }}
+            >
+              {a.initial}
+            </span>
+          ))}
+
+          {(isConclusion || nextAgent) && (
+            <div className="flex items-center gap-1.5">
+              {!isConclusion && nextAgent && (
+                <span
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[9px] font-bold"
+                  style={{ backgroundColor: nextAgent.color }}
+                >
+                  {nextAgent.initial}
+                </span>
+              )}
+              <div className="flex gap-0.5">
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="w-1 h-1 rounded-full bg-muted-foreground/60 animate-bounce"
+                    style={{ animationDelay: `${i * 150}ms` }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <span className="text-xs text-muted-foreground">
+          {isConclusion
+            ? t.finishingUp
+            : remaining === agentCount
+              ? t.agentsResponding
+              : remaining > 1
+                ? t.agentAndMoreResponding(nextAgent?.name ?? "")
+                : remaining === 1
+                  ? t.agentResponding(nextAgent?.name ?? "")
+                  : t.finishingUp}
+        </span>
+      </div>
     </div>
   );
 }
