@@ -628,7 +628,7 @@ const en: Translations = {
   conclusionFormatLabel: "Conclusion format",
   conclusionFormatParagraph: "Paragraph",
   conclusionFormatBullets: "Bullet points",
-  jpHardnessLabel: "Japanese formality",
+  jpHardnessLabel: "Formality",
   jpHardnessSoft: "Soft",
   jpHardnessStandard: "Standard",
   jpHardnessFormal: "Formal",
