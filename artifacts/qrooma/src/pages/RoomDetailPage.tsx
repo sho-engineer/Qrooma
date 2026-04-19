@@ -90,7 +90,7 @@ export default function RoomDetailPage() {
   const { id: roomId } = useParams<{ id: string }>();
   const { settings } = useSettings();
   const { getRoomById, updateRoom } = useRooms();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { plan } = usePlan();
 
   const room = getRoomById(roomId);
@@ -114,6 +114,8 @@ export default function RoomDetailPage() {
   const [runStatus,      setRunStatus]      = useState<RunStatus>(deriveInitialStatus);
   const [runCount,       setRunCount]       = useState(() => messagesService.countRuns(roomId));
   const [respondedCount, setRespondedCount] = useState(0);
+  const [agentErrors,    setAgentErrors]    = useState<string[]>([]);
+  const [fatalError,     setFatalError]     = useState<string | null>(null);
 
   // Cancel ref: holds a cleanup function for in-progress simulated runs
   const cancelRun = useRef<(() => void) | null>(null);
@@ -172,6 +174,8 @@ export default function RoomDetailPage() {
     setRunCount(messagesService.countRuns(roomId));
     setRunStatus(room?.lastRunStatus ?? (msgs.length > 0 ? "completed" : "idle"));
     setRespondedCount(0);
+    setAgentErrors([]);
+    setFatalError(null);
     setConclusion(messagesService.getConclusion(roomId));
     isFirstMount.current = true;
     shouldScrollToBottom.current = false;
@@ -210,6 +214,8 @@ export default function RoomDetailPage() {
   function triggerRun(runId: string, userMessage: string) {
     setRunStatus("running");
     setRespondedCount(0);
+    setAgentErrors([]);
+    setFatalError(null);
 
     let responseCount = 0;
 
@@ -218,6 +224,10 @@ export default function RoomDetailPage() {
       setMessages((prev) => [...prev, msg]);
       responseCount++;
       setRespondedCount(responseCount);
+    }
+
+    function onAgentError(side: string, message: string) {
+      setAgentErrors((prev) => [...prev, `${side}: ${message}`]);
     }
 
     function onStatus(status: RunStatus) {
@@ -278,6 +288,7 @@ export default function RoomDetailPage() {
           setConclusion(conc);
         },
         onStatus,
+        onAgentError,
       );
       cancelRun.current = cancel;
     } else {
@@ -375,6 +386,32 @@ export default function RoomDetailPage() {
           <ThinkingIndicator respondedCount={respondedCount} agentCount={agentCount} />
         )}
         {runStatus === "error" && <ErrorState onRerun={rerun} />}
+
+        {/* No-key warning for Connect plan with no API keys set */}
+        {runStatus === "idle" && plan === "connect" && !hasSomeKey && hasMessages === false && (
+          <div className="mt-4 px-4 py-3.5 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40">
+            <p className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-0.5">
+              {locale === "ja" ? "APIキーが設定されていません" : "No API keys configured"}
+            </p>
+            <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 leading-relaxed">
+              {locale === "ja"
+                ? "Connect プランではAPIキーが必要です。設定 → APIキーで追加してください。"
+                : "Connect plan requires API keys. Add them in Settings → API keys."}
+            </p>
+          </div>
+        )}
+
+        {/* Per-agent error notices (non-fatal) */}
+        {agentErrors.length > 0 && runStatus !== "running" && (
+          <div className="mt-3 space-y-1.5">
+            {agentErrors.map((err, i) => (
+              <div key={i} className="flex items-start gap-2 px-3.5 py-2.5 rounded-xl border border-destructive/20 bg-destructive/5">
+                <span className="w-1.5 h-1.5 rounded-full bg-destructive/60 shrink-0 mt-1" />
+                <p className="text-[11px] text-destructive/80 leading-relaxed">{err}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div ref={bottomRef} />
       </div>

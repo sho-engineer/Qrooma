@@ -27,6 +27,8 @@ interface RoomsContextValue {
   isLoading:   boolean;
   addRoom:     (name: string) => Room;
   updateRoom:  (id: string, patch: Partial<Room>) => void;
+  archiveRoom: (id: string) => void;
+  deleteRoom:  (id: string) => void;
   getRoomById: (id: string) => Room | undefined;
 }
 
@@ -77,12 +79,26 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
     roomsService.update(id, patch).catch(console.error);
   }
 
+  function archiveRoom(id: string): void {
+    setRooms((prev) =>
+      prev.map((r) =>
+        r.id === id ? { ...r, archived: true, archivedAt: new Date().toISOString() } : r
+      )
+    );
+    roomsService.update(id, { archived: true, archivedAt: new Date().toISOString() }).catch(console.error);
+  }
+
+  function deleteRoom(id: string): void {
+    setRooms((prev) => prev.filter((r) => r.id !== id));
+    roomsService.delete(id).catch(console.error);
+  }
+
   function getRoomById(id: string): Room | undefined {
     return rooms.find((r) => r.id === id);
   }
 
   return (
-    <RoomsContext.Provider value={{ rooms, isLoading, addRoom, updateRoom, getRoomById }}>
+    <RoomsContext.Provider value={{ rooms, isLoading, addRoom, updateRoom, archiveRoom, deleteRoom, getRoomById }}>
       {children}
     </RoomsContext.Provider>
   );

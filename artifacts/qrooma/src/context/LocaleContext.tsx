@@ -166,6 +166,14 @@ export interface Translations {
   // Room detail plan banners
   freeModeBanner: string;
   freeUpgradeHint: string;
+  // Archive / delete rooms
+  archiveRoom: string;
+  deleteRoom: string;
+  deleteRoomConfirm: string;
+  // API call errors (room detail)
+  errorMissingKeys: string;
+  errorAiFailed: string;
+  errorAgentSkipped: (side: string) => string;
   // Settings plan overview
   settingsPlanTitle: string;
   settingsPlanFreeDesc: string;
@@ -350,6 +358,12 @@ const ja: Translations = {
   settingsPlanApiKeyDesc: "Connect プランでは、APIキーを設定することでモデルや構成を柔軟に選べます。Pro では APIキー不要で利用できます。",
   freeModeBanner: "Free · 2エージェント · 固定モデル · 1日3回まで",
   freeUpgradeHint: "本格利用は Connect / Pro",
+  archiveRoom: "アーカイブ",
+  deleteRoom: "削除",
+  deleteRoomConfirm: "本当に削除しますか？",
+  errorMissingKeys: "このエージェントのAPIキーが設定されていません",
+  errorAiFailed: "AIの呼び出しに失敗しました",
+  errorAgentSkipped: (side) => `エージェント ${side} をスキップしました（APIキーなし）`,
 };
 
 const en: Translations = {
@@ -529,6 +543,12 @@ const en: Translations = {
   settingsPlanApiKeyDesc: "On Connect, adding API keys unlocks model selection and full configuration. Pro includes usage so no keys are needed.",
   freeModeBanner: "Free · 2 agents · fixed models · 3 runs/day",
   freeUpgradeHint: "Upgrade to Connect or Pro",
+  archiveRoom: "Archive",
+  deleteRoom: "Delete",
+  deleteRoomConfirm: "Delete this room?",
+  errorMissingKeys: "No API key set for this agent",
+  errorAiFailed: "AI call failed",
+  errorAgentSkipped: (side) => `Agent ${side} skipped — no API key`,
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };

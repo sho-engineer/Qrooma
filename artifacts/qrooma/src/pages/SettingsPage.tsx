@@ -422,7 +422,7 @@ export default function SettingsPage() {
     <button
       onClick={save}
       disabled={!canSave}
-      className={`${fullWidth ? "w-full py-2.5 text-sm font-semibold rounded-2xl" : "shrink-0 flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-xl border"} transition-all active:scale-[0.97] ${
+      className={`whitespace-nowrap ${fullWidth ? "w-full py-2.5 text-sm font-semibold rounded-2xl" : "shrink-0 flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-xl border"} transition-all active:scale-[0.97] ${
         savedAt
           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
           : canSave
@@ -431,12 +431,12 @@ export default function SettingsPage() {
       }`}
     >
       {savedAt ? (
-        <span className="flex items-center justify-center gap-1.5">
+        <span className="flex items-center justify-center gap-1.5 whitespace-nowrap">
           <CheckIcon size={fullWidth ? 14 : 11} strokeWidth={2.5} />
           {t.settingsSaved}
         </span>
       ) : (
-        t.saveSettings
+        <span className="whitespace-nowrap">{t.saveSettings}</span>
       )}
     </button>
   );

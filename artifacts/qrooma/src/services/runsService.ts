@@ -131,10 +131,11 @@ export const runsService = {
    * Returns a cancel function (aborts the fetch).
    */
   realRun(
-    params:       RealRunParams,
-    onMessage:    (msg: Message) => void,
-    onConclusion: (conclusion: ConclusionData) => void,
-    onComplete:   (status: RunStatus) => void,
+    params:        RealRunParams,
+    onMessage:     (msg: Message) => void,
+    onConclusion:  (conclusion: ConclusionData) => void,
+    onComplete:    (status: RunStatus) => void,
+    onAgentError?: (side: string, message: string) => void,
   ): () => void {
     const controller = new AbortController();
 
@@ -184,10 +185,19 @@ export const runsService = {
               console.error("API discussion error:", data["message"]);
               onComplete("error");
             } else if (data["type"] === "agent_error") {
-              // One agent failed — log and continue (other agents may still respond)
-              console.warn(`Agent ${data["side"]} error:`, data["message"]);
+              const side = String(data["side"] ?? "?");
+              const msg  = String(data["message"] ?? "Unknown error");
+              console.warn(`Agent ${side} error:`, msg);
+              onAgentError?.(side, msg);
             } else if (data["type"] === "warning") {
-              console.info("API warning:", data["message"]);
+              const msg = String(data["message"] ?? "");
+              console.info("API warning:", msg);
+              // Surface skipped-agent warnings to the UI
+              if (msg.includes("No API key")) {
+                const sideMatch = msg.match(/\(([ABC])\)/);
+                const side = sideMatch?.[1] ?? "?";
+                onAgentError?.(side, msg);
+              }
             }
           }
         }

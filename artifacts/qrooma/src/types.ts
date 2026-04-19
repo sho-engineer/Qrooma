@@ -23,6 +23,9 @@ export interface Room {
    * Faked in dummy data; set by server in production.
    */
   lastRunStatus?: RunStatus;
+  /** Soft-delete: archived rooms are hidden from the main list */
+  archived?: boolean;
+  archivedAt?: string;
 }
 
 export interface Message {
