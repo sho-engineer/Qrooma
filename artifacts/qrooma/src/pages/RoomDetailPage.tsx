@@ -42,10 +42,20 @@ const MODEL_SHORT: Record<string, string> = {
   "claude-3-5-sonnet-20241022":  "Claude 3.5 Sonnet",
   "claude-3-opus-20240229":      "Claude 3 Opus",
   "claude-3-haiku-20240307":     "Claude 3 Haiku",
+  "gemini-2.5-flash-lite":       "Gemini 2.5 Flash",
+  "gemini-2.5-flash":            "Gemini 2.5 Flash",
   "gemini-1.5-pro":              "Gemini 1.5 Pro",
   "gemini-1.5-flash":            "Gemini 1.5 Flash",
   "gemini-1.0-pro":              "Gemini 1.0 Pro",
 };
+
+// ─── Free plan: fixed 2-agent config (no API keys required) ──────────────────
+// Side A = Proposal (GPT-4o mini),  Side B = Review (Gemini 2.5 Flash)
+// No Claude — Claude is only available on Connect/Pro
+const FREE_SIDES: Array<{ provider: Provider; model: string }> = [
+  { provider: "openai",  model: "gpt-4o-mini"         },
+  { provider: "google",  model: "gemini-2.5-flash-lite" },
+];
 
 function shortenModel(model: string): string {
   return MODEL_SHORT[model] ?? model;
@@ -128,11 +138,14 @@ export default function RoomDetailPage() {
 
   // ─── Derived values ─────────────────────────────────────────────────────────
 
-  // Free plan always uses 2 agents; Connect/Pro use settings
-  const agentCount  = plan === "free" ? 2 : (settings.agentCount ?? 3);
-  const activeSides = agentCount === 2
-    ? [settings.sideA, settings.sideB]
-    : [settings.sideA, settings.sideB, settings.sideC];
+  // Free plan always uses the fixed 2-agent config; Connect/Pro use settings
+  const isFree = plan === "free";
+  const agentCount  = isFree ? 2 : (settings.agentCount ?? 3);
+  const activeSides = isFree
+    ? FREE_SIDES
+    : agentCount === 2
+      ? [settings.sideA, settings.sideB]
+      : [settings.sideA, settings.sideB, settings.sideC];
 
   // Real API calls only on Connect plan when keys are present
   // Free and Pro always use simulation
@@ -144,11 +157,21 @@ export default function RoomDetailPage() {
   // canRun: Free/Pro always true (simulation); Connect requires a key
   const canRun = plan !== "connect" ? true : hasSomeKey;
 
-  const sideModelMap = useMemo(() => ({
-    A: shortenModel(settings.sideA.model),
-    B: shortenModel(settings.sideB.model),
-    C: shortenModel(settings.sideC.model),
-  }), [settings.sideA.model, settings.sideB.model, settings.sideC.model]);
+  // For Free plan, use fixed model labels; otherwise use settings
+  const sideModelMap = useMemo(() => {
+    if (isFree) {
+      return {
+        A: shortenModel(FREE_SIDES[0].model),
+        B: shortenModel(FREE_SIDES[1].model),
+        C: shortenModel(FREE_SIDES[1].model),
+      };
+    }
+    return {
+      A: shortenModel(settings.sideA.model),
+      B: shortenModel(settings.sideB.model),
+      C: shortenModel(settings.sideC.model),
+    };
+  }, [isFree, settings.sideA.model, settings.sideB.model, settings.sideC.model]);
 
   const activeModels  = activeSides.map((s) => s.model);
 
@@ -297,7 +320,9 @@ export default function RoomDetailPage() {
         roomId,
         userId:     "demo",
         mode:       settings.defaultMode,
-        agentCount, // plan-aware: Free=2, Pro/Connect=settings value
+        agentCount,
+        // Free: fixed GPT + Gemini (no Claude); Pro/Connect: all agents
+        agentIds: isFree ? ["gpt", "gemini"] : undefined,
       };
       const cancel = runsService.simulateRun(runId, payload, onMessage, onStatus);
       cancelRun.current = cancel;

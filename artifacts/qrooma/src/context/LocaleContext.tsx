@@ -446,7 +446,7 @@ const en: Translations = {
   freeModeHint: "Try without API keys. Set keys for full access.",
   byokMode: "BYOK",
   // Settings save button
-  saveSettings: "Save",
+  saveSettings: "Save changes",
   settingsSaved: "Saved",
   settingsUnsaved: "Unsaved changes",
   roleLabel: (side, mode) => {

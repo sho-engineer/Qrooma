@@ -39,9 +39,11 @@ const PROVIDER_MODELS: Record<Provider, { value: string; label: string }[]> = {
     { value: "claude-3-haiku-20240307",    label: "Claude 3 Haiku" },
   ],
   google: [
-    { value: "gemini-1.5-pro",   label: "Gemini 1.5 Pro" },
-    { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
-    { value: "gemini-1.0-pro",   label: "Gemini 1.0 Pro" },
+    { value: "gemini-2.5-flash",      label: "Gemini 2.5 Flash" },
+    { value: "gemini-2.5-flash-lite",  label: "Gemini 2.5 Flash Lite" },
+    { value: "gemini-1.5-pro",        label: "Gemini 1.5 Pro" },
+    { value: "gemini-1.5-flash",      label: "Gemini 1.5 Flash" },
+    { value: "gemini-1.0-pro",        label: "Gemini 1.0 Pro" },
   ],
 };
 
@@ -254,10 +256,10 @@ function FreePlanCard() {
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Free</span>
           <span className="text-xs text-muted-foreground">{isJa ? "体験版" : "Trial"}</span>
         </div>
-        <ul className="space-y-2.5">
+        <ul className="space-y-2.5 mb-3">
           {(isJa
-            ? ["APIキー不要で今すぐ試せます", "2エージェントで議論を体験", "固定モデル（Qrooma が選択）", "1日3回まで利用可"]
-            : ["Try it now — no API keys needed", "2-agent discussions included", "Fixed models selected by Qrooma", "Up to 3 discussions per day"]
+            ? ["APIキー不要で今すぐ試せます", "1日3回まで利用可"]
+            : ["Try it now — no API keys needed", "Up to 3 discussions per day"]
           ).map((f, i) => (
             <li key={i} className="flex items-start gap-2">
               <CheckIcon size={11} className="text-muted-foreground/40 shrink-0 mt-0.5" />
@@ -265,6 +267,32 @@ function FreePlanCard() {
             </li>
           ))}
         </ul>
+        {/* Fixed model config */}
+        <div className="rounded-xl bg-muted/30 px-3 py-2.5 space-y-1.5 mb-3">
+          <p className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-1.5">
+            {isJa ? "固定の2エージェント構成" : "Fixed 2-agent config"}
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#10a37f] shrink-0" />
+            <span className="text-[11px] text-foreground/70">{isJa ? "提案" : "Proposal"}</span>
+            <span className="ml-auto text-[11px] font-mono text-muted-foreground/60">GPT-4o mini</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4285f4] shrink-0" />
+            <span className="text-[11px] text-foreground/70">{isJa ? "検証" : "Review"}</span>
+            <span className="ml-auto text-[11px] font-mono text-muted-foreground/60">Gemini 2.5 Flash</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground/40 pt-0.5">
+            {isJa ? "Claude は Connect / Pro で利用可" : "Claude available on Connect / Pro"}
+          </p>
+        </div>
+        {/* Free limit note */}
+        <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 mb-3">
+          <span className="text-amber-600 text-[11px]">⚠</span>
+          <span className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
+            {isJa ? "無料枠には利用制限があります" : "Free tier has usage limits"}
+          </span>
+        </div>
       </div>
 
       {/* How keys work explanation */}

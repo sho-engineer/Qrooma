@@ -270,7 +270,10 @@ function PricingSection() {
 
           {/* Free-tier note */}
           {plan.note && (
-            <p className="mt-3 text-center text-[10px] text-muted-foreground/50">{plan.note}</p>
+            <div className="mt-3 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40">
+              <span className="text-amber-500 text-[10px] leading-none">⚠</span>
+              <p className="text-[10px] text-amber-700 dark:text-amber-400 text-center">{plan.note}</p>
+            </div>
           )}
         </div>
       ))}
@@ -324,11 +327,20 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* Ambient blobs */}
+      {/* Ambient gradient blobs */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-1/2 top-[-100px] h-[320px] w-[320px] -translate-x-1/2 rounded-full bg-foreground/[0.04] blur-3xl" />
-        <div className="absolute right-[6%] top-[20%] h-[240px] w-[240px] rounded-full bg-foreground/[0.03] blur-3xl" />
-        <div className="absolute left-[8%] bottom-[15%] h-[200px] w-[200px] rounded-full bg-foreground/[0.025] blur-3xl" />
+        {/* Top-center: soft indigo glow */}
+        <div className="absolute left-1/2 top-[-80px] h-[400px] w-[500px] -translate-x-1/2 rounded-full opacity-30 blur-3xl"
+          style={{ background: "radial-gradient(ellipse, #818cf8 0%, transparent 70%)" }} />
+        {/* Right: sky-blue accent */}
+        <div className="absolute right-[-4%] top-[10%] h-[280px] w-[280px] rounded-full opacity-20 blur-3xl"
+          style={{ background: "radial-gradient(ellipse, #38bdf8 0%, transparent 70%)" }} />
+        {/* Left: violet accent */}
+        <div className="absolute left-[-2%] top-[30%] h-[240px] w-[240px] rounded-full opacity-15 blur-3xl"
+          style={{ background: "radial-gradient(ellipse, #a78bfa 0%, transparent 70%)" }} />
+        {/* Bottom: subtle warm tone */}
+        <div className="absolute left-[30%] bottom-[20%] h-[200px] w-[300px] rounded-full opacity-10 blur-3xl"
+          style={{ background: "radial-gradient(ellipse, #6ee7b7 0%, transparent 70%)" }} />
       </div>
 
       {/* Nav */}

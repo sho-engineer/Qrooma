@@ -63,6 +63,8 @@ export interface RunPayload {
   userMessage?: string;
   mode:       "structured-debate" | "free-talk";
   agentCount: 2 | 3;
+  /** Override which agent IDs to use. If omitted, uses AGENTS.slice(0, agentCount). */
+  agentIds?:  string[];
 }
 
 export interface RealRunParams {
@@ -98,7 +100,9 @@ export const runsService = {
     onComplete: (status: RunStatus) => void,
   ): () => void {
     const pool = payload.mode === "free-talk" ? FREETALK_POOL : DEBATE_POOL;
-    const agents = AGENTS.slice(0, payload.agentCount);
+    const agents = payload.agentIds
+      ? AGENTS.filter((a) => payload.agentIds!.includes(a.id))
+      : AGENTS.slice(0, payload.agentCount);
     const timers: ReturnType<typeof setTimeout>[] = [];
 
     let delay = 900;
