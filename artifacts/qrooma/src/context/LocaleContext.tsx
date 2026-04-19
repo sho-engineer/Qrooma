@@ -183,6 +183,10 @@ export interface Translations {
   settingsPlanConnectDesc: string;
   settingsPlanProDesc: string;
   settingsPlanApiKeyDesc: string;
+  // Sponsored section (landing page)
+  sponsoredLabel: string;
+  sponsoredSectionTitle: string;
+  sponsoredLearnMore: string;
 }
 
 const ja: Translations = {
@@ -370,6 +374,10 @@ const ja: Translations = {
   errorMissingKeys: "このエージェントのAPIキーが設定されていません",
   errorAiFailed: "AIの呼び出しに失敗しました",
   errorAgentSkipped: (side) => `エージェント ${side} をスキップしました（APIキーなし）`,
+  // Sponsored section
+  sponsoredLabel: "スポンサー",
+  sponsoredSectionTitle: "おすすめツール",
+  sponsoredLearnMore: "詳しく見る",
 };
 
 const en: Translations = {
@@ -558,6 +566,10 @@ const en: Translations = {
   errorMissingKeys: "No API key set for this agent",
   errorAiFailed: "AI call failed",
   errorAgentSkipped: (side) => `Agent ${side} skipped — no API key`,
+  // Sponsored section
+  sponsoredLabel: "Sponsored",
+  sponsoredSectionTitle: "Recommended tools",
+  sponsoredLearnMore: "Learn more",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };

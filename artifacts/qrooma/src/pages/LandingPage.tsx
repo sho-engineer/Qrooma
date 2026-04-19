@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useLocale, type Locale } from "../context/LocaleContext";
 import { useAuth } from "../context/AuthContext";
 import { ArrowRightIcon, CheckIcon } from "lucide-react";
+import SponsoredSection from "../components/SponsoredSection";
 
 // ─── useFadeSection — scroll-triggered fade-up ────────────────────────────────
 function useFadeSection() {
@@ -319,11 +320,12 @@ export default function LandingPage() {
   const stepLabels = [t.landingHowStep1Label, t.landingHowStep2Label, t.landingHowStep3Label];
 
   // Scroll-triggered sections
-  const secCards   = useFadeSection();
-  const secHow     = useFadeSection();
-  const secModes   = useFadeSection();
-  const secPricing = useFadeSection();
-  const secFooter  = useFadeSection();
+  const secCards    = useFadeSection();
+  const secHow      = useFadeSection();
+  const secModes    = useFadeSection();
+  const secPricing  = useFadeSection();
+  const secSponsored = useFadeSection();
+  const secFooter   = useFadeSection();
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -501,6 +503,12 @@ export default function LandingPage() {
           <PricingSection />
         </div>
       </section>
+
+      {/* Sponsored / Recommended tools */}
+      <SponsoredSection
+        sectionRef={secSponsored.ref as React.RefObject<HTMLElement>}
+        sectionStyle={secSponsored.style}
+      />
 
       {/* Footer CTA */}
       <section
