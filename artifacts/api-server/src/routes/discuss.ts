@@ -97,7 +97,7 @@ router.post("/discuss", async (req, res) => {
     userMessage,
     mode,
     agentConfig,
-    apiKeys,
+    apiKeys: clientApiKeys = {},
     previousMessages = [],
   } = req.body as {
     roomId: string;
@@ -105,8 +105,16 @@ router.post("/discuss", async (req, res) => {
     userMessage: string;
     mode: string;
     agentConfig: { side: "A" | "B" | "C"; provider: string; model: string }[];
-    apiKeys: { openai?: string; anthropic?: string; google?: string };
+    apiKeys?: { openai?: string; anthropic?: string; google?: string };
     previousMessages: { role: string; agentId?: string; content: string }[];
+  };
+
+  // Merge client keys with server-side env vars (client key takes priority,
+  // env var is fallback — enables Free/Pro plan server-side keys).
+  const apiKeys = {
+    openai:    clientApiKeys.openai    || process.env["OPENAI_API_KEY"]    || undefined,
+    anthropic: clientApiKeys.anthropic || process.env["ANTHROPIC_API_KEY"] || undefined,
+    google:    clientApiKeys.google    || process.env["GOOGLE_API_KEY"]    || undefined,
   };
 
   // ── SSE headers ─────────────────────────────────────────────────────────────

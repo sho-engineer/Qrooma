@@ -147,14 +147,13 @@ export default function RoomDetailPage() {
       ? [settings.sideA, settings.sideB]
       : [settings.sideA, settings.sideB, settings.sideC];
 
-  // Real API calls only on Connect plan when keys are present
-  // Free and Pro always use simulation
+  // Connect: real call when user has provided at least one matching key
   const hasSomeKey = useMemo(() => {
     if (plan !== "connect") return false;
     return activeSides.some((side) => hasApiKeyFor(side.provider, settings));
   }, [plan, settings.openaiApiKey, settings.anthropicApiKey, settings.googleApiKey, agentCount]);
 
-  // canRun: Free/Pro always true (simulation); Connect requires a key
+  // canRun: Free/Pro always true; Connect requires a key
   const canRun = plan !== "connect" ? true : hasSomeKey;
 
   // For Free plan, use fixed model labels; otherwise use settings
@@ -266,10 +265,16 @@ export default function RoomDetailPage() {
       }
     }
 
-    if (hasSomeKey) {
-      // ── Connect plan: real AI call (only agents with valid keys) ───────────
-      const sides = (agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[];
-      const sideConfigs = [settings.sideA, settings.sideB, settings.sideC];
+    if (hasSomeKey || isFree) {
+      // ── Real AI call ───────────────────────────────────────────────────────
+      // Free:    fixed 2-agent config; apiKeys omitted → server uses env vars
+      // Connect: user-supplied BYOK keys; filter to agents with a key present
+      const sides = isFree
+        ? (["A", "B"] as const)
+        : ((agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[]);
+      const sideConfigs = isFree
+        ? FREE_SIDES
+        : [settings.sideA, settings.sideB, settings.sideC];
 
       const allAgentConfig = sides.map((side, i) => ({
         side,
@@ -277,13 +282,16 @@ export default function RoomDetailPage() {
         model:    sideConfigs[i]!.model,
       }));
 
-      // Filter to agents that actually have an API key
       const apiKeyMap: Record<string, string | undefined> = {
         openai:    settings.openaiApiKey    || undefined,
         anthropic: settings.anthropicApiKey || undefined,
         google:    settings.googleApiKey    || undefined,
       };
-      const agentConfig = allAgentConfig.filter((a) => !!apiKeyMap[a.provider]);
+      // Free: send all agents (server resolves keys via env vars)
+      // Connect: only agents whose key the user actually supplied
+      const agentConfig = isFree
+        ? allAgentConfig
+        : allAgentConfig.filter((a) => !!apiKeyMap[a.provider]);
 
       const params: RealRunParams = {
         roomId,
@@ -291,7 +299,9 @@ export default function RoomDetailPage() {
         userMessage,
         mode:       settings.defaultMode,
         agentConfig,
-        apiKeys: {
+        // Free: empty object → server falls back to OPENAI_API_KEY / GOOGLE_API_KEY env vars
+        // Connect: send user's BYOK keys
+        apiKeys: isFree ? {} : {
           openai:    settings.openaiApiKey    || undefined,
           anthropic: settings.anthropicApiKey || undefined,
           google:    settings.googleApiKey    || undefined,
@@ -310,19 +320,32 @@ export default function RoomDetailPage() {
           messagesService.saveConclusion(roomId, conc);
           setConclusion(conc);
         },
-        onStatus,
+        (status) => {
+          if (isFree && status === "error") {
+            // API server unreachable or env vars not set → fall back to simulation
+            const payload: RunPayload = {
+              roomId,
+              userId:     "demo",
+              mode:       settings.defaultMode,
+              agentCount: 2,
+              agentIds:   ["gpt", "gemini"],
+            };
+            const cancelSim = runsService.simulateRun(runId, payload, onMessage, onStatus);
+            cancelRun.current = cancelSim;
+          } else {
+            onStatus(status);
+          }
+        },
         onAgentError,
       );
       cancelRun.current = cancel;
     } else {
-      // ── Free / Pro: local simulation ───────────────────────────────────────
+      // ── Pro or Connect with no keys: local simulation ──────────────────────
       const payload: RunPayload = {
         roomId,
         userId:     "demo",
         mode:       settings.defaultMode,
         agentCount,
-        // Free: fixed GPT + Gemini (no Claude); Pro/Connect: all agents
-        agentIds: isFree ? ["gpt", "gemini"] : undefined,
       };
       const cancel = runsService.simulateRun(runId, payload, onMessage, onStatus);
       cancelRun.current = cancel;
