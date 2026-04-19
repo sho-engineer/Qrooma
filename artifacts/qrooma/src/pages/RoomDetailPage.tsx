@@ -24,7 +24,7 @@ import { useSettings } from "../context/SettingsContext";
 import { useRooms } from "../context/RoomsContext";
 import { useLocale } from "../context/LocaleContext";
 import { usePlan } from "../context/PlanContext";
-import type { Message, RunStatus, Provider } from "../types";
+import type { ConclusionData, Message, RunStatus, Provider } from "../types";
 import RoomHeader from "../components/RoomHeader";
 import MessageBubble from "../components/MessageBubble";
 import ConclusionCard from "../components/ConclusionCard";
@@ -49,11 +49,10 @@ const MODEL_SHORT: Record<string, string> = {
   "gemini-1.0-pro":              "Gemini 1.0 Pro",
 };
 
-// ─── Free plan: fixed 2-agent config (no API keys required) ──────────────────
-// Side A = Proposal (GPT-4o mini),  Side B = Review (Gemini 2.5 Flash)
-// No Claude — Claude is only available on Connect/Pro
+// Free plan: fixed 2-agent config (no API keys required)
+// Side A = Proposal (GPT-4o mini),  Side B = Review (Gemini 2.5 Flash Lite)
 const FREE_SIDES: Array<{ provider: Provider; model: string }> = [
-  { provider: "openai",  model: "gpt-4o-mini"         },
+  { provider: "openai",  model: "gpt-4o-mini"          },
   { provider: "google",  model: "gemini-2.5-flash-lite" },
 ];
 
@@ -106,10 +105,6 @@ export default function RoomDetailPage() {
   const room = getRoomById(roomId);
   const roomName = room?.name ?? "Room";
 
-  // ─── Load messages from service ────────────────────────────────────────────
-  // SUPABASE: replace with supabase.from("messages").select("*").eq("room_id", roomId)
-  //           + realtime subscription to append new messages
-
   function loadMessages() {
     return messagesService.getByRoom(roomId);
   }
@@ -127,8 +122,10 @@ export default function RoomDetailPage() {
   const [currentRound,   setCurrentRound]   = useState<{ round: number; label: string } | null>(null);
   const [agentErrors,    setAgentErrors]    = useState<string[]>([]);
   const [fatalError,     setFatalError]     = useState<string | null>(null);
+  const [conclusions,    setConclusions]    = useState<ConclusionData[]>(
+    () => messagesService.getConclusions(roomId),
+  );
 
-  // Cancel ref: holds a cleanup function for in-progress simulated runs
   const cancelRun = useRef<(() => void) | null>(null);
 
   const topRef            = useRef<HTMLDivElement>(null);
@@ -139,7 +136,6 @@ export default function RoomDetailPage() {
 
   // ─── Derived values ─────────────────────────────────────────────────────────
 
-  // Free plan always uses the fixed 2-agent config; Connect/Pro use settings
   const isFree = plan === "free";
   const agentCount  = isFree ? 2 : (settings.agentCount ?? 3);
   const activeSides = isFree
@@ -148,16 +144,13 @@ export default function RoomDetailPage() {
       ? [settings.sideA, settings.sideB]
       : [settings.sideA, settings.sideB, settings.sideC];
 
-  // Connect: real call when user has provided at least one matching key
   const hasSomeKey = useMemo(() => {
     if (plan !== "connect") return false;
     return activeSides.some((side) => hasApiKeyFor(side.provider, settings));
   }, [plan, settings.openaiApiKey, settings.anthropicApiKey, settings.googleApiKey, agentCount]);
 
-  // canRun: Free/Pro always true; Connect requires a key
   const canRun = plan !== "connect" ? true : hasSomeKey;
 
-  // For Free plan, use fixed model labels; otherwise use settings
   const sideModelMap = useMemo(() => {
     if (isFree) {
       return {
@@ -182,13 +175,11 @@ export default function RoomDetailPage() {
   const modeLabel = MODE_LABELS[settings.defaultMode] ?? settings.defaultMode;
 
   const groupedMessages = groupByRun(messages);
-  const [conclusion, setConclusion] = useState(() => messagesService.getConclusion(roomId));
   const hasMessages = messages.length > 0;
 
   // ─── Reset when roomId changes ──────────────────────────────────────────────
 
   useEffect(() => {
-    // Cancel any in-progress run
     cancelRun.current?.();
     cancelRun.current = null;
 
@@ -200,12 +191,11 @@ export default function RoomDetailPage() {
     setCurrentRound(null);
     setAgentErrors([]);
     setFatalError(null);
-    setConclusion(messagesService.getConclusion(roomId));
+    setConclusions(messagesService.getConclusions(roomId));
     isFirstMount.current = true;
     shouldScrollToBottom.current = false;
   }, [roomId]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => { cancelRun.current?.(); };
   }, []);
@@ -230,12 +220,7 @@ export default function RoomDetailPage() {
 
   // ─── Actions ─────────────────────────────────────────────────────────────────
 
-  /**
-   * Trigger agent responses for a given run.
-   * BYOK mode  → calls real AI APIs via /api/discuss (SSE stream)
-   * Free mode  → local simulation with dummy responses
-   */
-  function triggerRun(runId: string, userMessage: string) {
+  function triggerRun(runId: string, userMessage: string, currentRunCount: number) {
     setRunStatus("running");
     setRespondedCount(0);
     setCurrentRound(null);
@@ -269,9 +254,6 @@ export default function RoomDetailPage() {
     }
 
     if (hasSomeKey || isFree) {
-      // ── Real AI call ───────────────────────────────────────────────────────
-      // Free:    fixed 2-agent config; apiKeys omitted → server uses env vars
-      // Connect: user-supplied BYOK keys; filter to agents with a key present
       const sides = isFree
         ? (["A", "B"] as const)
         : ((agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[]);
@@ -290,8 +272,6 @@ export default function RoomDetailPage() {
         anthropic: settings.anthropicApiKey || undefined,
         google:    settings.googleApiKey    || undefined,
       };
-      // Free: send all agents (server resolves keys via env vars)
-      // Connect: only agents whose key the user actually supplied
       const agentConfig = isFree
         ? allAgentConfig
         : allAgentConfig.filter((a) => !!apiKeyMap[a.provider]);
@@ -302,30 +282,35 @@ export default function RoomDetailPage() {
         userMessage,
         mode:       settings.defaultMode,
         agentConfig,
-        // Free: empty object → server falls back to OPENAI_API_KEY / GOOGLE_API_KEY env vars
-        // Connect: send user's BYOK keys
         apiKeys: isFree ? {} : {
           openai:    settings.openaiApiKey    || undefined,
           anthropic: settings.anthropicApiKey || undefined,
           google:    settings.googleApiKey    || undefined,
         },
-        previousMessages: messages.slice(-12).map((m) => ({
-          role:    m.role,
-          agentId: m.agentId,
-          content: m.content,
-        })),
+        previousMessages: messages
+          .filter((m) => m.role !== "summary")
+          .slice(-12)
+          .map((m) => ({
+            role:    m.role,
+            agentId: m.agentId,
+            content: m.content,
+          })),
       };
 
       const cancel = runsService.realRun(
         params,
         onMessage,
         (conc) => {
-          messagesService.saveConclusion(roomId, conc);
-          setConclusion(conc);
+          const enriched: ConclusionData = {
+            ...conc,
+            runId,
+            runNumber: currentRunCount,
+          };
+          messagesService.saveConclusion(roomId, enriched);
+          setConclusions(messagesService.getConclusions(roomId));
         },
         (status) => {
           if (isFree && status === "error") {
-            // API server unreachable or env vars not set → fall back to simulation
             const payload: RunPayload = {
               roomId,
               userId:     "demo",
@@ -341,10 +326,23 @@ export default function RoomDetailPage() {
         },
         onAgentError,
         (evt) => setCurrentRound(evt),
+        (evt) => {
+          // Round summary → persist as a special "summary" message
+          const summaryMsg: Message = {
+            id:        evt.id,
+            roomId,
+            role:      "summary",
+            round:     evt.round,
+            content:   evt.summary,
+            createdAt: evt.createdAt,
+            runId,
+          };
+          messagesService.append(summaryMsg);
+          setMessages((prev) => [...prev, summaryMsg]);
+        },
       );
       cancelRun.current = cancel;
     } else {
-      // ── Pro or Connect with no keys: local simulation ──────────────────────
       const payload: RunPayload = {
         roomId,
         userId:     "demo",
@@ -369,15 +367,13 @@ export default function RoomDetailPage() {
       runId:     newRunId,
     };
 
-    // Persist user message via service
-    // SUPABASE: supabase.from("messages").insert(userMsg)
     messagesService.append(userMsg);
-
     shouldScrollToBottom.current = true;
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
-    setRunCount((n) => n + 1);
-    triggerRun(newRunId, input.trim());
+    const nextCount = runCount + 1;
+    setRunCount(nextCount);
+    triggerRun(newRunId, input.trim(), nextCount);
   }
 
   function rerun() {
@@ -385,8 +381,9 @@ export default function RoomDetailPage() {
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     const newRunId = `run-${Date.now()}`;
     shouldScrollToBottom.current = true;
-    setRunCount((n) => n + 1);
-    triggerRun(newRunId, lastUserMsg?.content ?? "");
+    const nextCount = runCount + 1;
+    setRunCount(nextCount);
+    triggerRun(newRunId, lastUserMsg?.content ?? "", nextCount);
   }
 
   // ─── Render ──────────────────────────────────────────────────────────────────
@@ -424,11 +421,24 @@ export default function RoomDetailPage() {
             <div className="space-y-4">
               {group.messages.map((msg, msgIdx) => {
                 const prevMsg = group.messages[msgIdx - 1];
+
+                if (msg.role === "summary") {
+                  return (
+                    <RoundSummaryBubble
+                      key={msg.id}
+                      round={msg.round ?? 0}
+                      content={msg.content}
+                      locale={locale}
+                    />
+                  );
+                }
+
                 const showRoundHeader =
                   msg.role === "assistant" &&
                   msg.round != null &&
-                  msg.round !== (prevMsg?.round ?? -1) &&
+                  msg.round !== (prevMsg?.role === "assistant" ? prevMsg.round : undefined) &&
                   !(prevMsg == null && msg.round === 1);
+
                 return (
                   <div key={msg.id}>
                     {showRoundHeader && (
@@ -453,9 +463,8 @@ export default function RoomDetailPage() {
             currentRound={currentRound}
           />
         )}
-        {runStatus === "error" && <ErrorState onRerun={rerun} />}
+        {runStatus === "error" && !fatalError && <ErrorState onRerun={rerun} />}
 
-        {/* No-key warning for Connect plan with no API keys set */}
         {runStatus === "idle" && plan === "connect" && !hasSomeKey && hasMessages === false && (
           <div className="mt-4 px-4 py-3.5 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40">
             <p className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-0.5">
@@ -469,7 +478,6 @@ export default function RoomDetailPage() {
           </div>
         )}
 
-        {/* Per-agent error notices (non-fatal) */}
         {agentErrors.length > 0 && runStatus !== "running" && (
           <div className="mt-3 space-y-1.5">
             {agentErrors.map((err, i) => (
@@ -485,10 +493,9 @@ export default function RoomDetailPage() {
       </div>
 
       {hasMessages && (
-        <ConclusionCard runCount={runCount} conclusion={conclusion} />
+        <ConclusionCard runCount={runCount} conclusions={conclusions} />
       )}
 
-      {/* Free plan banner */}
       {plan === "free" && (
         <div className="shrink-0 px-4 py-2 border-t border-border/60 bg-muted/30 flex items-center justify-between gap-3 min-w-0">
           <p className="text-[11px] text-muted-foreground/70 leading-relaxed truncate min-w-0">
@@ -511,13 +518,53 @@ export default function RoomDetailPage() {
   );
 }
 
+// ─── Round Summary Bubble ─────────────────────────────────────────────────────
+
+const ROUND_SUMMARY_LABELS_JA: Record<number, string> = {
+  1: "Round 1 暫定まとめ",
+  2: "Round 2 暫定まとめ",
+  3: "Round 3 暫定まとめ",
+};
+const ROUND_SUMMARY_LABELS_EN: Record<number, string> = {
+  1: "Round 1 Summary",
+  2: "Round 2 Summary",
+  3: "Round 3 Summary",
+};
+
+function RoundSummaryBubble({
+  round,
+  content,
+  locale,
+}: {
+  round:   number;
+  content: string;
+  locale:  string;
+}) {
+  const label = locale === "ja"
+    ? (ROUND_SUMMARY_LABELS_JA[round] ?? `Round ${round} まとめ`)
+    : (ROUND_SUMMARY_LABELS_EN[round] ?? `Round ${round} Summary`);
+
+  return (
+    <div className="mx-1 my-1">
+      <div className="rounded-xl border border-violet-200/60 dark:border-violet-800/40 bg-violet-50/40 dark:bg-violet-950/20 px-4 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-violet-500 dark:text-violet-400 mb-1.5">
+          ◎ {label}
+        </p>
+        <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
+          {content}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Run Separator ────────────────────────────────────────────────────────────
 
 interface RunSeparatorProps {
-  index:        number;
+  index:         number;
   firstMsgTime?: string;
-  isRerun:      boolean;
-  userQuestion: string | null;
+  isRerun:       boolean;
+  userQuestion:  string | null;
 }
 
 function RunSeparator({ index, firstMsgTime, isRerun, userQuestion }: RunSeparatorProps) {
@@ -572,11 +619,11 @@ const ROUND_LABELS_EN: Record<number, string> = {
 function RoundHeader({ round, mode, locale }: { round: number; mode: string; locale: string }) {
   const isConclusion = round > 3;
   if (isConclusion) return null;
+  if (mode === "free-talk" && round === 1) return null;
+
   const label = locale === "ja"
     ? (ROUND_LABELS_JA[round] ?? `Round ${round}`)
     : (ROUND_LABELS_EN[round] ?? `Round ${round}`);
-
-  if (mode === "free-talk" && round === 1) return null;
 
   return (
     <div className="flex items-center gap-2 my-5">
@@ -607,7 +654,8 @@ function ThinkingIndicator({
   const nextAgent     = pending[0];
   const remaining     = pending.length;
 
-  const isConclusion = currentRound?.label?.toLowerCase().includes("conclusion");
+  const isConclusion  = currentRound?.label?.toLowerCase().includes("conclusion");
+  const isSummary     = currentRound?.label?.toLowerCase().includes("summary");
 
   return (
     <div className="flex flex-col gap-2 mt-5 px-1">
@@ -620,7 +668,7 @@ function ThinkingIndicator({
       )}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          {!isConclusion && done.map((a) => (
+          {!isConclusion && !isSummary && done.map((a) => (
             <span
               key={a.id}
               className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[9px] font-bold opacity-30"
@@ -630,9 +678,9 @@ function ThinkingIndicator({
             </span>
           ))}
 
-          {(isConclusion || nextAgent) && (
+          {(isConclusion || isSummary || nextAgent) && (
             <div className="flex items-center gap-1.5">
-              {!isConclusion && nextAgent && (
+              {!isConclusion && !isSummary && nextAgent && (
                 <span
                   className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[9px] font-bold"
                   style={{ backgroundColor: nextAgent.color }}
@@ -654,7 +702,7 @@ function ThinkingIndicator({
         </div>
 
         <span className="text-xs text-muted-foreground">
-          {isConclusion
+          {isConclusion || isSummary
             ? t.finishingUp
             : remaining === agentCount
               ? t.agentsResponding

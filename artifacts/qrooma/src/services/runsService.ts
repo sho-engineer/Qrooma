@@ -8,50 +8,12 @@
  *   import { tasks } from "@trigger.dev/sdk/v3"
  *   import type { discussionTask } from "../../trigger/discussionTask"
  *
- *   // Trigger a new discussion run:
- *   const handle = await tasks.trigger<typeof discussionTask>("discussion", {
- *     roomId,
- *     userId,
- *     userMessage,
- *     agentConfig: [
- *       { side: "A", provider: sideA.provider, model: sideA.model },
- *       { side: "B", provider: sideB.provider, model: sideB.model },
- *       { side: "C", provider: sideC.provider, model: sideC.model },
- *     ],
- *     mode: "structured-debate",
- *     // API keys are retrieved SERVER-SIDE by the task — NOT sent from browser
- *   })
- *
- *   // Poll status or subscribe via Supabase realtime on `runs` table:
- *   supabase
- *     .channel("runs")
- *     .on("postgres_changes", { event: "UPDATE", table: "runs", filter: `id=eq.${handle.id}` },
- *         (payload) => onRunStatusChange(payload.new))
- *     .subscribe()
+ *   const handle = await tasks.trigger<typeof discussionTask>("discussion", { ... })
  *
  * API KEY SECURITY
  * ───────────────
  * ⚠️  API keys MUST NOT be sent from the browser in production.
- * The Trigger.dev task retrieves them server-side from Supabase
- * using the user's JWT:
- *   const { data } = await supabaseAdmin
- *     .from("user_api_keys")
- *     .select("provider, encrypted_key")
- *     .eq("user_id", userId)
- *
- * Supabase table: `runs`
- *   id            uuid PRIMARY KEY DEFAULT gen_random_uuid()
- *   room_id       uuid REFERENCES rooms NOT NULL
- *   user_id       uuid REFERENCES auth.users NOT NULL
- *   trigger_id    text  -- Trigger.dev handle ID for polling
- *   status        text CHECK (status IN ('queued','running','done','failed'))
- *   created_at    timestamptz DEFAULT now()
- *   completed_at  timestamptz
- *
- * UI STATUS MAPPING (DB → UI):
- *   queued | running → "running"
- *   done             → "completed"
- *   failed           → "error"
+ * The Trigger.dev task retrieves them server-side from Supabase.
  */
 
 import type { AgentId, ConclusionData, Message, RunStatus } from "../types";
@@ -63,7 +25,6 @@ export interface RunPayload {
   userMessage?: string;
   mode:       "structured-debate" | "free-talk";
   agentCount: 2 | 3;
-  /** Override which agent IDs to use. If omitted, uses AGENTS.slice(0, agentCount). */
   agentIds?:  string[];
 }
 
@@ -82,22 +43,23 @@ export interface RoundStartEvent {
   label: string;
 }
 
-// ── Mock simulation (replace with Trigger.dev in production) ──────────────────
+export interface RoundSummaryEvent {
+  round:     number;
+  label:     string;
+  summary:   string;
+  id:        string;
+  roomId:    string;
+  runId:     string;
+  createdAt: string;
+}
+
+// ── Mock simulation ──────────────────────────────────────────────────────────
 
 export const runsService = {
-  /**
-   * Start a new run.
-   * TRIGGER.DEV: tasks.trigger("discussion", payload) → returns handle.id
-   * MOCK: returns a synthetic run ID immediately
-   */
   async trigger(_payload: RunPayload): Promise<string> {
     return `run-${Date.now()}`;
   },
 
-  /**
-   * Simulate AI agent responses locally with staggered delays (Free mode).
-   * Returns a cancel function (call on component unmount / re-navigate).
-   */
   simulateRun(
     runId:      string,
     payload:    RunPayload,
@@ -136,16 +98,16 @@ export const runsService = {
 
   /**
    * Run a REAL multi-round discussion via the API server.
-   * Streams SSE events: round_start → agent messages → conclusion → done.
-   * Returns a cancel function (aborts the fetch).
+   * Streams SSE events: round_start → agent messages → round_summary → conclusion → done.
    */
   realRun(
-    params:          RealRunParams,
-    onMessage:       (msg: Message) => void,
-    onConclusion:    (conclusion: ConclusionData) => void,
-    onComplete:      (status: RunStatus) => void,
-    onAgentError?:   (side: string, message: string) => void,
-    onRoundStart?:   (event: RoundStartEvent) => void,
+    params:           RealRunParams,
+    onMessage:        (msg: Message) => void,
+    onConclusion:     (conclusion: ConclusionData) => void,
+    onComplete:       (status: RunStatus) => void,
+    onAgentError?:    (side: string, message: string) => void,
+    onRoundStart?:    (event: RoundStartEvent) => void,
+    onRoundSummary?:  (event: RoundSummaryEvent) => void,
   ): () => void {
     const controller = new AbortController();
 
@@ -191,6 +153,16 @@ export const runsService = {
               });
             } else if (data["type"] === "message") {
               onMessage(data["message"] as Message);
+            } else if (data["type"] === "round_summary") {
+              onRoundSummary?.({
+                round:     Number(data["round"]),
+                label:     String(data["label"] ?? ""),
+                summary:   String(data["summary"] ?? ""),
+                id:        String(data["id"] ?? `sum-${Date.now()}`),
+                roomId:    String(data["roomId"] ?? ""),
+                runId:     String(data["runId"] ?? ""),
+                createdAt: String(data["createdAt"] ?? new Date().toISOString()),
+              });
             } else if (data["type"] === "conclusion") {
               onConclusion(data["conclusion"] as ConclusionData);
             } else if (data["type"] === "done") {
