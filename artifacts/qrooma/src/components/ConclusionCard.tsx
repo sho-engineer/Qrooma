@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronDownIcon, ClockIcon, RotateCcwIcon, MessageSquarePlusIcon, PlayIcon, PlusCircleIcon } from "lucide-react";
 import type { ConclusionData, ConclusionStatus } from "../types";
 import { useLocale } from "../context/LocaleContext";
@@ -317,9 +317,36 @@ export default function ConclusionCard({
   onProvisional,
   onAddCondition,
 }: Props) {
-  const [isOpen,       setIsOpen]       = useState(false);
-  const [showHistory,  setShowHistory]  = useState(false);
+  const [isOpen,        setIsOpen]        = useState(false);
+  const [showHistory,   setShowHistory]   = useState(false);
+  const [isNewlyUpdated, setIsNewlyUpdated] = useState(false);
+  const prevStatus = useRef<ConclusionStatus>("idle");
+  const prevConcCount = useRef(0);
   const { t, locale } = useLocale();
+
+  // Auto-open + flash when a new conclusion arrives
+  useEffect(() => {
+    const wasLoading = prevStatus.current === "loading";
+    const isNowSuccess = conclusionStatus === "success";
+    const newConcArrived = conclusions.length > prevConcCount.current;
+
+    if (isNowSuccess && (wasLoading || newConcArrived)) {
+      setIsOpen(true);
+      setIsNewlyUpdated(true);
+      const timer = setTimeout(() => setIsNewlyUpdated(false), 2200);
+      prevStatus.current   = conclusionStatus;
+      prevConcCount.current = conclusions.length;
+      return () => clearTimeout(timer);
+    }
+
+    // Also auto-open when entering loading state (so user sees the skeleton)
+    if (conclusionStatus === "loading" && prevStatus.current !== "loading") {
+      setIsOpen(true);
+    }
+
+    prevStatus.current    = conclusionStatus;
+    prevConcCount.current = conclusions.length;
+  }, [conclusionStatus, conclusions.length]);
 
   const current    = conclusions[0] ?? null;
   const history    = conclusions.slice(1);
@@ -347,14 +374,14 @@ export default function ConclusionCard({
       {/* ── Main toggle ── */}
       <button
         onClick={() => setIsOpen((p) => !p)}
-        className={`w-full flex items-center justify-between px-4 py-2.5 text-sm border transition-all duration-200 ${
+        className={`w-full flex items-center justify-between px-4 py-2.5 text-sm border transition-all duration-300 ${
           isOpen
             ? "border-b-0 rounded-t-2xl bg-card border-border/60"
             : "rounded-2xl bg-card border-border/60 hover:border-foreground/15 hover:shadow-[0_2px_12px_rgba(0,0,0,0.05)] active:scale-[0.99]"
-        }`}
+        } ${isNewlyUpdated ? "ring-2 ring-emerald-400/50 ring-offset-0" : ""}`}
       >
         <div className="flex items-center gap-2 text-foreground">
-          <span className={`text-base leading-none select-none ${isLoading ? "animate-spin" : ""} ${isError ? "text-rose-400/70" : isUnresolved ? "text-amber-400/70" : "text-foreground/30"}`}>
+          <span className={`text-base leading-none select-none ${isLoading ? "animate-spin" : ""} ${isError ? "text-rose-400/70" : isUnresolved ? "text-amber-400/70" : isNewlyUpdated ? "text-emerald-500/70" : "text-foreground/30"}`}>
             {isError ? "!" : isUnresolved ? "◎" : "◈"}
           </span>
           <span className="text-sm font-semibold">{t.conclusion}</span>
@@ -363,7 +390,12 @@ export default function ConclusionCard({
               {badgeLabel}
             </span>
           )}
-          {!isLoading && !isError && !isUnresolved && history.length > 0 && (
+          {isNewlyUpdated && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-medium animate-pulse">
+              {locale === "ja" ? "更新" : "Updated"}
+            </span>
+          )}
+          {!isLoading && !isError && !isUnresolved && !isNewlyUpdated && history.length > 0 && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground/60 font-medium">
               v{conclusions.length}
             </span>

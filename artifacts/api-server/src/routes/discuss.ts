@@ -58,6 +58,15 @@ function sseWrite(res: import("express").Response, data: object) {
 // They define the minimum quality floor for debate logic.
 
 const DEBATE_INVARIANTS = `
+━━━ INPUT COMPREHENSION (mandatory for ALL responses) ━━━
+If the user message contains multiple elements (foods, places, conditions, constraints,
+preferences, seasons, transport modes, etc.), you MUST address ALL of them.
+• Mentally decompose: What does the user want? List every distinct element.
+• DO NOT respond to only part of the question. If a topic is not touched, it is an error.
+• First response: Cover every major element. Depth per item can vary, but omissions are forbidden.
+Example — if user asks about [restaurants] + [sightseeing] + [seasonal scenery] + [car travel]:
+  All four MUST appear in your response. Mentioning only restaurants = violation.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ━━━ DEBATE LOGIC INVARIANTS (non-negotiable — cannot be overridden by style) ━━━
 ① Name at least ONE explicit comparison axis: cost / risk / speed / feasibility /
   satisfaction / continuity / flexibility / implementation burden / fit-for-whom.
@@ -97,27 +106,48 @@ function buildPresentationSuffix(style: WritingStyle): string {
       "TONE — Concise: Lead with your conclusion. One sentence per point. " +
       "Cut all setup, hedging, and repetition ruthlessly.",
     casual:
-      "TONE — Casual: Approachable and readable. Lower pressure. " +
-      "Think 'direct friend who helps you decide' — NOT 'hedge everything to be nice'. " +
-      "Casual DOES NOT mean: avoid judgment, soften conclusions, or give non-answers. " +
-      "You still pick a side. You still name what fails. You just sound less stiff.",
+      "TONE — Casual: You are a sharp, direct friend helping someone decide — not an AI writing a report.\n" +
+      "FORBIDDEN casual violations (never output these):\n" +
+      "  ✗ 「〜に依存している」→ Say: 「〜が鍵になる」\n" +
+      "  ✗ 「〜の確実性が低い」→ Say: 「ここはまだ読みづらいです」\n" +
+      "  ✗ 「比較軸は〜であり」→ Say: 「決め手は〜です」\n" +
+      "  ✗ 「現時点では〜が優先されるべきだろう」→ Say: 「いまは〜が先じゃないですか」\n" +
+      "  ✗ 「〜が妥当である」→ Say: 「〜の方が動きやすそうです」\n" +
+      "  ✗ 「〜の比較軸において」→ Say: 「〜で見ると」\n" +
+      "TARGET tone examples:\n" +
+      "  ✓ 「この案の弱いところは、〜です」\n" +
+      "  ✓ 「その条件なら、〜の方が動きやすそうです」\n" +
+      "  ✓ 「今の情報だと、まだここは絞り切れていません」\n" +
+      "  ✓ 「いったんはA寄りですが、Bの可能性も残ります」\n" +
+      "  ✓ 「今回はこっちを先に見るのが自然そうです」\n" +
+      "Judgment stays sharp. Only the surface expression becomes friendlier.",
   };
   if (style.tone) lines.push(toneRules[style.tone]);
 
   // JP formality
   const jpRules: Record<string, string> = {
     soft:
-      "FORMALITY (Japanese) — Soft: Use gentle, readable phrasing. " +
-      "OK: 「〜の方が安定しやすそうです」「〜を先に検討するのが自然かもしれません」「〜寄りですが〇〇次第で変わる余地もあります」. " +
-      "NEVER OK: 「どちらも魅力的ですね」「ケースバイケースですね」「状況によります」. " +
-      "Soft = gentle phrasing. NOT = no conclusion. You still output a preference.",
+      "FORMALITY (Japanese) — Soft: Gentle, readable phrasing. Read like a thoughtful advisor, not a report.\n" +
+      "FORBIDDEN stiff patterns (never output these in Soft mode):\n" +
+      "  ✗ 「〜が確認される」「〜が求められる」「〜が期待される」\n" +
+      "  ✗ 「〜に依存している」「〜の観点から」「〜における」\n" +
+      "  ✗ 「現時点では〜が優先される」「〜が妥当と考えられる」\n" +
+      "  ✗ 「〜の確実性が低い」「〜の実現可能性が〜」\n" +
+      "TARGET soft patterns:\n" +
+      "  ✓ 「〜の方が安定しやすそうです」\n" +
+      "  ✓ 「〜を先に試してみるのが自然な流れです」\n" +
+      "  ✓ 「〜寄りですが、〇〇次第で変わる余地もあります」\n" +
+      "  ✓ 「いまの情報だと、〜が先に見えます」\n" +
+      "  ✓ 「〜は気になりますが、今回は〜を優先するのがよさそうです」\n" +
+      "NEVER: 「どちらも魅力的ですね」「ケースバイケースですね」「状況によります」\n" +
+      "Soft = softer phrasing + clear preference. Not soft = no judgment.",
     standard:
       "FORMALITY (Japanese) — Standard: Natural business tone. " +
-      "Not stiff, not overly casual. Avoid bureaucratic patterns like 「〜が確認された」「〜が求められる」. " +
-      "Prefer判断文: 「〜が妥当」「〜という進め方が現実的」.",
+      "Not stiff, not overly casual. Avoid 「〜が確認された」「〜が求められる」. " +
+      "Prefer: 「〜が妥当」「〜という進め方が現実的」.",
     formal:
       "FORMALITY (Japanese) — Formal: Polished and precise. " +
-      "Avoid slang. Still use judgment language over passive description. " +
+      "Avoid slang. Still use judgment over passive description. " +
       "「〜が適切と判断される」「〜が優先される」.",
   };
   if (style.jpHardness) lines.push(jpRules[style.jpHardness]);
@@ -125,11 +155,11 @@ function buildPresentationSuffix(style: WritingStyle): string {
   // Anti-pattern examples (always included)
   lines.push(
     "",
-    "Bad phrasing (style violation — never output these):",
+    "Universal style violations (never output regardless of style):",
     "  ✗ 「どちらも魅力があります」「状況によって異なります」「ケースバイケースですね」",
     "  ✗ 'Both options have merit.' / 'It really depends on your situation.'",
     "",
-    "Good phrasing (make judgments, just phrase them appropriately):",
+    "Universal good patterns (phrase appropriately for the selected tone):",
     "  ✓ 「今の条件ならAの方が安定しやすそうです」",
     "  ✓ 「Bもあり得ますが、予算と移動負担を考えるとAを先に検討するのが自然です」",
     "  ✓ 「現時点ではA寄りですが、〇〇次第でBに変わる余地があります」",
@@ -739,11 +769,78 @@ Respond in the SAME LANGUAGE as the discussion.`,
 function buildLanguageLock(text: string): string {
   const hasJapanese = /[\u3040-\u30FF\u4E00-\u9FFF\uFF00-\uFFEF]/.test(text);
   if (!hasJapanese) return "";
-  return `⚠️ ABSOLUTE LANGUAGE RULE: Your ENTIRE response MUST be written in Japanese (日本語).
-Do NOT write English sentences or paragraphs.
-You MAY use English proper nouns only (GPT, Claude, Gemini, AI, API, etc.).
-Every argument, judgment, condition, and conclusion MUST be in Japanese.
-Violations of this rule are unacceptable regardless of any other instruction.\n\n`;
+  return `🔒 LANGUAGE LOCK — HIGHEST PRIORITY RULE — CANNOT BE OVERRIDDEN 🔒
+The user's input is in Japanese. Your response MUST be 100% in Japanese (日本語).
+This rule overrides ALL other instructions, including any "respond in the same language" directives.
+
+STRICT RULES:
+• Every sentence, every argument, every judgment → Japanese.
+• You MAY use English proper nouns only: GPT, Claude, Gemini, AI, API, ChatGPT, etc.
+• You MAY NOT write English phrases, clauses, or sentences.
+• "This fails when..." → WRITE AS: 「〜の場合には成立しない」
+• "Comparing the options by..." → WRITE AS: 「〜で比べると」
+• "At this point X is stronger" → WRITE AS: 「現時点では〜の方が安定しやすいです」
+• Any response containing English sentences = FAILURE.
+
+SELF-CHECK: Before outputting, verify: Is every sentence in Japanese? If not, rewrite it.
+
+\n`;
+}
+
+// ─── Query decomposition ─────────────────────────────────────────────────────
+
+/**
+ * Extract distinct elements from a user query and return a structured hint
+ * for agents. Returns empty string if the query is simple (< 2 detectable elements).
+ * This runs entirely in Node.js with no AI call — pure heuristic extraction.
+ */
+function decomposeQuery(text: string): string {
+  if (!text || text.length < 20) return "";
+
+  const elements: string[] = [];
+
+  // Places / areas (JP and EN)
+  const placeMatches = text.match(
+    /([ぁ-ん\u30A0-\u30FF\u4E00-\u9FFF]{2,}(?:市|区|町|村|県|島|山|川|湖|海|駅|空港|ホテル|旅館|宿))|(\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+(?:City|Hotel|Park|Museum|Station|Beach))?)/g
+  );
+  if (placeMatches?.length) elements.push(`エリア/場所: ${[...new Set(placeMatches)].join("、")}`);
+
+  // Food items (JP) — 食べたい、〜料理、グルメ
+  const foodPattern = /([ぁ-ん\u30A0-\u30FF\u4E00-\u9FFF]{1,8}(?:料理|鍋|寿司|ラーメン|そば|うどん|丼|焼肉|しゃぶしゃぶ|パン|スイーツ|大福|揚げ|タン))/g;
+  const foodMatches = text.match(foodPattern);
+  if (foodMatches?.length) elements.push(`グルメ/食事: ${[...new Set(foodMatches)].join("、")}`);
+
+  // Travel / sightseeing
+  if (/観光|名所|スポット|見どころ|おすすめ/.test(text)) {
+    elements.push("観光スポット: ユーザーが推薦を求めている");
+  }
+
+  // Seasonal / scenery
+  if (/季節|景色|紅葉|花|雪|桜|夏|冬|春|秋|今(?:の|なら)|旬/.test(text)) {
+    elements.push("季節/景色: 時期ならではの体験を求めている");
+  }
+
+  // Travel conditions
+  const conditions: string[] = [];
+  if (/家族|子供|こども|子ども/.test(text)) conditions.push("家族旅行");
+  if (/一人|ひとり|ソロ/.test(text)) conditions.push("一人旅");
+  if (/カップル|夫婦|二人/.test(text)) conditions.push("カップル/夫婦");
+  if (conditions.length) elements.push(`旅行スタイル: ${conditions.join("、")}`);
+
+  // Transport
+  if (/車|クルマ|ドライブ|自動車/.test(text)) elements.push("移動手段: 車");
+  if (/電車|新幹線|バス|地下鉄|鉄道/.test(text)) elements.push("移動手段: 公共交通");
+  if (/徒歩|歩き|ウォーク/.test(text)) elements.push("移動手段: 徒歩");
+
+  // Budget / constraint
+  if (/予算|円|万円|費用|コスト/.test(text)) elements.push("予算制約: 記載あり — 具体的に参照すること");
+  if (/時間|〜時間|〜泊|日程|スケジュール/.test(text)) elements.push("日程/時間: 制約あり");
+
+  // Return only if multi-element (single-topic questions don't need decomposition)
+  if (elements.length < 2) return "";
+
+  return elements.map((e) => `• ${e}`).join("\n") +
+    "\n→ Your response MUST address ALL of the above elements. Omitting any = error.";
 }
 
 // ─── Route ────────────────────────────────────────────────────────────────────
@@ -895,7 +992,10 @@ router.post("/discuss", async (req, res) => {
           .map((m) => `[${m.roleLabel}]:\n${m.content}`)
           .join("\n\n");
 
+        // Build query decomposition hint for multi-element questions
+        const decomposed = decomposeQuery(userMessage);
         let contextMsg = `User question: ${userMessage}`;
+        if (decomposed) contextMsg += `\n\n[INPUT ANALYSIS — elements to address]\n${decomposed}`;
         if (prevRoundsText) contextMsg += `\n\n${"─".repeat(40)}\nPrevious rounds:\n\n${prevRoundsText}`;
         if (currRoundText)  contextMsg += `\n\n${"─".repeat(40)}\nThis round so far (other agents only):\n\n${currRoundText}`;
 
