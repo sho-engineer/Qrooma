@@ -309,7 +309,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
                   transition: { duration: 0.22, ease: "easeIn" },
                 }}
                 transition={{ duration: 0.16, ease: "easeOut" }}
-                className={`group relative flex items-center gap-1 mb-0.5 rounded-lg overflow-hidden ${
+                className={`group relative flex items-center gap-1 mb-0.5 rounded-lg ${
                   isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/60"
                 }`}
               >

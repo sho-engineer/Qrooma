@@ -1,7 +1,8 @@
-import { forwardRef, useMemo } from "react";
+import { forwardRef } from "react";
 import { Link } from "wouter";
 import { SendIcon, ZapIcon, KeyRoundIcon, SlidersHorizontalIcon, Square } from "lucide-react";
 import { useLocale } from "../context/LocaleContext";
+import { isMobile } from "../lib/isMobile";
 
 interface Props {
   value:        string;
@@ -18,25 +19,6 @@ interface Props {
   onTogglePromptMode?: () => void;
 }
 
-/**
- * Detect touch-primary / mobile devices.
- *
- * We combine three signals so the check works correctly on:
- *   • Real phones/tablets  (maxTouchPoints > 0 OR userAgent match)
- *   • Replit preview pane on a desktop computer (viewport < 768 serves as tie-breaker)
- *
- * The goal is: never send on Enter when the device is primarily touch-based.
- */
-function useIsMobile(): boolean {
-  return useMemo(() => {
-    if (typeof navigator === "undefined" || typeof window === "undefined") return false;
-    const hasTouchPoints = navigator.maxTouchPoints > 0;
-    const mobileUA       = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const coarsePointer  = window.matchMedia?.("(pointer: coarse)").matches ?? false;
-    return hasTouchPoints || mobileUA || coarsePointer;
-  }, []);
-}
-
 const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInput({
   value,
   onChange,
@@ -48,19 +30,18 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
   onTogglePromptMode,
 }, ref) {
   const { t, locale } = useLocale();
-  const isMobile   = useIsMobile();
   const isFreeMode = !apiKeysReady;
   const ja = locale === "ja";
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (isMobile) return;
+    if (isMobile()) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (!isRunning) onSend();
     }
   }
 
-  const hintText = isMobile
+  const hintText = isMobile()
     ? (ja ? "送信は右のボタンから" : "Tap the button to send")
     : (isFreeMode ? t.freeModeDesc : t.sendingAutoRun);
 
@@ -124,14 +105,14 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
           placeholder={
             isRunning
               ? (ja ? "生成中…" : "Generating…")
-              : (isMobile
+              : (isMobile()
                   ? (ja ? "メッセージを入力" : "Type a message")
                   : t.messagePlaceholder)
           }
           rows={2}
           disabled={isRunning}
           // enterKeyHint="enter" tells iOS/Android to show "Return" key (newline), not "Send"/"Go"
-          enterKeyHint={isMobile ? "enter" : "send"}
+          enterKeyHint={isMobile() ? "enter" : "send"}
           className="flex-1 resize-none text-sm bg-transparent outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed leading-relaxed"
         />
 

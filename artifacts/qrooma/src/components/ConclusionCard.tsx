@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import type { ConclusionData, ConclusionStatus } from "../types";
 import { useLocale } from "../context/LocaleContext";
+import { isMobile } from "../lib/isMobile";
 
 interface Props {
   runCount:           number;
@@ -263,9 +264,11 @@ function CheckpointActions({
           }
           className="w-full text-sm bg-background border border-border/60 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/30 leading-relaxed"
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitContinue(); }
-            if (e.key === "Escape") { setShowDirection(false); setDirection(""); }
+            // On mobile, Enter = newline. Submit only via button.
+            if (e.key === "Escape") { setShowDirection(false); setDirection(""); return; }
+            if (!isMobile() && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitContinue(); }
           }}
+          enterKeyHint={isMobile() ? "enter" : "send"}
         />
         <div className="flex gap-2">
           <button
@@ -541,11 +544,20 @@ export default function ConclusionCard({
   // Auto-open + flash when a new conclusion/checkpoint arrives.
   // NOTE: Do NOT auto-open when status is "loading" — avoids "jump to conclusion" UX bug.
   useEffect(() => {
-    const wasLoading    = prevStatus.current === "loading";
-    const isNowSuccess  = conclusionStatus === "provisional" || conclusionStatus === "final";
-    const newConcArrived = conclusions.length > prevConcCount.current;
+    const wasLoading      = prevStatus.current === "loading";
+    const wasProvisional  = prevStatus.current === "provisional";
+    const isNowSuccess    = conclusionStatus === "provisional" || conclusionStatus === "final";
+    const isNowFinal      = conclusionStatus === "final";
+    const newConcArrived  = conclusions.length > prevConcCount.current;
 
-    if (isNowSuccess && (wasLoading || newConcArrived)) {
+    // Open + flash when:
+    //  1. A new conclusion arrives (loading → provisional/final, or count increases)
+    //  2. User clicks "ここで終える" (provisional → final) — keep card open & flash
+    const shouldOpenFlash =
+      (isNowSuccess && (wasLoading || newConcArrived)) ||
+      (isNowFinal && wasProvisional);
+
+    if (shouldOpenFlash) {
       setIsOpen(true);
       setIsNewlyUpdated(true);
       const timer = setTimeout(() => setIsNewlyUpdated(false), 2200);

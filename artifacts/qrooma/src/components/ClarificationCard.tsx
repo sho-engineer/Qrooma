@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { HelpCircleIcon, ArrowRightIcon, PlayIcon } from "lucide-react";
 import { useLocale } from "../context/LocaleContext";
+import { isMobile } from "../lib/isMobile";
 
 interface Props {
   questions:   string[];
@@ -53,11 +54,14 @@ export default function ClarificationCard({ questions, assumptions, onAnswer, on
           rows={2}
           className="w-full text-sm bg-background border border-border/60 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/40 leading-relaxed"
           onKeyDown={(e) => {
+            // On mobile, Enter = newline. Submit only via button.
+            if (isMobile()) return;
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               handleSubmit();
             }
           }}
+          enterKeyHint={isMobile() ? "enter" : "send"}
         />
       </div>
 
