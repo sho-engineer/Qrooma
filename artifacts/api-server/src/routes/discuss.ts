@@ -856,6 +856,8 @@ router.post("/discuss", async (req, res) => {
     previousMessages = [],
     writingStyle = {},
     forceConclusion = false,
+    continuation = false,
+    previousProvisional = "",
   } = req.body as {
     roomId: string;
     runId: string;
@@ -865,7 +867,12 @@ router.post("/discuss", async (req, res) => {
     apiKeys?: { openai?: string; anthropic?: string; google?: string };
     previousMessages: { role: string; agentId?: string; content: string }[];
     writingStyle?: WritingStyle;
+    /** Skip rounds and go directly to final conclusion */
     forceConclusion?: boolean;
+    /** Continue from a checkpoint — run additional rounds focused on open questions */
+    continuation?: boolean;
+    /** Text of the previous provisional conclusion (used when continuation=true) */
+    previousProvisional?: string;
   };
 
   const apiKeys = {
@@ -996,6 +1003,13 @@ router.post("/discuss", async (req, res) => {
         const decomposed = decomposeQuery(userMessage);
         let contextMsg = `User question: ${userMessage}`;
         if (decomposed) contextMsg += `\n\n[INPUT ANALYSIS — elements to address]\n${decomposed}`;
+
+        // When continuing from a checkpoint, inject the previous provisional conclusion so
+        // agents know what's already been settled and focus on the [残論点].
+        if (continuation && previousProvisional) {
+          contextMsg += `\n\n${"═".repeat(40)}\nPREVIOUS CHECKPOINT SUMMARY:\n${previousProvisional}\n${"═".repeat(40)}\nCONTINUATION INSTRUCTIONS:\n— The above is where the debate stood at the last checkpoint.\n— Focus on the [残論点] listed there. Do NOT repeat points already settled.\n— Provide new evidence, conditions, or angles that resolve one of the open questions.\n— If you disagree with something in the checkpoint, name it specifically and explain why.\n— The goal: advance the open questions, not restate settled ones.`;
+        }
+
         if (prevRoundsText) contextMsg += `\n\n${"─".repeat(40)}\nPrevious rounds:\n\n${prevRoundsText}`;
         if (currRoundText)  contextMsg += `\n\n${"─".repeat(40)}\nThis round so far (other agents only):\n\n${currRoundText}`;
 
@@ -1059,7 +1073,7 @@ router.post("/discuss", async (req, res) => {
     }
     } // end else (forceConclusion skips rounds)
 
-    // ── Conclusion ─────────────────────────────────────────────────────────────
+    // ── Conclusion / Checkpoint ─────────────────────────────────────────────────
     const conclusionPromptBase = (modePrompts as { conclusion?: string }).conclusion;
 
     if (conclusionPromptBase) {
@@ -1067,10 +1081,35 @@ router.post("/discuss", async (req, res) => {
         .map((m) => `[Round ${m.round} — ${m.roleLabel}]:\n${m.content}`)
         .join("\n\n");
 
-      // Conclusion gets its own presentation suffix (format + tone, without debate invariants
-      // since the conclusion prompt has its own logic rules built in)
-      // Language lock is injected first so the conclusion also respects Japanese input.
-      const conclusionSystemPrompt = languageLock + conclusionPromptBase + "\n" + conclusionPresentation;
+      // ── PROVISIONAL CHECKPOINT PROMPT (default after rounds) ─────────────────
+      // Used whenever forceConclusion is false — the human will then decide to end or continue.
+      const PROVISIONAL_PROMPT = `You are the MODERATOR generating a PROVISIONAL CHECKPOINT.
+The debate has completed its rounds. NO final decision has been made yet.
+The human will decide whether to continue the discussion or accept this as the final answer.
+
+Use EXACTLY these five section headers (in this order):
+
+[有力案] Current leading direction:
+[理由] Why it has the edge right now:
+[残論点] Open questions that could change the verdict:
+[次に詰める点] What to investigate or debate if discussion continues:
+[更新点] What changed since the last checkpoint (write "初回" if this is the first checkpoint):
+
+RULES:
+— [有力案]: Name a SPECIFIC direction, option, or approach. Be concrete. Not vague like "further discussion needed."
+— [理由]: 1–2 sentences. What gives this direction the edge right now.
+— [残論点]: List 1–3 specific open questions that remain unresolved and could shift the outcome.
+— [次に詰める点]: 1–2 specific things to investigate or debate if the human continues. Be actionable.
+— [更新点]: What specifically moved compared to the previous checkpoint. If this is the first checkpoint, write "初回".
+— This is a PROGRESS REPORT, not a final verdict. Leave room for the human to decide.
+— DO NOT say "it depends" without naming what it depends on.
+— Sound like a sharp advisor giving a status update.`;
+
+      // When forceConclusion=true, use the mode's built-in final conclusion prompt.
+      // Otherwise, generate a provisional checkpoint.
+      const conclusionSystemPrompt = forceConclusion
+        ? languageLock + conclusionPromptBase + "\n" + conclusionPresentation
+        : languageLock + PROVISIONAL_PROMPT + "\n" + conclusionPresentation;
 
       let conclusionText: string | null = null;
       for (const conf of agentConfig) {
@@ -1091,11 +1130,21 @@ router.post("/discuss", async (req, res) => {
       }
 
       if (conclusionText) {
-        sseWrite(res, {
-          type:      "conclusion",
-          content:   conclusionText,
-          createdAt: new Date().toISOString(),
-        });
+        if (forceConclusion) {
+          // Final conclusion — human explicitly ended the discussion
+          sseWrite(res, {
+            type:      "conclusion",
+            content:   conclusionText,
+            createdAt: new Date().toISOString(),
+          });
+        } else {
+          // Provisional checkpoint — human must choose to end or continue
+          sseWrite(res, {
+            type:      "checkpoint",
+            content:   conclusionText,
+            createdAt: new Date().toISOString(),
+          });
+        }
       } else {
         sseWrite(res, { type: "conclusion_error", message: "All agents failed to generate conclusion." });
       }

@@ -50,7 +50,7 @@ export default function RoomHeader({
         {hasMessages && (
           <button
             onClick={onRerun}
-            disabled={runStatus === "running" || !canRun}
+            disabled={runStatus === "running" || runStatus === "continued" || !canRun}
             className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium border border-border rounded-lg text-muted-foreground hover:bg-accent transition-colors disabled:opacity-40 shrink-0"
             title={!canRun ? t.apiKeyMissingRunTitle : t.rerun}
           >
@@ -93,6 +93,16 @@ function RunStatusBadge({ status }: { status: RunStatus }) {
       label: t.statusRunning,
       dotClass: "bg-amber-400 animate-pulse",
       pill: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400",
+    },
+    checkpoint: {
+      label: t.statusCheckpoint,
+      dotClass: "bg-violet-400/80",
+      pill: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400",
+    },
+    continued: {
+      label: t.statusRunning,
+      dotClass: "bg-violet-400 animate-pulse",
+      pill: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400",
     },
     completed: {
       label: t.statusCompleted,

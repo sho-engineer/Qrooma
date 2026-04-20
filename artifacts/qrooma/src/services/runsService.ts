@@ -29,16 +29,20 @@ export interface RunPayload {
 }
 
 export interface RealRunParams {
-  roomId:           string;
-  runId:            string;
-  userMessage:      string;
-  mode:             "structured-debate" | "free-talk";
-  agentConfig:      { side: "A" | "B" | "C"; provider: string; model: string }[];
-  apiKeys:          { openai?: string; anthropic?: string; google?: string };
-  previousMessages: { role: string; agentId?: string; content: string }[];
-  writingStyle?:    WritingStyle;
-  /** When true: skip all debate rounds and only generate the conclusion */
-  forceConclusion?: boolean;
+  roomId:              string;
+  runId:               string;
+  userMessage:         string;
+  mode:                "structured-debate" | "free-talk";
+  agentConfig:         { side: "A" | "B" | "C"; provider: string; model: string }[];
+  apiKeys:             { openai?: string; anthropic?: string; google?: string };
+  previousMessages:    { role: string; agentId?: string; content: string }[];
+  writingStyle?:       WritingStyle;
+  /** When true: skip all debate rounds and jump straight to the final conclusion */
+  forceConclusion?:    boolean;
+  /** When true: run additional rounds focused on the open questions from the previous checkpoint */
+  continuation?:       boolean;
+  /** Text of the previous provisional conclusion — injected into agent context when continuation=true */
+  previousProvisional?: string;
 }
 
 export interface RoundStartEvent {
@@ -101,7 +105,10 @@ export const runsService = {
 
   /**
    * Run a REAL multi-round discussion via the API server.
-   * Streams SSE events: round_start → agent messages → round_summary → conclusion → done.
+   * Streams SSE events: round_start → agent messages → round_summary → checkpoint|conclusion → done.
+   *
+   * The server will send `checkpoint` (provisional conclusion) after normal rounds.
+   * It sends `conclusion` only when forceConclusion=true (human ended the discussion).
    */
   realRun(
     params:              RealRunParams,
@@ -112,6 +119,7 @@ export const runsService = {
     onRoundStart?:       (event: RoundStartEvent) => void,
     onRoundSummary?:     (event: RoundSummaryEvent) => void,
     onConclusionError?:  () => void,
+    onCheckpoint?:       (conclusion: ConclusionData) => void,
   ): () => void {
     const controller = new AbortController();
 
@@ -132,6 +140,11 @@ export const runsService = {
         const reader  = response.body.getReader();
         const decoder = new TextDecoder();
         let   buffer  = "";
+
+        // Track which kind of conclusion event we received so we can send the
+        // right status when `done` fires.
+        let receivedCheckpoint = false;
+        let receivedConclusion = false;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -167,16 +180,35 @@ export const runsService = {
                 runId:     String(data["runId"] ?? ""),
                 createdAt: String(data["createdAt"] ?? new Date().toISOString()),
               });
-            } else if (data["type"] === "conclusion") {
-              // API sends { type:"conclusion", content:"...", createdAt:"..." }
-              // Build ConclusionData from the raw content string.
+            } else if (data["type"] === "checkpoint") {
+              // Provisional conclusion — human must decide to end or continue
               const content = String(data["content"] ?? "").trim();
               if (content) {
+                receivedCheckpoint = true;
                 const conc: ConclusionData = {
-                  summary:     content,
-                  keyPoints:   [],
-                  generatedAt: String(data["createdAt"] ?? new Date().toISOString()),
-                  runId:       params.runId,
+                  summary:      content,
+                  keyPoints:    [],
+                  generatedAt:  String(data["createdAt"] ?? new Date().toISOString()),
+                  runId:        params.runId,
+                  isProvisional: true,
+                  isFinal:       false,
+                };
+                onCheckpoint?.(conc);
+              } else {
+                onConclusionError?.();
+              }
+            } else if (data["type"] === "conclusion") {
+              // Final conclusion — human explicitly ended the discussion (forceConclusion=true)
+              const content = String(data["content"] ?? "").trim();
+              if (content) {
+                receivedConclusion = true;
+                const conc: ConclusionData = {
+                  summary:      content,
+                  keyPoints:    [],
+                  generatedAt:  String(data["createdAt"] ?? new Date().toISOString()),
+                  runId:        params.runId,
+                  isProvisional: false,
+                  isFinal:       true,
                 };
                 onConclusion(conc);
               } else {
@@ -185,7 +217,14 @@ export const runsService = {
             } else if (data["type"] === "conclusion_error") {
               onConclusionError?.();
             } else if (data["type"] === "done") {
-              onComplete("completed");
+              // Send the appropriate terminal status based on what we received
+              if (receivedConclusion) {
+                onComplete("completed");
+              } else if (receivedCheckpoint) {
+                onComplete("checkpoint");
+              } else {
+                onComplete("completed");
+              }
             } else if (data["type"] === "error") {
               console.error("API discussion error:", data["message"]);
               onComplete("error");

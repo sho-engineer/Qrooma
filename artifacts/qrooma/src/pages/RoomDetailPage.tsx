@@ -139,6 +139,8 @@ export default function RoomDetailPage() {
   // ─── Derived values ─────────────────────────────────────────────────────────
 
   const isFree = plan === "free";
+  /** True while any round is actively running (initial run or continuation) */
+  const isRunActive = runStatus === "running" || runStatus === "continued";
   const agentCount  = isFree ? 2 : (settings.agentCount ?? 3);
   const activeSides = isFree
     ? FREE_SIDES
@@ -193,8 +195,17 @@ export default function RoomDetailPage() {
     setCurrentRound(null);
     setAgentErrors([]);
     setFatalError(null);
-    setConclusions(messagesService.getConclusions(roomId));
-    setConclusionStatus("idle");
+    const savedConcs = messagesService.getConclusions(roomId);
+    setConclusions(savedConcs);
+    // Restore conclusion status from saved data so page-refresh preserves state
+    const top = savedConcs[0];
+    if (top?.isProvisional && !top?.isFinal) {
+      setConclusionStatus("provisional");
+    } else if (top?.isFinal) {
+      setConclusionStatus("final");
+    } else {
+      setConclusionStatus("idle");
+    }
     isFirstMount.current = true;
     shouldScrollToBottom.current = false;
   }, [roomId]);
@@ -305,19 +316,21 @@ export default function RoomDetailPage() {
       const cancel = runsService.realRun(
         params,
         onMessage,
+        // onConclusion — called when forceConclusion=true (user clicked "End here")
         (conc) => {
           const enriched: ConclusionData = {
             ...conc,
             runId,
             runNumber: currentRunCount,
+            isProvisional: false,
+            isFinal:       true,
           };
           messagesService.saveConclusion(roomId, enriched);
           setConclusions(messagesService.getConclusions(roomId));
-          setConclusionStatus("success");
+          setConclusionStatus("final");
         },
         (status) => {
           onStatus(status);
-          // If API failed entirely, mark conclusion as error
           if (status === "error") {
             setConclusionStatus((prev) => prev === "loading" ? "error" : prev);
           }
@@ -338,9 +351,21 @@ export default function RoomDetailPage() {
           setMessages((prev) => [...prev, summaryMsg]);
         },
         () => {
-          // conclusion_error: rounds completed but no conclusion generated.
-          // Show "unresolved" state with continue/provisional/add-condition actions.
+          // conclusion_error: rounds completed but AI failed to generate even a provisional.
           setConclusionStatus("unresolved");
+        },
+        // onCheckpoint — called after normal rounds complete (provisional conclusion)
+        (conc) => {
+          const enriched: ConclusionData = {
+            ...conc,
+            runId,
+            runNumber:    currentRunCount,
+            isProvisional: true,
+            isFinal:       false,
+          };
+          messagesService.saveConclusion(roomId, enriched);
+          setConclusions(messagesService.getConclusions(roomId));
+          setConclusionStatus("provisional");
         },
       );
       cancelRun.current = cancel;
@@ -359,7 +384,7 @@ export default function RoomDetailPage() {
   }
 
   function sendMessage() {
-    if (!input.trim() || runStatus === "running") return;
+    if (!input.trim() || isRunActive) return;
 
     const newRunId = `run-${Date.now()}`;
     const userMsg: Message = {
@@ -381,7 +406,7 @@ export default function RoomDetailPage() {
   }
 
   function rerun() {
-    if (runStatus === "running" || messages.length === 0) return;
+    if (isRunActive || messages.length === 0) return;
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     const newRunId = `run-${Date.now()}`;
     shouldScrollToBottom.current = true;
@@ -392,7 +417,7 @@ export default function RoomDetailPage() {
 
   // "暫定結論を出す" — skip rounds, generate conclusion from current context
   const handleProvisional = useCallback(() => {
-    if (runStatus === "running" || messages.length === 0) return;
+    if (isRunActive || messages.length === 0) return;
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     if (!lastUserMsg) return;
     if (!hasSomeKey && !isFree) return;
@@ -432,10 +457,13 @@ export default function RoomDetailPage() {
       params,
       () => {},  // no new messages expected (rounds skipped)
       (conc) => {
-        const enriched: ConclusionData = { ...conc, runId, runNumber: runCount };
+        const enriched: ConclusionData = {
+          ...conc, runId, runNumber: runCount,
+          isProvisional: false, isFinal: true,
+        };
         messagesService.saveConclusion(roomId, enriched);
         setConclusions(messagesService.getConclusions(roomId));
-        setConclusionStatus("success");
+        setConclusionStatus("final");
         setRunStatus("completed");
       },
       (status) => {
@@ -454,6 +482,121 @@ export default function RoomDetailPage() {
   const handleAddCondition = useCallback(() => {
     inputRef.current?.focus();
   }, []);
+
+  // "ここで終える" — promote the current provisional conclusion to final (client-side, no API call)
+  const handleEndHere = useCallback(() => {
+    const current = conclusions[0];
+    if (!current) return;
+    const finalized: ConclusionData = {
+      ...current,
+      isProvisional: false,
+      isFinal:       true,
+    };
+    // Replace the top conclusion with the finalized version
+    messagesService.updateTopConclusion(roomId, finalized);
+    setConclusions(messagesService.getConclusions(roomId));
+    setConclusionStatus("final");
+    setRunStatus("completed");
+    const lastMsg = messagesService.getByRoom(roomId).at(-1);
+    updateRoom(roomId, { lastRunStatus: "completed", ...(lastMsg ? { lastMessage: lastMsg.content.slice(0, 80), lastMessageAt: lastMsg.createdAt } : {}) });
+  }, [conclusions, roomId, updateRoom]);
+
+  // "議論を続ける" — run additional rounds focused on the 残論点 from the last provisional
+  const handleContinueDiscussion = useCallback(() => {
+    if (isRunActive || messages.length === 0) return;
+    if (!hasSomeKey && !isFree) return;
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUserMsg) return;
+    const previousProvisional = conclusions[0]?.summary ?? "";
+
+    const sides = isFree
+      ? (["A", "B"] as const)
+      : ((agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[]);
+    const sideConfigs = isFree ? FREE_SIDES : [settings.sideA, settings.sideB, settings.sideC];
+    const agentConfig = sides
+      .map((side, i) => ({ side, provider: sideConfigs[i]!.provider, model: sideConfigs[i]!.model }))
+      .filter((a) => isFree || !!({ openai: settings.openaiApiKey, anthropic: settings.anthropicApiKey, google: settings.googleApiKey }[a.provider]));
+
+    const runId = `run-${Date.now()}-cont`;
+    const nextCount = runCount + 1;
+    setRunCount(nextCount);
+    setRunStatus("continued");
+    setRespondedCount(0);
+    setCurrentRound(null);
+    setAgentErrors([]);
+    setConclusionStatus("loading");
+
+    const params: RealRunParams = {
+      roomId,
+      runId,
+      userMessage:      lastUserMsg.content,
+      mode:             settings.defaultMode,
+      agentConfig,
+      apiKeys: isFree ? {} : {
+        openai:    settings.openaiApiKey    || undefined,
+        anthropic: settings.anthropicApiKey || undefined,
+        google:    settings.googleApiKey    || undefined,
+      },
+      previousMessages: messages
+        .filter((m) => m.role !== "summary")
+        .slice(-16)
+        .map((m) => ({ role: m.role, agentId: m.agentId, content: m.content })),
+      writingStyle:       settings.writingStyle,
+      continuation:       true,
+      previousProvisional,
+    };
+
+    function onMsg(msg: Message) {
+      messagesService.append(msg);
+      setMessages((prev) => [...prev, msg]);
+      setRespondedCount((c) => c + 1);
+    }
+
+    const cancel = runsService.realRun(
+      params,
+      onMsg,
+      // onConclusion — shouldn't fire in continuation (no forceConclusion), but handle defensively
+      (conc) => {
+        const enriched: ConclusionData = { ...conc, runId, runNumber: nextCount, isProvisional: false, isFinal: true };
+        messagesService.saveConclusion(roomId, enriched);
+        setConclusions(messagesService.getConclusions(roomId));
+        setConclusionStatus("final");
+        setRunStatus("completed");
+      },
+      (status) => {
+        if (status !== "checkpoint") setRunStatus(status);
+        if (status === "error") setConclusionStatus((prev) => prev === "loading" ? "error" : prev);
+        if (status === "completed") {
+          updateRoom(roomId, { lastRunStatus: status });
+        }
+      },
+      (side, message) => setAgentErrors((prev) => [...prev, `${side}: ${message}`]),
+      (evt) => setCurrentRound(evt),
+      (evt) => {
+        const summaryMsg: Message = {
+          id:        evt.id,
+          roomId,
+          role:      "summary",
+          round:     evt.round,
+          content:   evt.summary,
+          createdAt: evt.createdAt,
+          runId,
+        };
+        messagesService.append(summaryMsg);
+        setMessages((prev) => [...prev, summaryMsg]);
+      },
+      () => { setConclusionStatus("unresolved"); },
+      // onCheckpoint — updated provisional conclusion
+      (conc) => {
+        const enriched: ConclusionData = { ...conc, runId, runNumber: nextCount, isProvisional: true, isFinal: false };
+        messagesService.saveConclusion(roomId, enriched);
+        setConclusions(messagesService.getConclusions(roomId));
+        setConclusionStatus("provisional");
+        setRunStatus("checkpoint");
+      },
+    );
+    cancelRun.current = cancel;
+  }, [runStatus, messages, hasSomeKey, isFree, agentCount, settings, roomId, runCount, conclusions, updateRoom]);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -525,7 +668,7 @@ export default function RoomDetailPage() {
           </div>
         ))}
 
-        {runStatus === "running" && (
+        {isRunActive && (
           <ThinkingIndicator
             respondedCount={respondedCount}
             agentCount={agentCount}
@@ -570,6 +713,8 @@ export default function RoomDetailPage() {
           onContinue={rerun}
           onProvisional={handleProvisional}
           onAddCondition={handleAddCondition}
+          onEndHere={handleEndHere}
+          onContinueDiscussion={handleContinueDiscussion}
         />
       )}
 
@@ -589,7 +734,7 @@ export default function RoomDetailPage() {
         value={input}
         onChange={setInput}
         onSend={sendMessage}
-        isRunning={runStatus === "running"}
+        isRunning={isRunActive}
         apiKeysReady={plan === "free" || plan === "pro" ? true : hasSomeKey}
       />
     </div>

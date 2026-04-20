@@ -111,6 +111,21 @@ export const messagesService = {
     localStorage.setItem(CONC_KEY, JSON.stringify(all));
   },
 
+  /**
+   * Updates (replaces in-place) the most recent conclusion for a room.
+   * Used when "End here" promotes a provisional to final without creating a new history entry.
+   */
+  updateTopConclusion(roomId: string, updated: ConclusionData): void {
+    const all = loadConclusions();
+    const existing = all[roomId] ?? [];
+    if (existing.length === 0) {
+      all[roomId] = [updated];
+    } else {
+      all[roomId] = [updated, ...existing.slice(1)];
+    }
+    localStorage.setItem(CONC_KEY, JSON.stringify(all));
+  },
+
   /** Count unique run IDs for a room */
   countRuns(roomId: string): number {
     const ids = loadMessages()

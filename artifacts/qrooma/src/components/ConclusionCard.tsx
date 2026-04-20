@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronDownIcon, ClockIcon, RotateCcwIcon, MessageSquarePlusIcon, PlayIcon, PlusCircleIcon } from "lucide-react";
+import {
+  ChevronDownIcon, ClockIcon, RotateCcwIcon,
+  CheckCircleIcon, PlayIcon,
+} from "lucide-react";
 import type { ConclusionData, ConclusionStatus } from "../types";
 import { useLocale } from "../context/LocaleContext";
 
@@ -11,6 +14,8 @@ interface Props {
   onContinue?:        () => void;
   onProvisional?:     () => void;
   onAddCondition?:    () => void;
+  onEndHere?:         () => void;
+  onContinueDiscussion?: () => void;
 }
 
 function formatDate(iso: string, locale: string): string {
@@ -20,64 +25,104 @@ function formatDate(iso: string, locale: string): string {
   });
 }
 
-// ─── Parse structured conclusion sections ─────────────────────────────────────
+// ─── Section parsers ───────────────────────────────────────────────────────────
 
-interface ConclusionSections {
-  adopted?:   { label: string; content: string };
-  rejected?:  { label: string; content: string };
-  open?:      { label: string; content: string };
-  next?:      { label: string; content: string };
-  fallback?:  string;
+// FINAL conclusion format: [採用][棄却][残論点][次アクション]
+interface FinalSections {
+  adopted?:  { content: string };
+  rejected?: { content: string };
+  open?:     { content: string };
+  next?:     { content: string };
+  fallback?: string;
 }
 
-type StructuredKey = "adopted" | "rejected" | "open" | "next";
-
-const SECTION_PATTERNS: Array<{ key: StructuredKey; regex: RegExp }> = [
+const FINAL_PATTERNS: Array<{ key: keyof Omit<FinalSections, "fallback">; regex: RegExp }> = [
   { key: "adopted",  regex: /\[採用\][^\n]*\n?([\s\S]*?)(?=\[棄却\]|\[残論点\]|\[次アクション\]|$)/i },
   { key: "rejected", regex: /\[棄却\][^\n]*\n?([\s\S]*?)(?=\[採用\]|\[残論点\]|\[次アクション\]|$)/i },
   { key: "open",     regex: /\[残論点\][^\n]*\n?([\s\S]*?)(?=\[採用\]|\[棄却\]|\[次アクション\]|$)/i },
   { key: "next",     regex: /\[次アクション\][^\n]*\n?([\s\S]*?)(?=\[採用\]|\[棄却\]|\[残論点\]|$)/i },
 ];
 
-const HEADER_LABELS_JA: Record<keyof ConclusionSections, string> = {
-  adopted: "採用", rejected: "棄却", open: "残論点", next: "次アクション", fallback: "",
-};
-const HEADER_LABELS_EN: Record<keyof ConclusionSections, string> = {
-  adopted: "Adopted", rejected: "Rejected", open: "Open questions", next: "Next action", fallback: "",
-};
-
-function parseSections(text: string): ConclusionSections {
-  if (!text || !text.trim()) return {};
-  const hasMarkers = SECTION_PATTERNS.some((p) => p.regex.test(text));
+function parseFinalSections(text: string): FinalSections {
+  if (!text?.trim()) return {};
+  const hasMarkers = FINAL_PATTERNS.some((p) => p.regex.test(text));
   if (!hasMarkers) return { fallback: text };
-  const result: ConclusionSections = {};
-  for (const { key, regex } of SECTION_PATTERNS) {
+  const result: FinalSections = {};
+  for (const { key, regex } of FINAL_PATTERNS) {
     const m = text.match(regex);
     const content = m?.[1]?.trim();
-    if (content) result[key] = { label: key, content };
+    if (content) result[key] = { content };
   }
   return result;
 }
 
-const SECTION_META: Record<
-  "adopted" | "rejected" | "open" | "next",
-  { icon: string; color: string; borderColor: string }
-> = {
-  adopted:  { icon: "✓", color: "text-emerald-700 dark:text-emerald-400", borderColor: "border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20" },
-  rejected: { icon: "✗", color: "text-rose-600 dark:text-rose-400",       borderColor: "border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-950/20" },
-  open:     { icon: "?", color: "text-amber-600 dark:text-amber-400",      borderColor: "border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20" },
-  next:     { icon: "→", color: "text-blue-600 dark:text-blue-400",        borderColor: "border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20" },
+// PROVISIONAL conclusion format: [有力案][理由][残論点][次に詰める点][更新点]
+interface ProvisionalSections {
+  leading?:   { content: string };
+  reasoning?: { content: string };
+  open?:      { content: string };
+  clarify?:   { content: string };
+  changed?:   { content: string };
+  fallback?:  string;
+}
+
+const PROVISIONAL_PATTERNS: Array<{ key: keyof Omit<ProvisionalSections, "fallback">; regex: RegExp }> = [
+  { key: "leading",   regex: /\[有力案\][^\n]*\n?([\s\S]*?)(?=\[理由\]|\[残論点\]|\[次に詰める点\]|\[更新点\]|$)/i },
+  { key: "reasoning", regex: /\[理由\][^\n]*\n?([\s\S]*?)(?=\[有力案\]|\[残論点\]|\[次に詰める点\]|\[更新点\]|$)/i },
+  { key: "open",      regex: /\[残論点\][^\n]*\n?([\s\S]*?)(?=\[有力案\]|\[理由\]|\[次に詰める点\]|\[更新点\]|$)/i },
+  { key: "clarify",   regex: /\[次に詰める点\][^\n]*\n?([\s\S]*?)(?=\[有力案\]|\[理由\]|\[残論点\]|\[更新点\]|$)/i },
+  { key: "changed",   regex: /\[更新点\][^\n]*\n?([\s\S]*?)(?=\[有力案\]|\[理由\]|\[残論点\]|\[次に詰める点\]|$)/i },
+];
+
+function parseProvisionalSections(text: string): ProvisionalSections {
+  if (!text?.trim()) return {};
+  const hasMarkers = PROVISIONAL_PATTERNS.some((p) => p.regex.test(text));
+  if (!hasMarkers) return { fallback: text };
+  const result: ProvisionalSections = {};
+  for (const { key, regex } of PROVISIONAL_PATTERNS) {
+    const m = text.match(regex);
+    const content = m?.[1]?.trim();
+    if (content) result[key] = { content };
+  }
+  return result;
+}
+
+function isProvisionalFormat(text: string): boolean {
+  return /\[有力案\]/.test(text) || /\[次に詰める点\]/.test(text) || /\[更新点\]/.test(text);
+}
+
+// ─── Section meta ──────────────────────────────────────────────────────────────
+
+const FINAL_SECTION_META = {
+  adopted:  { icon: "✓", color: "text-emerald-700 dark:text-emerald-400", bg: "border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20" },
+  rejected: { icon: "✗", color: "text-rose-600 dark:text-rose-400",       bg: "border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-950/20" },
+  open:     { icon: "?", color: "text-amber-600 dark:text-amber-400",      bg: "border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20" },
+  next:     { icon: "→", color: "text-blue-600 dark:text-blue-400",        bg: "border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20" },
 };
 
-// ─── Loading skeleton ─────────────────────────────────────────────────────────
+const PROVISIONAL_SECTION_META = {
+  leading:   { icon: "✦", color: "text-violet-600 dark:text-violet-400",  bg: "border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20" },
+  reasoning: { icon: "→", color: "text-blue-600 dark:text-blue-400",      bg: "border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20" },
+  open:      { icon: "?", color: "text-amber-600 dark:text-amber-400",    bg: "border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20" },
+  clarify:   { icon: "↻", color: "text-indigo-600 dark:text-indigo-400",  bg: "border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/20" },
+  changed:   { icon: "↕", color: "text-slate-500 dark:text-slate-400",    bg: "border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/20" },
+};
 
-function ConclusionLoadingSkeleton() {
+// ─── Loading skeleton ──────────────────────────────────────────────────────────
+
+function ConclusionLoadingSkeleton({ isProvisional }: { isProvisional?: boolean }) {
+  const keys = isProvisional
+    ? (["leading", "open", "clarify", "changed"] as const)
+    : (["adopted", "rejected", "open", "next"] as const);
+
+  const metas = isProvisional ? PROVISIONAL_SECTION_META : FINAL_SECTION_META;
+
   return (
     <div className="px-4 py-4 space-y-2.5 animate-pulse">
-      {(["adopted", "rejected", "open", "next"] as const).map((key) => {
-        const meta = SECTION_META[key];
+      {keys.map((key) => {
+        const meta = metas[key as keyof typeof metas];
         return (
-          <div key={key} className={`flex gap-3 px-3.5 py-3 rounded-xl border ${meta.borderColor}`}>
+          <div key={key} className={`flex gap-3 px-3.5 py-3 rounded-xl border ${meta.bg}`}>
             <span className={`shrink-0 w-5 h-5 flex items-center justify-center text-xs font-bold rounded-full border ${meta.color} border-current mt-0.5 opacity-30`}>
               {meta.icon}
             </span>
@@ -93,15 +138,13 @@ function ConclusionLoadingSkeleton() {
   );
 }
 
-// ─── Error state (catastrophic failure) ──────────────────────────────────────
+// ─── Error state ──────────────────────────────────────────────────────────────
 
 function ConclusionErrorState({ onRerun }: { onRerun?: () => void }) {
   const { t } = useLocale();
   return (
     <div className="px-5 py-6 text-center space-y-3">
-      <p className="text-sm text-muted-foreground/70 leading-relaxed">
-        {t.conclusionError}
-      </p>
+      <p className="text-sm text-muted-foreground/70 leading-relaxed">{t.conclusionError}</p>
       {onRerun && (
         <button
           onClick={onRerun}
@@ -115,7 +158,7 @@ function ConclusionErrorState({ onRerun }: { onRerun?: () => void }) {
   );
 }
 
-// ─── Unresolved state (rounds done, no clear verdict yet) ────────────────────
+// ─── Unresolved state (AI couldn't generate even a provisional) ───────────────
 
 function ConclusionUnresolvedState({
   onContinue,
@@ -130,24 +173,16 @@ function ConclusionUnresolvedState({
   return (
     <div className="px-5 py-5 space-y-4">
       <div className="rounded-xl border border-amber-200/60 dark:border-amber-800/40 bg-amber-50/40 dark:bg-amber-950/20 px-4 py-3.5">
-        <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">
-          {t.conclusionUnresolved}
-        </p>
-        <p className="text-xs text-amber-700/70 dark:text-amber-400/60 leading-relaxed">
-          {t.conclusionUnresolvedDesc}
-        </p>
+        <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">{t.conclusionUnresolved}</p>
+        <p className="text-xs text-amber-700/70 dark:text-amber-400/60 leading-relaxed">{t.conclusionUnresolvedDesc}</p>
       </div>
-
       <div className="space-y-2">
         {onContinue && (
-          <button
-            onClick={onContinue}
-            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-card transition-colors text-left group"
-          >
+          <button onClick={onContinue} className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-card transition-colors text-left">
             <div className="shrink-0 w-6 h-6 rounded-lg bg-violet-100 dark:bg-violet-950/60 flex items-center justify-center">
               <PlayIcon size={10} className="text-violet-600 dark:text-violet-400" />
             </div>
-            <div className="min-w-0">
+            <div>
               <p className="text-xs font-semibold text-foreground">{t.conclusionContinue}</p>
               <p className="text-[10px] text-muted-foreground/50 mt-0.5">
                 {locale === "ja" ? "次ラウンドを追加して議論を深める" : "Add another round to deepen the debate"}
@@ -155,16 +190,12 @@ function ConclusionUnresolvedState({
             </div>
           </button>
         )}
-
         {onProvisional && (
-          <button
-            onClick={onProvisional}
-            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-card transition-colors text-left"
-          >
+          <button onClick={onProvisional} className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-card transition-colors text-left">
             <div className="shrink-0 w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-950/60 flex items-center justify-center">
-              <MessageSquarePlusIcon size={10} className="text-blue-600 dark:text-blue-400" />
+              <PlayIcon size={10} className="text-blue-600 dark:text-blue-400" />
             </div>
-            <div className="min-w-0">
+            <div>
               <p className="text-xs font-semibold text-foreground">{t.conclusionProvisional}</p>
               <p className="text-[10px] text-muted-foreground/50 mt-0.5">
                 {locale === "ja" ? "完全収束でなくても現時点の最善案を出す" : "Extract the best current option without full consensus"}
@@ -172,20 +203,13 @@ function ConclusionUnresolvedState({
             </div>
           </button>
         )}
-
         {onAddCondition && (
-          <button
-            onClick={onAddCondition}
-            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-card transition-colors text-left"
-          >
+          <button onClick={onAddCondition} className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-card transition-colors text-left">
             <div className="shrink-0 w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center">
-              <PlusCircleIcon size={10} className="text-emerald-600 dark:text-emerald-400" />
+              <PlayIcon size={10} className="text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div className="min-w-0">
+            <div>
               <p className="text-xs font-semibold text-foreground">{t.conclusionAddCondition}</p>
-              <p className="text-[10px] text-muted-foreground/50 mt-0.5">
-                {locale === "ja" ? "予算・人数・制約など前提を補足して再開" : "Add budget, constraints, or priorities to refocus"}
-              </p>
             </div>
           </button>
         )}
@@ -194,17 +218,66 @@ function ConclusionUnresolvedState({
   );
 }
 
-// ─── Single conclusion body ────────────────────────────────────────────────────
+// ─── Provisional checkpoint action buttons ────────────────────────────────────
 
-function ConclusionBody({ conclusion, locale }: { conclusion: ConclusionData; locale: string }) {
-  const labelMap = locale === "ja" ? HEADER_LABELS_JA : HEADER_LABELS_EN;
-  const sections = parseSections(conclusion.summary);
+function CheckpointActions({
+  onEndHere,
+  onContinueDiscussion,
+}: {
+  onEndHere?:            () => void;
+  onContinueDiscussion?: () => void;
+}) {
+  const { t, locale } = useLocale();
+  return (
+    <div className="px-4 pb-4 pt-1 space-y-2 border-t border-border/30 mt-1">
+      <p className="text-[10px] text-muted-foreground/40 pt-2">
+        {locale === "ja" ? "この先どうしますか？" : "What would you like to do next?"}
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        {onEndHere && (
+          <button
+            onClick={onEndHere}
+            className="flex flex-col items-start gap-1 px-3.5 py-3 rounded-xl border border-border bg-background hover:bg-card active:scale-[0.98] transition-all text-left"
+          >
+            <div className="flex items-center gap-1.5">
+              <CheckCircleIcon size={12} className="text-emerald-500 shrink-0" />
+              <span className="text-xs font-semibold text-foreground">{t.endHere}</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground/50 leading-snug">{t.endHereDesc}</p>
+          </button>
+        )}
+        {onContinueDiscussion && (
+          <button
+            onClick={onContinueDiscussion}
+            className="flex flex-col items-start gap-1 px-3.5 py-3 rounded-xl border border-violet-200/70 dark:border-violet-800/40 bg-violet-50/40 dark:bg-violet-950/20 hover:bg-violet-50/70 dark:hover:bg-violet-950/30 active:scale-[0.98] transition-all text-left"
+          >
+            <div className="flex items-center gap-1.5">
+              <PlayIcon size={12} className="text-violet-500 shrink-0" />
+              <span className="text-xs font-semibold text-violet-700 dark:text-violet-300">{t.continueDiscussion}</span>
+            </div>
+            <p className="text-[10px] text-violet-600/50 dark:text-violet-400/40 leading-snug">{t.continueDiscussionDesc}</p>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Provisional conclusion body ───────────────────────────────────────────────
+
+function ProvisionalConclusionBody({ conclusion, locale }: { conclusion: ConclusionData; locale: string }) {
   const { t } = useLocale();
+  const sections = parseProvisionalSections(conclusion.summary);
+  const labelMap: Record<keyof Omit<ProvisionalSections, "fallback">, string> = {
+    leading:   t.leadingOption,
+    reasoning: t.conclusionReasoning,
+    open:      t.openQuestionsLabel,
+    clarify:   t.clarifyNext,
+    changed:   t.whatChanged,
+  };
 
-  const hasAnySection =
-    sections.adopted || sections.rejected || sections.open || sections.next || sections.fallback;
-
-  if (!hasAnySection) {
+  const hasStructured = sections.leading || sections.open || sections.clarify;
+  if (!hasStructured && !sections.fallback) {
     return (
       <div className="px-5 py-7 text-center">
         <p className="text-sm text-muted-foreground/50">{t.conclusionError}</p>
@@ -212,18 +285,20 @@ function ConclusionBody({ conclusion, locale }: { conclusion: ConclusionData; lo
     );
   }
 
-  const isStructured = !sections.fallback;
-
   return (
     <>
-      {isStructured ? (
+      {sections.fallback ? (
+        <div className="px-5 py-4">
+          <p className="text-sm text-foreground leading-[1.75] whitespace-pre-line">{sections.fallback}</p>
+        </div>
+      ) : (
         <div className="px-4 py-4 space-y-2.5">
-          {(["adopted", "rejected", "open", "next"] as const).map((key) => {
+          {(["leading", "reasoning", "open", "clarify", "changed"] as const).map((key) => {
             const sec = sections[key];
             if (!sec) return null;
-            const meta = SECTION_META[key];
+            const meta = PROVISIONAL_SECTION_META[key];
             return (
-              <div key={key} className={`flex gap-3 px-3.5 py-3 rounded-xl border ${meta.borderColor}`}>
+              <div key={key} className={`flex gap-3 px-3.5 py-3 rounded-xl border ${meta.bg}`}>
                 <span className={`shrink-0 w-5 h-5 flex items-center justify-center text-xs font-bold rounded-full border ${meta.color} border-current mt-0.5`}>
                   {meta.icon}
                 </span>
@@ -237,12 +312,7 @@ function ConclusionBody({ conclusion, locale }: { conclusion: ConclusionData; lo
             );
           })}
         </div>
-      ) : (
-        <div className="px-5 py-4">
-          <p className="text-sm text-foreground leading-[1.75] whitespace-pre-line">{sections.fallback}</p>
-        </div>
       )}
-
       <div className="px-5 py-2 border-t border-border/30 bg-background/20">
         <p className="text-[11px] text-muted-foreground/40">
           {t.generatedAt}: {formatDate(conclusion.generatedAt, locale)}
@@ -253,6 +323,76 @@ function ConclusionBody({ conclusion, locale }: { conclusion: ConclusionData; lo
       </div>
     </>
   );
+}
+
+// ─── Final conclusion body ─────────────────────────────────────────────────────
+
+function FinalConclusionBody({ conclusion, locale }: { conclusion: ConclusionData; locale: string }) {
+  const { t } = useLocale();
+  const sections = parseFinalSections(conclusion.summary);
+  const labelMap = {
+    adopted:  locale === "ja" ? "採用" : "Adopted",
+    rejected: locale === "ja" ? "棄却" : "Rejected",
+    open:     locale === "ja" ? "残論点" : "Open questions",
+    next:     locale === "ja" ? "次アクション" : "Next action",
+  };
+
+  const hasStructured = sections.adopted || sections.rejected || sections.open || sections.next;
+  if (!hasStructured && !sections.fallback) {
+    return (
+      <div className="px-5 py-7 text-center">
+        <p className="text-sm text-muted-foreground/50">{t.conclusionError}</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {sections.fallback ? (
+        <div className="px-5 py-4">
+          <p className="text-sm text-foreground leading-[1.75] whitespace-pre-line">{sections.fallback}</p>
+        </div>
+      ) : (
+        <div className="px-4 py-4 space-y-2.5">
+          {(["adopted", "rejected", "open", "next"] as const).map((key) => {
+            const sec = sections[key];
+            if (!sec) return null;
+            const meta = FINAL_SECTION_META[key];
+            return (
+              <div key={key} className={`flex gap-3 px-3.5 py-3 rounded-xl border ${meta.bg}`}>
+                <span className={`shrink-0 w-5 h-5 flex items-center justify-center text-xs font-bold rounded-full border ${meta.color} border-current mt-0.5`}>
+                  {meta.icon}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={`text-[10px] font-semibold uppercase tracking-widest mb-0.5 ${meta.color}`}>
+                    {labelMap[key]}
+                  </p>
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{sec.content}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="px-5 py-2 border-t border-border/30 bg-background/20">
+        <p className="text-[11px] text-muted-foreground/40">
+          {t.generatedAt}: {formatDate(conclusion.generatedAt, locale)}
+          {conclusion.runNumber != null && (
+            <span className="ml-2 opacity-60">· Run #{conclusion.runNumber}</span>
+          )}
+        </p>
+      </div>
+    </>
+  );
+}
+
+// ─── Smart conclusion body (auto-detects format) ──────────────────────────────
+
+function ConclusionBody({ conclusion, locale }: { conclusion: ConclusionData; locale: string }) {
+  const provisional = conclusion.isProvisional || isProvisionalFormat(conclusion.summary);
+  return provisional
+    ? <ProvisionalConclusionBody conclusion={conclusion} locale={locale} />
+    : <FinalConclusionBody conclusion={conclusion} locale={locale} />;
 }
 
 // ─── Past conclusion row (collapsible) ────────────────────────────────────────
@@ -269,7 +409,10 @@ function PastConclusionRow({
   locale:     string;
 }) {
   const [open, setOpen] = useState(false);
+  const { t } = useLocale();
   const versionNum = total - index;
+  const isProvis = conclusion.isProvisional && !conclusion.isFinal;
+  const badge = isProvis ? t.provisionalBadge : conclusion.isFinal ? t.finalBadge : null;
 
   return (
     <div className="border border-border/40 rounded-xl overflow-hidden">
@@ -282,6 +425,15 @@ function PastConclusionRow({
           <span className="text-[11px] font-medium text-muted-foreground/70">
             {locale === "ja" ? `結論 v${versionNum}` : `Conclusion v${versionNum}`}
           </span>
+          {badge && (
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+              isProvis
+                ? "bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400"
+                : "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
+            }`}>
+              {badge}
+            </span>
+          )}
           {conclusion.runNumber != null && (
             <span className="text-[10px] text-muted-foreground/40">· Run #{conclusion.runNumber}</span>
           )}
@@ -296,7 +448,6 @@ function PastConclusionRow({
           <ChevronDownIcon size={12} />
         </div>
       </button>
-
       {open && (
         <div className="border-t border-border/30">
           <ConclusionBody conclusion={conclusion} locale={locale} />
@@ -316,30 +467,31 @@ export default function ConclusionCard({
   onContinue,
   onProvisional,
   onAddCondition,
+  onEndHere,
+  onContinueDiscussion,
 }: Props) {
-  const [isOpen,        setIsOpen]        = useState(false);
-  const [showHistory,   setShowHistory]   = useState(false);
-  const [isNewlyUpdated, setIsNewlyUpdated] = useState(false);
-  const prevStatus = useRef<ConclusionStatus>("idle");
-  const prevConcCount = useRef(0);
-  const { t, locale } = useLocale();
+  const [isOpen,          setIsOpen]          = useState(false);
+  const [showHistory,     setShowHistory]     = useState(false);
+  const [isNewlyUpdated,  setIsNewlyUpdated]  = useState(false);
+  const prevStatus      = useRef<ConclusionStatus>("idle");
+  const prevConcCount   = useRef(0);
+  const { t, locale }   = useLocale();
 
-  // Auto-open + flash when a new conclusion arrives
+  // Auto-open + flash when a new conclusion/checkpoint arrives
   useEffect(() => {
-    const wasLoading = prevStatus.current === "loading";
-    const isNowSuccess = conclusionStatus === "success";
+    const wasLoading    = prevStatus.current === "loading";
+    const isNowSuccess  = conclusionStatus === "provisional" || conclusionStatus === "final";
     const newConcArrived = conclusions.length > prevConcCount.current;
 
     if (isNowSuccess && (wasLoading || newConcArrived)) {
       setIsOpen(true);
       setIsNewlyUpdated(true);
       const timer = setTimeout(() => setIsNewlyUpdated(false), 2200);
-      prevStatus.current   = conclusionStatus;
+      prevStatus.current    = conclusionStatus;
       prevConcCount.current = conclusions.length;
       return () => clearTimeout(timer);
     }
 
-    // Also auto-open when entering loading state (so user sees the skeleton)
     if (conclusionStatus === "loading" && prevStatus.current !== "loading") {
       setIsOpen(true);
     }
@@ -348,15 +500,21 @@ export default function ConclusionCard({
     prevConcCount.current = conclusions.length;
   }, [conclusionStatus, conclusions.length]);
 
-  const current    = conclusions[0] ?? null;
-  const history    = conclusions.slice(1);
-  const hasConc    = !!current && !!current.summary?.trim();
+  const current      = conclusions[0] ?? null;
+  const history      = conclusions.slice(1);
+  const hasConc      = !!current && !!current.summary?.trim();
   const isLoading    = conclusionStatus === "loading";
   const isError      = conclusionStatus === "error";
   const isUnresolved = conclusionStatus === "unresolved";
+  const isProvisional = conclusionStatus === "provisional";
+  const isFinal       = conclusionStatus === "final";
 
-  // Auto-open on loading so user sees progress
-  // Controlled by parent setting conclusionStatus
+  // Card header title
+  const titleLabel = isProvisional
+    ? t.provisionalConclusion
+    : isFinal
+    ? t.finalConclusion
+    : t.conclusion;
 
   // Badge label
   const badgeLabel = isLoading
@@ -365,6 +523,8 @@ export default function ConclusionCard({
     ? (locale === "ja" ? "エラー" : "Error")
     : isUnresolved
     ? (locale === "ja" ? "未確定" : "Unresolved")
+    : isProvisional
+    ? t.provisionalBadge
     : hasConc
     ? t.runsCount(runCount)
     : undefined;
@@ -381,12 +541,25 @@ export default function ConclusionCard({
         } ${isNewlyUpdated ? "ring-2 ring-emerald-400/50 ring-offset-0" : ""}`}
       >
         <div className="flex items-center gap-2 text-foreground">
-          <span className={`text-base leading-none select-none ${isLoading ? "animate-spin" : ""} ${isError ? "text-rose-400/70" : isUnresolved ? "text-amber-400/70" : isNewlyUpdated ? "text-emerald-500/70" : "text-foreground/30"}`}>
-            {isError ? "!" : isUnresolved ? "◎" : "◈"}
+          <span className={`text-base leading-none select-none ${isLoading ? "animate-spin" : ""} ${
+            isError ? "text-rose-400/70"
+            : isUnresolved ? "text-amber-400/70"
+            : isProvisional ? "text-violet-400/70"
+            : isFinal ? "text-emerald-500/80"
+            : isNewlyUpdated ? "text-emerald-500/70"
+            : "text-foreground/30"
+          }`}>
+            {isError ? "!" : isUnresolved ? "◎" : isProvisional ? "◐" : "◈"}
           </span>
-          <span className="text-sm font-semibold">{t.conclusion}</span>
+          <span className="text-sm font-semibold">{titleLabel}</span>
           {badgeLabel && (
-            <span className={`text-[11px] font-normal ${isError ? "text-rose-500/70" : isUnresolved ? "text-amber-500/70" : isLoading ? "text-blue-500/70" : "text-muted-foreground/50"}`}>
+            <span className={`text-[11px] font-normal ${
+              isError ? "text-rose-500/70"
+              : isUnresolved ? "text-amber-500/70"
+              : isLoading ? "text-blue-500/70"
+              : isProvisional ? "text-violet-500/70"
+              : "text-muted-foreground/50"
+            }`}>
               {badgeLabel}
             </span>
           )}
@@ -417,7 +590,7 @@ export default function ConclusionCard({
       >
         <div className="accordion-inner">
           {isLoading ? (
-            <ConclusionLoadingSkeleton />
+            <ConclusionLoadingSkeleton isProvisional />
           ) : isError ? (
             <ConclusionErrorState onRerun={onRerun} />
           ) : isUnresolved ? (
@@ -429,6 +602,14 @@ export default function ConclusionCard({
           ) : hasConc ? (
             <>
               <ConclusionBody conclusion={current!} locale={locale} />
+
+              {/* ── Checkpoint action buttons (only for provisional) ── */}
+              {isProvisional && (
+                <CheckpointActions
+                  onEndHere={onEndHere}
+                  onContinueDiscussion={onContinueDiscussion}
+                />
+              )}
 
               {/* ── History section ── */}
               {history.length > 0 && (
@@ -449,7 +630,6 @@ export default function ConclusionCard({
                       style={{ transform: showHistory ? "rotate(180deg)" : "rotate(0deg)" }}
                     />
                   </button>
-
                   {showHistory && (
                     <div className="mt-3 space-y-2">
                       {history.map((conc, i) => (
@@ -467,7 +647,6 @@ export default function ConclusionCard({
               )}
             </>
           ) : (
-            // idle / no conclusion yet
             <div className="px-5 py-7 text-center">
               <p className="text-sm text-muted-foreground/50">
                 {runCount === 0 ? t.noConclusionStart : t.noConclusionAfterRun}

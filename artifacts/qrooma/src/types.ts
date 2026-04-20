@@ -37,16 +37,25 @@ export interface AgentInfo {
   initial: string;
 }
 
-export type RunStatus = "idle" | "running" | "completed" | "error";
+/**
+ * idle        = no run started
+ * running     = rounds in progress
+ * checkpoint  = rounds done, provisional conclusion generated — awaiting human decision
+ * continued   = human chose to continue; additional rounds in progress
+ * completed   = human chose to end here; conclusion finalized
+ * error       = catastrophic failure
+ */
+export type RunStatus = "idle" | "running" | "checkpoint" | "continued" | "completed" | "error";
 
 /**
- * idle       = not started yet
- * loading    = generation in progress
- * success    = conclusion ready
- * unresolved = rounds done but conclusion couldn't be generated (show continue actions)
- * error      = catastrophic failure (API down, etc.)
+ * idle        = no conclusion yet
+ * loading     = generating in progress
+ * provisional = checkpoint reached; provisional conclusion available (show end/continue buttons)
+ * final       = human confirmed "end here"; conclusion is final
+ * unresolved  = rounds done but AI could not generate even a provisional conclusion
+ * error       = catastrophic failure
  */
-export type ConclusionStatus = "idle" | "loading" | "success" | "unresolved" | "error";
+export type ConclusionStatus = "idle" | "loading" | "provisional" | "final" | "unresolved" | "error";
 
 export interface ConclusionData {
   summary: string;
@@ -56,6 +65,10 @@ export interface ConclusionData {
   runId?: string;
   /** Sequential run number within the room (1-based) */
   runNumber?: number;
+  /** True = provisional (checkpoint); false/undefined = final */
+  isProvisional?: boolean;
+  /** True = human explicitly confirmed "end here" */
+  isFinal?: boolean;
 }
 
 export interface AgentSideConfig {

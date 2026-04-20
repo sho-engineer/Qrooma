@@ -214,6 +214,21 @@ export interface Translations {
   conclusionContinue: string;
   conclusionProvisional: string;
   conclusionAddCondition: string;
+  // Checkpoint / provisional conclusion flow
+  provisionalConclusion: string;
+  finalConclusion: string;
+  endHere: string;
+  continueDiscussion: string;
+  endHereDesc: string;
+  continueDiscussionDesc: string;
+  statusCheckpoint: string;
+  leadingOption: string;
+  conclusionReasoning: string;
+  openQuestionsLabel: string;
+  clarifyNext: string;
+  whatChanged: string;
+  provisionalBadge: string;
+  finalBadge: string;
 }
 
 const ja: Translations = {
@@ -432,6 +447,21 @@ const ja: Translations = {
   conclusionContinue: "議論を続ける",
   conclusionProvisional: "暫定結論を出す",
   conclusionAddCondition: "条件を追加する",
+  // Checkpoint / provisional conclusion flow
+  provisionalConclusion: "暫定結論",
+  finalConclusion: "最終結論",
+  endHere: "ここで終える",
+  continueDiscussion: "議論を続ける",
+  endHereDesc: "この暫定結論を最終版として確定する",
+  continueDiscussionDesc: "残論点を踏まえてもう1ラウンド追加する",
+  statusCheckpoint: "暫定",
+  leadingOption: "有力案",
+  conclusionReasoning: "理由",
+  openQuestionsLabel: "残論点",
+  clarifyNext: "次に詰める点",
+  whatChanged: "更新点",
+  provisionalBadge: "暫定",
+  finalBadge: "確定",
 };
 
 const en: Translations = {
@@ -651,6 +681,21 @@ const en: Translations = {
   conclusionContinue: "Continue discussion",
   conclusionProvisional: "Get provisional conclusion",
   conclusionAddCondition: "Add a condition",
+  // Checkpoint / provisional conclusion flow
+  provisionalConclusion: "Provisional Conclusion",
+  finalConclusion: "Final Conclusion",
+  endHere: "End here",
+  continueDiscussion: "Continue discussion",
+  endHereDesc: "Lock this provisional conclusion as the final answer",
+  continueDiscussionDesc: "Add another round to address the open questions",
+  statusCheckpoint: "Provisional",
+  leadingOption: "Leading Direction",
+  conclusionReasoning: "Reasoning",
+  openQuestionsLabel: "Open Questions",
+  clarifyNext: "Clarify Next",
+  whatChanged: "What Changed",
+  provisionalBadge: "Provisional",
+  finalBadge: "Final",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };
