@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   ChevronDownIcon, ClockIcon, RotateCcwIcon,
-  CheckCircleIcon, PlayIcon,
+  CheckCircleIcon, PlayIcon, ArrowRightIcon,
 } from "lucide-react";
 import type { ConclusionData, ConclusionStatus } from "../types";
 import { useLocale } from "../context/LocaleContext";
@@ -15,7 +15,8 @@ interface Props {
   onProvisional?:     () => void;
   onAddCondition?:    () => void;
   onEndHere?:         () => void;
-  onContinueDiscussion?: () => void;
+  /** Called with the user's free-text direction (empty string = no direction) */
+  onContinueDiscussion?: (direction: string) => void;
 }
 
 function formatDate(iso: string, locale: string): string {
@@ -225,9 +226,69 @@ function CheckpointActions({
   onContinueDiscussion,
 }: {
   onEndHere?:            () => void;
-  onContinueDiscussion?: () => void;
+  onContinueDiscussion?: (direction: string) => void;
 }) {
   const { t, locale } = useLocale();
+  const [showDirection, setShowDirection] = useState(false);
+  const [direction,     setDirection]     = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function handleContinueClick() {
+    setShowDirection(true);
+    setTimeout(() => textareaRef.current?.focus(), 50);
+  }
+
+  function submitContinue() {
+    onContinueDiscussion?.(direction.trim());
+    setShowDirection(false);
+    setDirection("");
+  }
+
+  // Direction input view
+  if (showDirection) {
+    return (
+      <div className="px-4 pt-4 pb-3 space-y-2.5 border-b border-border/30">
+        <p className="text-[10px] text-muted-foreground/60">
+          {locale === "ja" ? "次の議論で重視したいことがあれば入力してください（任意）" : "Add direction for the next round (optional)"}
+        </p>
+        <textarea
+          ref={textareaRef}
+          value={direction}
+          onChange={(e) => setDirection(e.target.value)}
+          rows={2}
+          placeholder={
+            locale === "ja"
+              ? "例: 有名どころ重視で進めて / 子ども優先 / 予算を抑えたい"
+              : "e.g. Focus on top-rated options / Keep it budget-friendly"
+          }
+          className="w-full text-sm bg-background border border-border/60 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/30 leading-relaxed"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitContinue(); }
+            if (e.key === "Escape") { setShowDirection(false); setDirection(""); }
+          }}
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={submitContinue}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 active:scale-[0.98] transition-all"
+          >
+            <PlayIcon size={11} />
+            {direction.trim()
+              ? (locale === "ja" ? "条件を加えて続ける" : "Add & continue")
+              : (locale === "ja" ? "そのまま続ける" : "Continue as-is")}
+          </button>
+          <button
+            onClick={() => { setShowDirection(false); setDirection(""); }}
+            className="px-3 py-2 rounded-xl border border-border text-xs text-muted-foreground hover:bg-accent transition-colors"
+          >
+            {locale === "ja" ? "戻る" : "Back"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Default view
   return (
     <div className="px-4 pt-4 pb-3 space-y-2 border-b border-border/30">
       <p className="text-[10px] text-muted-foreground/50">
@@ -248,7 +309,7 @@ function CheckpointActions({
         )}
         {onContinueDiscussion && (
           <button
-            onClick={onContinueDiscussion}
+            onClick={handleContinueClick}
             className="flex flex-col items-start gap-1 px-3.5 py-3 rounded-xl border border-violet-200/70 dark:border-violet-800/40 bg-violet-50/40 dark:bg-violet-950/20 hover:bg-violet-50/70 dark:hover:bg-violet-950/30 active:scale-[0.98] transition-all text-left"
           >
             <div className="flex items-center gap-1.5">

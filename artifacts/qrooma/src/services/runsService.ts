@@ -43,6 +43,8 @@ export interface RealRunParams {
   continuation?:       boolean;
   /** Text of the previous provisional conclusion — injected into agent context when continuation=true */
   previousProvisional?: string;
+  /** Free-text direction adjustment from the user when continuing the discussion */
+  continuationDirection?: string;
 }
 
 export interface RoundStartEvent {

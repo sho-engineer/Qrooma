@@ -546,7 +546,7 @@ export default function RoomDetailPage() {
   }, [conclusions, roomId, updateRoom]);
 
   // "議論を続ける" — run additional rounds focused on the 残論点 from the last provisional
-  const handleContinueDiscussion = useCallback(() => {
+  const handleContinueDiscussion = useCallback((direction: string = "") => {
     if (isRunActive || messages.length === 0) return;
     if (!hasSomeKey && !isFree) return;
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
@@ -585,9 +585,10 @@ export default function RoomDetailPage() {
         .filter((m) => m.role !== "summary")
         .slice(-16)
         .map((m) => ({ role: m.role, agentId: m.agentId, content: m.content })),
-      writingStyle:       settings.writingStyle,
-      continuation:       true,
+      writingStyle:           settings.writingStyle,
+      continuation:           true,
       previousProvisional,
+      continuationDirection:  direction || undefined,
     };
 
     function onMsg(msg: Message) {

@@ -808,38 +808,55 @@ router.post("/check-ambiguity", async (req, res) => {
     anthropic: clientApiKeys.anthropic || process.env["ANTHROPIC_API_KEY"] || undefined,
   };
 
-  const systemPrompt = `You analyze user questions to decide if pre-debate clarification is needed.
+  const systemPrompt = `You analyze user questions to decide if pre-debate clarification is needed before starting an AI team discussion.
 
 Return a JSON object ONLY (no other text):
 {
   "needsClarification": boolean,
-  "questions": string[],    // max 3 if needsClarification is true; empty otherwise
-  "assumptions": string[]   // what you'd assume if proceeding without clarification
+  "questions": string[],    // 1-3 items if needsClarification is true; empty otherwise
+  "assumptions": string[]   // what you'd assume if proceeding without clarification (always populate with 1-3 items even if needsClarification=false)
 }
 
-Clarification IS needed when:
-- Multiple conditions significantly affect the answer (timing, budget, group size, age, transport, region)
-- The question is very open-ended and underconstrained ("which should I choose?", "where should I go?")
-- Missing info would cause AI to make very different recommendations
-- Prioritization is unclear with 3+ competing factors
+=== WHEN CLARIFICATION IS NEEDED ===
+Use your judgment: if knowing the answer to a question would meaningfully change the recommendation, ask it.
 
-Clarification is NOT needed when:
-- The question is already specific enough
-- It's a brainstorming/ideation request ("give me ideas for...")
-- Slightly underconstrained but any assumption is fine
-- User says "just discuss" or similar
-- Simple comparison with clear axes
+Trigger clarification when ANY of these are true:
+1. TIMING/SEASON: Recommendations change based on season, month, or schedule (travel, events, food, outdoor activities)
+2. FAMILY COMPOSITION: Children's ages / number of people change what's recommended (travel, dining, activities)
+3. PRIORITY CONFLICT: 3+ competing priorities and user hasn't indicated which matters most (cost vs speed vs quality vs experience)
+4. GEOGRAPHIC CONSTRAINT: Distance from a specific base (hotel, station) materially changes options
+5. UNDERCONSTRAINED CHOICE: "Which should I choose?" with no selection criteria given
+6. LIFESTYLE DECISION: Major personal decision missing critical context (career change without mentioning current situation, relocation without knowing budget/family situation)
+7. OPEN TRAVEL QUESTION: Destination is not fixed AND itinerary/style preferences are not stated
 
-Questions must be max 3, short, impactful — only the most decision-critical unknowns.
-Assumptions = what AI would assume if user skips clarification.
+=== WHEN CLARIFICATION IS NOT NEEDED ===
+- Analytical/debate questions: "What are the pros and cons of X?" → already clear
+- Simple comparisons: "ChatGPT vs Claude" → can discuss standard axes
+- Creative ideation: "Give me ideas for..." → any answer is useful
+- Already specific enough: the user has provided the key conditions
+- General opinion/discussion: user clearly just wants the AI to discuss freely
 
-Examples that need clarification:
-- "どこに家族旅行すればいい?" → needs: timing, child ages, transport preference
-- "転職すべき?" → needs: current situation, goal, timeline
+=== QUESTION RULES ===
+- Max 3 questions. Each must be short, specific, and HIGH-IMPACT
+- Ask only the most decision-critical unknowns
+- Write questions in the SAME LANGUAGE as the user's message
+- Format each question as a natural, conversational ask (not technical)
 
-Examples that do NOT need clarification:
-- "リモートワークのメリットとデメリットを議論して" → clear enough
-- "ChatGPTとClaudeどっちがいい?" → can discuss with standard axes
+=== ASSUMPTION RULES ===
+- Always provide 1-3 assumptions (what AI will assume if no clarification is given)
+- Write in the SAME LANGUAGE as the user's message
+- Make assumptions specific and helpful, not vague (bad: "standard assumptions"; good: "旅行時期が未指定のため、季節依存の少ない候補を優先します")
+
+=== EXAMPLES (Japanese) ===
+"仙台から日帰りで行ける観光地を教えて。子どもがいます" → needsClarification: TRUE
+  questions: ["お子さんの年齢はどのくらいですか？", "車ですか、電車ですか？", "食事・景色・体験のどれを重視しますか？"]
+  assumptions: ["小学生くらいのお子さんを想定します", "電車で行ける場所を中心に提案します", "観光スポットとグルメをバランスよく提案します"]
+
+"リモートワークのメリットとデメリットを議論して" → needsClarification: FALSE
+  assumptions: ["一般的なオフィスワーカーの視点で議論します", "コスト・生産性・ワークライフバランスを主要軸とします"]
+
+"転職すべきか迷っています" → needsClarification: TRUE
+  questions: ["今の仕事で何が一番不満ですか？", "転職で最も重視することは？（年収・やりがい・環境など）", "いつ頃の転職を考えていますか？"]
 
 Return ONLY valid JSON.`;
 
@@ -962,6 +979,7 @@ router.post("/discuss", async (req, res) => {
     forceConclusion = false,
     continuation = false,
     previousProvisional = "",
+    continuationDirection = "",
   } = req.body as {
     roomId: string;
     runId: string;
@@ -977,6 +995,8 @@ router.post("/discuss", async (req, res) => {
     continuation?: boolean;
     /** Text of the previous provisional conclusion (used when continuation=true) */
     previousProvisional?: string;
+    /** Free-text direction adjustment from the human (added to continuation context) */
+    continuationDirection?: string;
   };
 
   const apiKeys = {
@@ -1111,7 +1131,11 @@ router.post("/discuss", async (req, res) => {
         // When continuing from a checkpoint, inject the previous provisional conclusion so
         // agents know what's already been settled and focus on the [残論点].
         if (continuation && previousProvisional) {
-          contextMsg += `\n\n${"═".repeat(40)}\nPREVIOUS CHECKPOINT SUMMARY:\n${previousProvisional}\n${"═".repeat(40)}\nCONTINUATION INSTRUCTIONS:\n— The above is where the debate stood at the last checkpoint.\n— Focus on the [残論点] listed there. Do NOT repeat points already settled.\n— Provide new evidence, conditions, or angles that resolve one of the open questions.\n— If you disagree with something in the checkpoint, name it specifically and explain why.\n— The goal: advance the open questions, not restate settled ones.`;
+          let continuationBlock = `\n\n${"═".repeat(40)}\nPREVIOUS CHECKPOINT SUMMARY:\n${previousProvisional}\n${"═".repeat(40)}\nCONTINUATION INSTRUCTIONS:\n— The above is where the debate stood at the last checkpoint.\n— Focus on the [残論点] listed there. Do NOT repeat points already settled.\n— Provide new evidence, conditions, or angles that resolve one of the open questions.\n— If you disagree with something in the checkpoint, name it specifically and explain why.\n— The goal: advance the open questions, not restate settled ones.`;
+          if (continuationDirection?.trim()) {
+            continuationBlock += `\n\n${"─".repeat(40)}\n⚑ HUMAN DIRECTION FOR THIS ROUND:\n"${continuationDirection.trim()}"\n→ This is the human's explicit direction. Prioritize this above all other open questions.\n→ Adjust your arguments, priorities, and recommendations accordingly.\n${"─".repeat(40)}`;
+          }
+          contextMsg += continuationBlock;
         }
 
         if (prevRoundsText) contextMsg += `\n\n${"─".repeat(40)}\nPrevious rounds:\n\n${prevRoundsText}`;

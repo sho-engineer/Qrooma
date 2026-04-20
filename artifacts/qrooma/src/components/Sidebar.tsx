@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "../context/AuthContext";
 import { useRooms } from "../context/RoomsContext";
@@ -7,6 +7,7 @@ import {
   PlusIcon, PencilIcon, CheckIcon, XIcon,
   LogOutIcon, SettingsIcon,
   PanelLeftCloseIcon, PanelLeftOpenIcon,
+  MoreHorizontalIcon, Trash2Icon, ArchiveIcon,
 } from "lucide-react";
 
 interface Props {
@@ -16,18 +17,141 @@ interface Props {
   onClose: () => void;
 }
 
+// ─── Delete confirmation dialog ─────────────────────────────────────────────
+
+function DeleteConfirmDialog({
+  roomName,
+  onConfirm,
+  onCancel,
+}: {
+  roomName: string;
+  onConfirm: () => void;
+  onCancel:  () => void;
+}) {
+  const { locale } = useLocale();
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onCancel}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div
+        className="relative z-10 w-full max-w-xs rounded-2xl border border-border bg-card shadow-2xl p-5 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-foreground">
+            {locale === "ja" ? "このトークルームを削除しますか？" : "Delete this room?"}
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {locale === "ja"
+              ? `「${roomName}」を削除すると元に戻せません。`
+              : `"${roomName}" will be permanently deleted and cannot be recovered.`}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2 text-xs font-medium border border-border rounded-xl hover:bg-accent transition-colors"
+          >
+            {locale === "ja" ? "キャンセル" : "Cancel"}
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2 text-xs font-semibold bg-destructive text-destructive-foreground rounded-xl hover:opacity-90 transition-opacity"
+          >
+            {locale === "ja" ? "削除する" : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Room context menu ────────────────────────────────────────────────────────
+
+function RoomContextMenu({
+  roomId,
+  roomName,
+  onClose,
+}: {
+  roomId:   string;
+  roomName: string;
+  onClose:  () => void;
+}) {
+  const { locale } = useLocale();
+  const { archiveRoom, deleteRoom } = useRooms();
+  const [location, setLocation] = useLocation();
+  const [showDelete, setShowDelete] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  function handleArchive() {
+    archiveRoom(roomId);
+    onClose();
+  }
+
+  function handleDeleteConfirmed() {
+    deleteRoom(roomId);
+    onClose();
+    if (location === `/rooms/${roomId}`) {
+      setLocation("/");
+    }
+  }
+
+  return (
+    <>
+      <div
+        ref={menuRef}
+        className="absolute right-0 top-7 z-50 w-40 rounded-xl border border-border bg-card shadow-xl py-1 text-sm"
+      >
+        <button
+          onClick={handleArchive}
+          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent transition-colors text-left text-xs"
+        >
+          <ArchiveIcon size={12} className="text-muted-foreground" />
+          <span>{locale === "ja" ? "アーカイブ" : "Archive"}</span>
+        </button>
+        <div className="my-1 border-t border-border/40" />
+        <button
+          onClick={() => setShowDelete(true)}
+          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-destructive/10 transition-colors text-left text-xs text-destructive"
+        >
+          <Trash2Icon size={12} />
+          <span>{locale === "ja" ? "削除" : "Delete"}</span>
+        </button>
+      </div>
+      {showDelete && (
+        <DeleteConfirmDialog
+          roomName={roomName}
+          onConfirm={handleDeleteConfirmed}
+          onCancel={() => setShowDelete(false)}
+        />
+      )}
+    </>
+  );
+}
+
 export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) {
   const [location] = useLocation();
   const { user, signOut } = useAuth();
   const { rooms, addRoom, updateRoom } = useRooms();
   const { t } = useLocale();
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
-  const [newRoomMode, setNewRoomMode] = useState(false);
-  const [newRoomName, setNewRoomName] = useState("");
+  const [editingId,    setEditingId]    = useState<string | null>(null);
+  const [editValue,    setEditValue]    = useState("");
+  const [newRoomMode,  setNewRoomMode]  = useState(false);
+  const [newRoomName,  setNewRoomName]  = useState("");
+  const [menuOpenId,   setMenuOpenId]   = useState<string | null>(null);
 
   function startEdit(id: string, name: string) {
+    setMenuOpenId(null);
     setEditingId(id);
     setEditValue(name);
   }
@@ -161,16 +285,19 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
           <p className="px-3 py-3 text-xs text-muted-foreground">{t.noRooms}</p>
         )}
         {rooms.map((room) => {
-          const isActive = location === `/rooms/${room.id}`;
-          const hasError = room.lastRunStatus === "error";
+          const isActive  = location === `/rooms/${room.id}`;
+          const hasError  = room.lastRunStatus === "error";
+          const isEditing = editingId === room.id;
+          const menuOpen  = menuOpenId === room.id;
+
           return (
             <div
               key={room.id}
-              className={`group flex items-center gap-1 mb-0.5 rounded-lg ${
+              className={`group relative flex items-center gap-1 mb-0.5 rounded-lg ${
                 isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/60"
               }`}
             >
-              {editingId === room.id ? (
+              {isEditing ? (
                 <div className="flex items-center gap-1 flex-1 px-2 py-1.5">
                   <input
                     autoFocus
@@ -212,13 +339,40 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
                       </span>
                     )}
                   </Link>
+
+                  {/* Rename button (desktop hover) */}
                   <button
                     onClick={() => startEdit(room.id, room.name)}
-                    className="p-1.5 mr-0.5 text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="p-1.5 text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                     title={t.rename}
                   >
                     <PencilIcon size={11} />
                   </button>
+
+                  {/* ··· menu */}
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpenId(menuOpen ? null : room.id);
+                      }}
+                      className={`p-1.5 mr-0.5 rounded-md transition-all ${
+                        menuOpen
+                          ? "opacity-100 text-foreground bg-sidebar-accent"
+                          : "opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-muted-foreground"
+                      }`}
+                      title={t.rename}
+                    >
+                      <MoreHorizontalIcon size={13} />
+                    </button>
+                    {menuOpen && (
+                      <RoomContextMenu
+                        roomId={room.id}
+                        roomName={room.name}
+                        onClose={() => setMenuOpenId(null)}
+                      />
+                    )}
+                  </div>
                 </>
               )}
             </div>
