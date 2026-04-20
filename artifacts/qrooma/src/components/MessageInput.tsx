@@ -1,12 +1,14 @@
 import { forwardRef, useMemo } from "react";
 import { Link } from "wouter";
-import { SendIcon, ZapIcon, KeyRoundIcon, SlidersHorizontalIcon } from "lucide-react";
+import { SendIcon, ZapIcon, KeyRoundIcon, SlidersHorizontalIcon, Square } from "lucide-react";
 import { useLocale } from "../context/LocaleContext";
 
 interface Props {
   value:        string;
   onChange:     (v: string) => void;
   onSend:       () => void;
+  /** Called when the user presses the stop button during generation */
+  onStop?:      () => void;
   isRunning:    boolean;
   /** false = BYOK keys not set → Free mode (still allows sending, with banner) */
   apiKeysReady: boolean;
@@ -28,6 +30,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
   value,
   onChange,
   onSend,
+  onStop,
   isRunning,
   apiKeysReady,
   promptMode,
@@ -101,11 +104,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
         </div>
       )}
 
-      <div
-        className={`flex gap-2 bg-card border rounded-2xl px-3 py-2 transition-opacity ${
-          isRunning ? "opacity-60" : ""
-        }`}
-      >
+      <div className="flex gap-2 bg-card border rounded-2xl px-3 py-2">
         <textarea
           ref={ref}
           value={value}
@@ -113,27 +112,39 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
           onKeyDown={handleKeyDown}
           placeholder={
             isRunning
-              ? t.agentsResponding
+              ? (ja ? "生成中…" : "Generating…")
               : (isMobile
                   ? (ja ? "メッセージを入力" : "Type a message")
                   : t.messagePlaceholder)
           }
           rows={2}
           disabled={isRunning}
-          className="flex-1 resize-none text-sm bg-transparent outline-none placeholder:text-muted-foreground/50 disabled:cursor-not-allowed leading-relaxed"
+          className="flex-1 resize-none text-sm bg-transparent outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed leading-relaxed"
         />
-        <button
-          onClick={() => !isRunning && onSend()}
-          disabled={!value.trim() || isRunning}
-          className="self-end p-2 rounded-xl bg-foreground text-background disabled:opacity-20 transition-all active:scale-[0.92] hover:opacity-90"
-          title={t.sendingAutoRun}
-        >
-          <SendIcon size={14} />
-        </button>
+
+        {/* Stop button — visible during generation */}
+        {isRunning && onStop ? (
+          <button
+            onClick={onStop}
+            className="self-end p-2 rounded-xl bg-destructive/90 text-white hover:bg-destructive transition-all active:scale-[0.92] touch-manipulation"
+            title={ja ? "停止" : "Stop"}
+          >
+            <Square size={14} fill="currentColor" />
+          </button>
+        ) : (
+          <button
+            onClick={() => !isRunning && onSend()}
+            disabled={!value.trim() || isRunning}
+            className="self-end p-2 rounded-xl bg-foreground text-background disabled:opacity-20 transition-all active:scale-[0.92] hover:opacity-90"
+            title={t.sendingAutoRun}
+          >
+            <SendIcon size={14} />
+          </button>
+        )}
       </div>
 
       <p className="mt-1 text-[11px] text-muted-foreground/40 text-right">
-        {hintText}
+        {isRunning ? (ja ? "生成中は停止ボタンで中断できます" : "Press stop to abort generation") : hintText}
       </p>
     </div>
   );

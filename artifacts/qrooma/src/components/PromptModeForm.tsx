@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { SlidersHorizontalIcon, XIcon, PlayIcon } from "lucide-react";
+import { useState, useRef } from "react";
+import { SlidersHorizontalIcon, XIcon, PlayIcon, PlusIcon } from "lucide-react";
 import type { PromptConfig, OutputDepth, ChallengeLevel } from "../types";
 import { useLocale } from "../context/LocaleContext";
 
@@ -111,6 +111,11 @@ export default function PromptModeForm({ onSubmit, onCancel }: Props) {
   const [topic, setTopic]           = useState("");
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
 
+  // "その他" axis support
+  const [showCustomAxis, setShowCustomAxis] = useState(false);
+  const [customAxisInput, setCustomAxisInput] = useState("");
+  const customAxisRef = useRef<HTMLInputElement>(null);
+
   function toggleAxis(axis: string) {
     setConfig((prev) => ({
       ...prev,
@@ -119,6 +124,30 @@ export default function PromptModeForm({ onSubmit, onCancel }: Props) {
         : [...prev.comparisonAxes, axis],
     }));
   }
+
+  function addCustomAxis() {
+    const trimmed = customAxisInput.trim();
+    if (!trimmed) return;
+    if (!config.comparisonAxes.includes(trimmed)) {
+      setConfig((prev) => ({
+        ...prev,
+        comparisonAxes: [...prev.comparisonAxes, trimmed],
+      }));
+    }
+    setCustomAxisInput("");
+    customAxisRef.current?.focus();
+  }
+
+  function removeCustomAxis(axis: string) {
+    setConfig((prev) => ({
+      ...prev,
+      comparisonAxes: prev.comparisonAxes.filter((a) => a !== axis),
+    }));
+  }
+
+  /** Custom axes = axes not in the preset list */
+  const axisPresetsSet = new Set(ja ? AXIS_PRESETS_JA : AXIS_PRESETS_EN);
+  const customAxes = config.comparisonAxes.filter((a) => !axisPresetsSet.has(a));
 
   function selectGoal(id: string, label: string) {
     setSelectedGoalId(id);
@@ -225,7 +254,68 @@ export default function PromptModeForm({ onSubmit, onCancel }: Props) {
                 {axis}
               </Chip>
             ))}
+            {/* "その他" chip */}
+            <Chip
+              active={showCustomAxis}
+              onClick={() => {
+                setShowCustomAxis((v) => !v);
+                if (!showCustomAxis) {
+                  setTimeout(() => customAxisRef.current?.focus(), 50);
+                }
+              }}
+            >
+              {ja ? "+ その他" : "+ Custom"}
+            </Chip>
           </div>
+
+          {/* Custom axis input — shown when "その他" is active */}
+          {showCustomAxis && (
+            <div className="mt-2.5 space-y-2">
+              <div className="flex gap-2">
+                <input
+                  ref={customAxisRef}
+                  type="text"
+                  value={customAxisInput}
+                  onChange={(e) => setCustomAxisInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); addCustomAxis(); }
+                  }}
+                  placeholder={ja ? "例: 写真映え / 雨耐性 / 子どもの満足度" : "e.g. Photogenic / Rain resistance"}
+                  className="flex-1 text-sm bg-muted/30 border border-border rounded-xl px-3 py-1.5 outline-none focus:border-foreground/40 placeholder:text-muted-foreground/40"
+                />
+                <button
+                  type="button"
+                  onClick={addCustomAxis}
+                  disabled={!customAxisInput.trim()}
+                  className="p-1.5 rounded-xl border border-border text-foreground/60 hover:text-foreground hover:border-foreground/40 disabled:opacity-30 transition-colors"
+                  title={ja ? "追加" : "Add"}
+                >
+                  <PlusIcon size={14} />
+                </button>
+              </div>
+
+              {/* Custom axes already added */}
+              {customAxes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {customAxes.map((ax) => (
+                    <span
+                      key={ax}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-foreground text-background border border-foreground"
+                    >
+                      {ax}
+                      <button
+                        type="button"
+                        onClick={() => removeCustomAxis(ax)}
+                        className="opacity-60 hover:opacity-100 transition-opacity -mr-0.5"
+                      >
+                        <XIcon size={10} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* D: 制約条件 */}

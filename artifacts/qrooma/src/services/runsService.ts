@@ -19,6 +19,71 @@
 import type { AgentId, ConclusionData, Message, PromptConfig, RunStatus, WritingStyle } from "../types";
 import { AGENTS, DEBATE_POOL, FREETALK_POOL } from "../data/dummy";
 
+// ─── Error sanitization ───────────────────────────────────────────────────────
+
+/**
+ * Convert raw vendor API errors into short, user-friendly Japanese/English messages.
+ * Raw errors are always written to console — never surfaced in the UI as-is.
+ */
+function sanitizeVendorError(raw: string): string {
+  const lower = raw.toLowerCase();
+
+  // Quota / rate limit
+  if (
+    lower.includes("quota") ||
+    lower.includes("rate limit") ||
+    lower.includes("429") ||
+    lower.includes("resource_exhausted") ||
+    lower.includes("too many requests")
+  ) {
+    return "現在このAIが混み合っています。少し時間をおいて再試行してください。";
+  }
+
+  // Auth errors
+  if (
+    lower.includes("api key") ||
+    lower.includes("apikey") ||
+    lower.includes("authentication") ||
+    lower.includes("unauthorized") ||
+    lower.includes("401") ||
+    lower.includes("invalid_api_key") ||
+    lower.includes("permission_denied")
+  ) {
+    return "このAIのAPIキーが無効または未設定です。設定を確認してください。";
+  }
+
+  // Timeout
+  if (
+    lower.includes("timeout") ||
+    lower.includes("timed out") ||
+    lower.includes("deadline") ||
+    lower.includes("econnreset") ||
+    lower.includes("socket hang up")
+  ) {
+    return "応答がタイムアウトしました。再試行してください。";
+  }
+
+  // No key configured
+  if (lower.includes("no api key")) {
+    return "このAIのAPIキーが設定されていません。";
+  }
+
+  // Generic vendor errors (hide the raw class name)
+  if (
+    lower.includes("googleGenerativeAI") ||
+    lower.includes("openai") ||
+    lower.includes("anthropic") ||
+    lower.includes("fetch failed") ||
+    lower.includes("network error") ||
+    lower.includes("5") // 5xx
+  ) {
+    return "一部のAIで応答できなかったため、残りのAIで続行しました。";
+  }
+
+  // Fallback — hide everything
+  return "一部のAIで問題が発生しました。残りのAIで続行しています。";
+}
+
 export interface RunPayload {
   roomId:     string;
   userId:     string;
@@ -233,17 +298,17 @@ export const runsService = {
               console.error("API discussion error:", data["message"]);
               onComplete("error");
             } else if (data["type"] === "agent_error") {
-              const side = String(data["side"] ?? "?");
-              const msg  = String(data["message"] ?? "Unknown error");
-              console.warn(`Agent ${side} error:`, msg);
-              onAgentError?.(side, msg);
+              const side   = String(data["side"] ?? "?");
+              const rawMsg = String(data["message"] ?? "Unknown error");
+              console.warn(`Agent ${side} error (raw):`, rawMsg);
+              onAgentError?.(side, sanitizeVendorError(rawMsg));
             } else if (data["type"] === "warning") {
-              const msg = String(data["message"] ?? "");
-              console.info("API warning:", msg);
-              if (msg.includes("No API key")) {
-                const sideMatch = msg.match(/\(([ABC])\)/);
+              const rawMsg = String(data["message"] ?? "");
+              console.info("API warning (raw):", rawMsg);
+              if (rawMsg.includes("No API key")) {
+                const sideMatch = rawMsg.match(/\(([ABC])\)/);
                 const side = sideMatch?.[1] ?? "?";
-                onAgentError?.(side, msg);
+                onAgentError?.(side, sanitizeVendorError(rawMsg));
               }
             }
           }

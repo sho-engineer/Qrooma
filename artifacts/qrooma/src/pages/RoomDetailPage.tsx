@@ -828,6 +828,11 @@ export default function RoomDetailPage() {
         value={input}
         onChange={setInput}
         onSend={sendMessage}
+        onStop={() => {
+          cancelRun.current?.();
+          cancelRun.current = null;
+          setRunStatus("checkpoint");
+        }}
         isRunning={isRunActive || isCheckingAmbiguity}
         apiKeysReady={plan === "free" || plan === "pro" ? true : hasSomeKey}
         promptMode={promptMode}

@@ -101,7 +101,7 @@ function RoomContextMenu({
     deleteRoom(roomId);
     onClose();
     if (location === `/rooms/${roomId}`) {
-      setLocation("/");
+      setLocation("/rooms");
     }
   }
 

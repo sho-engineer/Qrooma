@@ -81,8 +81,10 @@ export default function MessageBubble({ message, mode, sideModelMap: _sideModelM
     );
   }
 
-  const agentId   = message.agentId ?? "";
-  const side      = AGENT_SIDE_MAP[agentId] ?? "A";
+  const agentId = message.agentId ?? "";
+  // Prefer the side stored on the message itself (set by the backend at generation time).
+  // Fall back to the static map only when message.side is absent (e.g. older messages).
+  const side      = (message.side as "A" | "B" | "C" | undefined) ?? AGENT_SIDE_MAP[agentId] ?? "A";
   const color     = SIDE_COLORS[side];
   const roleLabel = t.roleLabel(side, mode);
   const brand     = AGENT_BRAND[agentId] ?? agentId;
