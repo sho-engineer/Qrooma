@@ -1,6 +1,6 @@
 import { forwardRef, useMemo } from "react";
 import { Link } from "wouter";
-import { SendIcon, ZapIcon, KeyRoundIcon } from "lucide-react";
+import { SendIcon, ZapIcon, KeyRoundIcon, SlidersHorizontalIcon } from "lucide-react";
 import { useLocale } from "../context/LocaleContext";
 
 interface Props {
@@ -10,6 +10,10 @@ interface Props {
   isRunning:    boolean;
   /** false = BYOK keys not set → Free mode (still allows sending, with banner) */
   apiKeysReady: boolean;
+  /** Whether prompt mode is currently active */
+  promptMode?:  boolean;
+  /** Toggle between normal and prompt mode */
+  onTogglePromptMode?: () => void;
 }
 
 /** Detect touch-primary devices (phones / tablets). Memoised once per mount. */
@@ -26,13 +30,15 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
   onSend,
   isRunning,
   apiKeysReady,
+  promptMode,
+  onTogglePromptMode,
 }, ref) {
   const { t, locale } = useLocale();
   const isMobile   = useIsMobile();
   const isFreeMode = !apiKeysReady;
+  const ja = locale === "ja";
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    // On touch devices: Enter = newline (never send). Send via button only.
     if (isMobile) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -41,7 +47,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
   }
 
   const hintText = isMobile
-    ? (locale === "ja" ? "送信は右のボタンから" : "Tap the button to send")
+    ? (ja ? "送信は右のボタンから" : "Tap the button to send")
     : (isFreeMode ? t.freeModeDesc : t.sendingAutoRun);
 
   return (
@@ -66,6 +72,35 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
         </div>
       )}
 
+      {/* Mode toggle row */}
+      {onTogglePromptMode && (
+        <div className="flex items-center gap-2 mb-2">
+          <button
+            type="button"
+            onClick={() => !promptMode && onTogglePromptMode()}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+              !promptMode
+                ? "bg-foreground text-background"
+                : "text-muted-foreground/60 hover:text-foreground"
+            }`}
+          >
+            {ja ? "通常" : "Normal"}
+          </button>
+          <button
+            type="button"
+            onClick={() => promptMode && onTogglePromptMode()}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+              promptMode
+                ? "bg-foreground text-background"
+                : "text-muted-foreground/60 hover:text-foreground"
+            }`}
+          >
+            <SlidersHorizontalIcon size={10} />
+            {ja ? "プロンプトモード" : "Prompt Mode"}
+          </button>
+        </div>
+      )}
+
       <div
         className={`flex gap-2 bg-card border rounded-2xl px-3 py-2 transition-opacity ${
           isRunning ? "opacity-60" : ""
@@ -80,7 +115,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
             isRunning
               ? t.agentsResponding
               : (isMobile
-                  ? (locale === "ja" ? "メッセージを入力" : "Type a message")
+                  ? (ja ? "メッセージを入力" : "Type a message")
                   : t.messagePlaceholder)
           }
           rows={2}

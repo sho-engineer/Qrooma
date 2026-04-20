@@ -24,12 +24,13 @@ import { useSettings } from "../context/SettingsContext";
 import { useRooms } from "../context/RoomsContext";
 import { useLocale } from "../context/LocaleContext";
 import { usePlan } from "../context/PlanContext";
-import type { ConclusionData, ConclusionStatus, Message, RunStatus, Provider } from "../types";
+import type { ConclusionData, ConclusionStatus, Message, PromptConfig, RunStatus, Provider } from "../types";
 import RoomHeader from "../components/RoomHeader";
 import MessageBubble from "../components/MessageBubble";
 import ConclusionCard from "../components/ConclusionCard";
 import ClarificationCard from "../components/ClarificationCard";
 import MessageInput from "../components/MessageInput";
+import PromptModeForm from "../components/PromptModeForm";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 
@@ -127,6 +128,10 @@ export default function RoomDetailPage() {
     () => messagesService.getConclusions(roomId),
   );
   const [conclusionStatus,  setConclusionStatus]  = useState<ConclusionStatus>("idle");
+
+  // ─── Prompt Mode state ──────────────────────────────────────────────────────
+  const [promptMode,   setPromptMode]   = useState(false);
+  const [promptConfig, setPromptConfig] = useState<PromptConfig | null>(null);
 
   // ─── Clarification state ────────────────────────────────────────────────────
   const [clarifyState, setClarifyState] = useState<{
@@ -243,7 +248,7 @@ export default function RoomDetailPage() {
 
   // ─── Actions ─────────────────────────────────────────────────────────────────
 
-  function triggerRun(runId: string, userMessage: string, currentRunCount: number) {
+  function triggerRun(runId: string, userMessage: string, currentRunCount: number, config?: PromptConfig | null) {
     setRunStatus("running");
     setRespondedCount(0);
     setCurrentRound(null);
@@ -320,6 +325,7 @@ export default function RoomDetailPage() {
             content: m.content,
           })),
         writingStyle: settings.writingStyle,
+        promptConfig: config ?? undefined,
       };
 
       const cancel = runsService.realRun(
@@ -392,7 +398,7 @@ export default function RoomDetailPage() {
     }
   }
 
-  function _doSendMessage(text: string) {
+  function _doSendMessage(text: string, configOverride?: PromptConfig | null) {
     const newRunId = `run-${Date.now()}`;
     const userMsg: Message = {
       id:        `m-${Date.now()}`,
@@ -410,7 +416,8 @@ export default function RoomDetailPage() {
     setClarifyState(null);
     const nextCount = runCount + 1;
     setRunCount(nextCount);
-    triggerRun(newRunId, text, nextCount);
+    const activeConfig = configOverride !== undefined ? configOverride : promptConfig;
+    triggerRun(newRunId, text, nextCount, activeConfig);
   }
 
   async function sendMessage() {
@@ -591,6 +598,7 @@ export default function RoomDetailPage() {
       continuation:           true,
       previousProvisional,
       continuationDirection:  direction || undefined,
+      promptConfig:           promptConfig ?? undefined,
     };
 
     function onMsg(msg: Message) {
@@ -648,7 +656,7 @@ export default function RoomDetailPage() {
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    <div className="relative flex flex-col flex-1 min-h-0 overflow-hidden">
       <RoomHeader
         roomName={roomName}
         runStatus={runStatus}
@@ -801,6 +809,20 @@ export default function RoomDetailPage() {
         </div>
       )}
 
+      {/* ── Prompt Mode overlay ─────────────────────────────────────────────── */}
+      {promptMode && !isRunActive && (
+        <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-sm flex flex-col">
+          <PromptModeForm
+            onSubmit={(cfg, topic) => {
+              setPromptConfig(cfg);
+              setPromptMode(false);
+              _doSendMessage(topic, cfg);
+            }}
+            onCancel={() => setPromptMode(false)}
+          />
+        </div>
+      )}
+
       <MessageInput
         ref={inputRef}
         value={input}
@@ -808,6 +830,8 @@ export default function RoomDetailPage() {
         onSend={sendMessage}
         isRunning={isRunActive || isCheckingAmbiguity}
         apiKeysReady={plan === "free" || plan === "pro" ? true : hasSomeKey}
+        promptMode={promptMode}
+        onTogglePromptMode={() => setPromptMode((v) => !v)}
       />
     </div>
   );

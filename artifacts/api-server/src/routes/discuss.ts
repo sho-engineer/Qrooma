@@ -40,6 +40,142 @@ interface WritingStyle {
   jpHardness?:       "soft" | "standard" | "formal";
 }
 
+type OutputDepth    = "rough" | "compare" | "concrete";
+type ChallengeLevel = "soft"  | "standard" | "strong";
+
+interface PromptConfig {
+  goal:            string;
+  decisionTarget?: string;
+  comparisonAxes?: string[];
+  constraints?:    string;
+  priorities?:     string;
+  outputDepth?:    OutputDepth;
+  challengeLevel?: ChallengeLevel;
+}
+
+// ─── Prompt Mode: debate configuration block ───────────────────────────────────
+// Injected into EVERY agent's context when promptConfig is present.
+// This is non-negotiable and overrides any softening from Writing Style.
+
+function buildPromptModeContext(cfg: PromptConfig): string {
+  const lines: string[] = [
+    `━━━ PROMPT MODE — STRUCTURED DEBATE CONFIGURATION ━━━`,
+    `The human has pre-designed this debate. Follow ALL parameters strictly.`,
+    ``,
+    `[GOAL] ${cfg.goal}`,
+  ];
+
+  if (cfg.decisionTarget?.trim()) {
+    lines.push(`[DECISION TARGET] ${cfg.decisionTarget.trim()}`);
+  }
+  if (cfg.comparisonAxes?.length) {
+    lines.push(`[COMPARISON AXES] ${cfg.comparisonAxes.join(" / ")}`);
+    lines.push(`→ Use THESE axes explicitly when comparing candidates. Reference them by name.`);
+  }
+  if (cfg.constraints?.trim()) {
+    lines.push(`[CONSTRAINTS] ${cfg.constraints.trim()}`);
+    lines.push(`→ All candidates must be evaluated against these constraints.`);
+  }
+  if (cfg.priorities?.trim()) {
+    lines.push(`[PRIORITIES] ${cfg.priorities.trim()}`);
+    lines.push(`→ Weight your assessment by these priorities in order.`);
+  }
+
+  lines.push(``);
+  lines.push(`MANDATORY DEBATE STRUCTURE (Prompt Mode — overrides normal debate logic):`);
+  lines.push(`— Round 1: Present at LEAST 2–3 distinct candidate options. DO NOT commit to one yet.`);
+  lines.push(`  For each candidate: name it → pros (2–3) → cons (2–3) → best-fit condition → worst-fit condition.`);
+  lines.push(`— Round 2: Compare candidates against the specified [COMPARISON AXES].`);
+  lines.push(`  Pattern: "Candidate A is stronger on [axis] because ___, but weaker on [axis] because ___"`);
+  lines.push(`— Round 3+: Narrow down. Name candidates to keep, candidates to drop, and the axis that drove each cut.`);
+  lines.push(``);
+
+  const challengeMap: Record<string, string> = {
+    soft:     "CHALLENGE LEVEL — Soft: Be constructive. Point out weaknesses gently. Still reach a directional lean.",
+    standard: "CHALLENGE LEVEL — Standard: Challenge weak assumptions directly. Name the failure condition. Reach a clear lean.",
+    strong:   "CHALLENGE LEVEL — Strong: Challenge aggressively. Find critical flaws. Cut weak candidates decisively. Be bold.",
+  };
+  const challenge = cfg.challengeLevel ?? "standard";
+  lines.push(challengeMap[challenge] ?? challengeMap.standard);
+
+  const depthMap: Record<string, string> = {
+    rough:    "OUTPUT DEPTH — Rough: Broad strokes. Help the human see the landscape. Not exhaustive.",
+    compare:  "OUTPUT DEPTH — Compare & Narrow: Structured comparison by axes. Human can choose after reading.",
+    concrete: "OUTPUT DEPTH — Fully Concrete: Step-by-step, executable level. Human can act immediately.",
+  };
+  const depth = cfg.outputDepth ?? "compare";
+  lines.push(depthMap[depth] ?? depthMap.compare);
+
+  lines.push(``);
+  lines.push(`STRICTLY FORBIDDEN in Prompt Mode:`);
+  lines.push(`✗ Proposing only ONE option without alternatives (violates Round 1 rule)`);
+  lines.push(`✗ "どちらも良い" / "both have merit" without a directional lean`);
+  lines.push(`✗ Ignoring the [COMPARISON AXES] specified above`);
+  lines.push(`✗ Staying at analysis level without reaching a conclusion`);
+  lines.push(`✗ Repeating arguments already settled — move the debate forward`);
+  lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+  return `\n\n${lines.join("\n")}`;
+}
+
+// ─── Prompt Mode: conclusion prompt ──────────────────────────────────────────
+// Used instead of the normal conclusion when promptConfig is present.
+
+function buildPromptModeConclusion(cfg: PromptConfig, isProvisional: boolean): string {
+  const axesClause = cfg.comparisonAxes?.length
+    ? `The comparison axes were: ${cfg.comparisonAxes.join(" / ")}. Reference which axis drove each decision.`
+    : "";
+
+  if (isProvisional) {
+    return `You are the MODERATOR generating a PROVISIONAL CHECKPOINT for a Prompt Mode debate.
+${axesClause}
+
+Use EXACTLY these five section headers (in this order):
+
+[有力案] Current leading candidate(s):
+[理由] Why they have the edge — reference the comparison axes:
+[棄却候補] Candidates that are falling behind and why:
+[残論点] Open questions that could change the ranking:
+[次に詰める点] What to debate next if discussion continues:
+
+RULES:
+— [有力案]: Name 1–2 SPECIFIC candidates. Not vague like "needs more discussion."
+— [理由]: Explicitly name which comparison axis or constraint gives each candidate its edge.
+— [棄却候補]: Name candidates that are being cut and the axis/condition that caused the cut.
+— [残論点]: 1–3 specific unresolved questions that could shift the outcome.
+— [次に詰める点]: Actionable — what specifically to investigate or debate next.
+— This is a progress report. Leave room for the human to decide.
+— DO NOT say "it depends" without naming what it depends on.
+
+Respond in the SAME LANGUAGE as the discussion.`;
+  }
+
+  return `You are the MODERATOR delivering the FINAL VERDICT of a Prompt Mode debate.
+${axesClause}
+The human's goal was: ${cfg.goal}
+${cfg.decisionTarget ? `They wanted to: ${cfg.decisionTarget}` : ""}
+
+Use EXACTLY these six section headers:
+
+[採用] Adopted approach:
+[採用理由] Why this won — reference the specific axes that drove the decision:
+[棄却] Rejected / deferred options:
+[残論点] Open question that could change the verdict under different conditions:
+[次アクション] Next action (concrete and executable):
+[別条件なら] Under what condition a different option would be better:
+
+RULES:
+— [採用]: Name the SPECIFIC candidate chosen. Not a vague principle.
+— [採用理由]: Cite the comparison axes explicitly. "This won on [axis] and [axis] because ___."
+— [棄却]: Name what was cut and under what condition it could be reconsidered.
+— [残論点]: ONE specific variable that, if different, would change the verdict.
+— [次アクション]: Concrete enough to execute today.
+— [別条件なら]: "If [condition], then [alternative] would be the better choice."
+— DO NOT write "it depends." DO NOT be neutral. Sound like a sharp advisor making a call.
+
+Respond in the SAME LANGUAGE as the discussion.`;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function agentIdForProvider(provider: string): string {
@@ -980,6 +1116,7 @@ router.post("/discuss", async (req, res) => {
     continuation = false,
     previousProvisional = "",
     continuationDirection = "",
+    promptConfig = null,
   } = req.body as {
     roomId: string;
     runId: string;
@@ -997,6 +1134,8 @@ router.post("/discuss", async (req, res) => {
     previousProvisional?: string;
     /** Free-text direction adjustment from the human (added to continuation context) */
     continuationDirection?: string;
+    /** Prompt Mode config — enforces comparison-based debate logic */
+    promptConfig?: PromptConfig | null;
   };
 
   const apiKeys = {
@@ -1128,6 +1267,9 @@ router.post("/discuss", async (req, res) => {
         let contextMsg = `User question: ${userMessage}`;
         if (decomposed) contextMsg += `\n\n[INPUT ANALYSIS — elements to address]\n${decomposed}`;
 
+        // Inject Prompt Mode configuration block — overrides normal debate behaviour
+        if (promptConfig) contextMsg += buildPromptModeContext(promptConfig);
+
         // When continuing from a checkpoint, inject the previous provisional conclusion so
         // agents know what's already been settled and focus on the [残論点].
         if (continuation && previousProvisional) {
@@ -1211,9 +1353,12 @@ router.post("/discuss", async (req, res) => {
 
       // Re-inject the requirement checklist so the conclusion doesn't drop any original elements
       const decomposedForConclusion = decomposeQuery(userMessage);
-      const conclusionContext = decomposedForConclusion
+      let conclusionContext = decomposedForConclusion
         ? `${fullContext}\n\n${"─".repeat(40)}\n[ORIGINAL QUESTION REQUIREMENTS — must all be addressed in the conclusion]\n${decomposedForConclusion}`
         : fullContext;
+
+      // Inject Prompt Mode config into conclusion context so the moderator knows the axes/goal
+      if (promptConfig) conclusionContext += buildPromptModeContext(promptConfig);
 
       // ── PROVISIONAL CHECKPOINT PROMPT (default after rounds) ─────────────────
       // Used whenever forceConclusion is false — the human will then decide to end or continue.
@@ -1241,9 +1386,20 @@ RULES:
 
       // When forceConclusion=true, use the mode's built-in final conclusion prompt.
       // Otherwise, generate a provisional checkpoint.
+      // When promptConfig is present, use Prompt Mode–specific prompts for richer structured output.
+      let finalConclusionPrompt: string;
+      let provisionalConclusionPrompt: string;
+      if (promptConfig) {
+        finalConclusionPrompt     = buildPromptModeConclusion(promptConfig, false);
+        provisionalConclusionPrompt = buildPromptModeConclusion(promptConfig, true);
+      } else {
+        finalConclusionPrompt     = conclusionPromptBase;
+        provisionalConclusionPrompt = PROVISIONAL_PROMPT;
+      }
+
       const conclusionSystemPrompt = forceConclusion
-        ? languageLock + conclusionPromptBase + "\n" + conclusionPresentation
-        : languageLock + PROVISIONAL_PROMPT + "\n" + conclusionPresentation;
+        ? languageLock + finalConclusionPrompt + "\n" + conclusionPresentation
+        : languageLock + provisionalConclusionPrompt + "\n" + conclusionPresentation;
 
       let conclusionText: string | null = null;
       for (const conf of agentConfig) {

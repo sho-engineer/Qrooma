@@ -94,6 +94,23 @@ export interface WritingStyle {
   jpHardness:       JpHardness;
 }
 
+export type OutputDepth     = "rough" | "compare" | "concrete";
+export type ChallengeLevel  = "soft"  | "standard" | "strong";
+
+/**
+ * Prompt Mode — user-defined debate configuration.
+ * When present, agents must compare multiple candidates against explicit axes.
+ */
+export interface PromptConfig {
+  goal:            string;         // A: 議論の目的
+  decisionTarget:  string;         // B: 最終的に決めたいこと
+  comparisonAxes:  string[];       // C: 比較軸 (multi-select)
+  constraints:     string;         // D: 制約条件
+  priorities:      string;         // E: 優先順位
+  outputDepth:     OutputDepth;    // F: 出力の粒度
+  challengeLevel:  ChallengeLevel; // G: 反論の強さ
+}
+
 export interface Settings {
   openaiApiKey:    string;
   anthropicApiKey: string;

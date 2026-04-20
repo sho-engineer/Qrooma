@@ -16,7 +16,7 @@
  * The Trigger.dev task retrieves them server-side from Supabase.
  */
 
-import type { AgentId, ConclusionData, Message, RunStatus, WritingStyle } from "../types";
+import type { AgentId, ConclusionData, Message, PromptConfig, RunStatus, WritingStyle } from "../types";
 import { AGENTS, DEBATE_POOL, FREETALK_POOL } from "../data/dummy";
 
 export interface RunPayload {
@@ -45,6 +45,8 @@ export interface RealRunParams {
   previousProvisional?: string;
   /** Free-text direction adjustment from the user when continuing the discussion */
   continuationDirection?: string;
+  /** Prompt Mode config — when set, agents must compare multiple candidates against explicit axes */
+  promptConfig?: PromptConfig;
 }
 
 export interface RoundStartEvent {
