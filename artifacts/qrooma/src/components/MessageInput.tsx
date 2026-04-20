@@ -72,7 +72,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
         <div className="flex items-center gap-2 mb-2">
           <button
             type="button"
-            onClick={() => !promptMode && onTogglePromptMode()}
+            onClick={() => promptMode && onTogglePromptMode()}
             className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
               !promptMode
                 ? "bg-foreground text-background"
@@ -83,7 +83,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
           </button>
           <button
             type="button"
-            onClick={() => promptMode && onTogglePromptMode()}
+            onClick={() => !promptMode && onTogglePromptMode()}
             className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
               promptMode
                 ? "bg-foreground text-background"

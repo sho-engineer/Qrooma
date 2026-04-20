@@ -1,7 +1,27 @@
 import { useState, useRef } from "react";
-import { SlidersHorizontalIcon, XIcon, PlayIcon, PlusIcon } from "lucide-react";
+import { SlidersHorizontalIcon, XIcon, PlayIcon, PlusIcon, ZapIcon } from "lucide-react";
 import type { PromptConfig, OutputDepth, ChallengeLevel } from "../types";
 import { useLocale } from "../context/LocaleContext";
+
+// ─── Topic placeholder examples ───────────────────────────────────────────────
+
+const TOPIC_PLACEHOLDERS_JA = [
+  "新機能を今期に入れるべきか検討したい",
+  "テレワーク導入方針を決めたい",
+  "採用優先順位を比較したい",
+  "価格改定の是非を判断したい",
+  "営業施策の優先順位を決めたい",
+  "開発ロードマップの選択肢を整理したい",
+];
+
+const TOPIC_PLACEHOLDERS_EN = [
+  "Should we ship this feature this quarter?",
+  "Decide on a remote work policy",
+  "Compare hiring priorities",
+  "Evaluate a pricing change",
+  "Prioritize sales initiatives",
+  "Organize development roadmap options",
+];
 
 // ─── Preset data ──────────────────────────────────────────────────────────────
 
@@ -13,12 +33,96 @@ const GOAL_PRESETS = [
 ];
 
 const AXIS_PRESETS_JA = [
-  "コスト", "移動効率", "季節感", "初心者向き",
-  "家族向き", "実行しやすさ", "満足度", "リスク", "混雑耐性",
+  "ROI", "実装コスト", "導入スピード", "社内負荷",
+  "インパクト", "再現性", "継続性", "顧客価値",
+  "オペレーション負荷", "学習コスト",
+  "コスト", "リスク", "実行しやすさ", "満足度",
 ];
 const AXIS_PRESETS_EN = [
-  "Cost", "Efficiency", "Seasonality", "Beginner-friendly",
-  "Family-friendly", "Ease of execution", "Satisfaction", "Risk", "Crowd tolerance",
+  "ROI", "Implementation cost", "Time to deploy", "Internal burden",
+  "Impact", "Reproducibility", "Sustainability", "Customer value",
+  "Operational load", "Learning curve",
+  "Cost", "Risk", "Ease of execution", "Satisfaction",
+];
+
+// ─── Quick-start templates ─────────────────────────────────────────────────────
+
+interface Template {
+  id: string;
+  ja: string;
+  en: string;
+  config: Partial<PromptConfig>;
+  topicHint_ja: string;
+  topicHint_en: string;
+}
+
+const TEMPLATES: Template[] = [
+  {
+    id: "measure-compare",
+    ja: "施策比較",
+    en: "Strategy comparison",
+    topicHint_ja: "例: マーケ施策A・B・Cをどれを優先すべきか",
+    topicHint_en: "e.g. Which marketing initiative to prioritize: A, B, or C",
+    config: {
+      goal:           "比較して優先順位を決めたい",
+      comparisonAxes: ["ROI", "実装コスト", "導入スピード", "リスク"],
+    },
+  },
+  {
+    id: "hiring",
+    ja: "採用判断",
+    en: "Hiring decision",
+    topicHint_ja: "例: 候補者AとBどちらを採用すべきか",
+    topicHint_en: "e.g. Should we hire candidate A or B?",
+    config: {
+      goal:           "おすすめを決めたい",
+      comparisonAxes: ["コスト", "スキル適合度", "導入スピード", "継続性"],
+    },
+  },
+  {
+    id: "feature-priority",
+    ja: "新機能優先順位",
+    en: "Feature prioritization",
+    topicHint_ja: "例: Q3の開発候補から何を優先すべきか",
+    topicHint_en: "e.g. What features should we prioritize for Q3?",
+    config: {
+      goal:           "比較して優先順位を決めたい",
+      comparisonAxes: ["顧客価値", "実装コスト", "インパクト", "リスク"],
+    },
+  },
+  {
+    id: "pricing",
+    ja: "価格戦略",
+    en: "Pricing strategy",
+    topicHint_ja: "例: 価格改定（値上げ・据え置き・値下げ）の判断",
+    topicHint_en: "e.g. Should we raise, hold, or lower our pricing?",
+    config: {
+      goal:           "リスクを洗い出したい",
+      comparisonAxes: ["ROI", "顧客価値", "継続性", "リスク"],
+    },
+  },
+  {
+    id: "ops",
+    ja: "組織・運営",
+    en: "Org & operations",
+    topicHint_ja: "例: 組織改編の選択肢を比較したい",
+    topicHint_en: "e.g. Compare restructuring options",
+    config: {
+      goal:           "比較して優先順位を決めたい",
+      comparisonAxes: ["社内負荷", "オペレーション負荷", "リスク", "継続性"],
+    },
+  },
+  {
+    id: "risk-review",
+    ja: "リスクレビュー",
+    en: "Risk review",
+    topicHint_ja: "例: 新規事業立ち上げのリスクを洗い出したい",
+    topicHint_en: "e.g. Identify risks for a new business launch",
+    config: {
+      goal:           "リスクを洗い出したい",
+      comparisonAxes: ["リスク", "インパクト", "再現性", "社内負荷"],
+    },
+  },
 ];
 
 const OUTPUT_DEPTH_OPTIONS: { value: OutputDepth; ja: string; en: string; hint_ja: string; hint_en: string }[] = [
@@ -109,7 +213,12 @@ export default function PromptModeForm({ onSubmit, onCancel }: Props) {
   const [config, setConfig] = useState<PromptConfig>(DEFAULT_CONFIG);
   const [customGoal, setCustomGoal] = useState("");
   const [topic, setTopic]           = useState("");
-  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
+  const [selectedGoalId, setSelectedGoalId]         = useState<string | null>(null);
+  const [activeTemplateId, setActiveTemplateId]     = useState<string | null>(null);
+  const [topicPlaceholder]                          = useState(() => {
+    const pool = ja ? TOPIC_PLACEHOLDERS_JA : TOPIC_PLACEHOLDERS_EN;
+    return pool[Math.floor(Math.random() * pool.length)];
+  });
 
   // "その他" axis support
   const [showCustomAxis, setShowCustomAxis] = useState(false);
@@ -161,6 +270,30 @@ export default function PromptModeForm({ onSubmit, onCancel }: Props) {
     setConfig((prev) => ({ ...prev, goal: val }));
   }
 
+  function applyTemplate(tpl: Template) {
+    if (activeTemplateId === tpl.id) {
+      setActiveTemplateId(null);
+      return;
+    }
+    setActiveTemplateId(tpl.id);
+    const goalLabel = ja ? tpl.config.goal! : tpl.config.goal!;
+    const matchedGoal = GOAL_PRESETS.find((g) =>
+      g.ja === goalLabel || g.en === goalLabel
+    );
+    if (matchedGoal) {
+      setSelectedGoalId(matchedGoal.id);
+      setCustomGoal("");
+    } else {
+      setSelectedGoalId(null);
+      setCustomGoal(goalLabel);
+    }
+    setConfig((prev) => ({
+      ...prev,
+      goal:           tpl.config.goal  ?? prev.goal,
+      comparisonAxes: tpl.config.comparisonAxes ?? prev.comparisonAxes,
+    }));
+  }
+
   const canSubmit = !!topic.trim() && !!config.goal.trim();
 
   function handleSubmit() {
@@ -192,13 +325,47 @@ export default function PromptModeForm({ onSubmit, onCancel }: Props) {
       {/* Scrollable form body */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
 
+        {/* ── Quick-start templates ───────────────────────────────────────── */}
+        <div>
+          <SectionLabel>
+            <span className="flex items-center gap-1.5">
+              <ZapIcon size={9} className="inline text-muted-foreground/50" />
+              {ja ? "クイックテンプレート" : "Quick templates"}
+            </span>
+          </SectionLabel>
+          <div className="flex flex-wrap gap-1.5">
+            {TEMPLATES.map((tpl) => (
+              <button
+                key={tpl.id}
+                type="button"
+                onClick={() => applyTemplate(tpl)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border touch-manipulation ${
+                  activeTemplateId === tpl.id
+                    ? "bg-foreground text-background border-foreground"
+                    : "bg-muted/40 text-foreground/55 border-border/60 hover:border-foreground/30 hover:text-foreground/80"
+                }`}
+              >
+                {ja ? tpl.ja : tpl.en}
+              </button>
+            ))}
+          </div>
+          {activeTemplateId && (() => {
+            const tpl = TEMPLATES.find((t) => t.id === activeTemplateId);
+            return tpl ? (
+              <p className="mt-1.5 text-[11px] text-muted-foreground/50 italic">
+                {ja ? tpl.topicHint_ja : tpl.topicHint_en}
+              </p>
+            ) : null;
+          })()}
+        </div>
+
         {/* Topic */}
         <div>
-          <SectionLabel>{ja ? "何について議論しますか？" : "What to discuss?"}</SectionLabel>
+          <SectionLabel>{ja ? "何を検討・判断したいですか？" : "What do you want to decide or discuss?"}</SectionLabel>
           <textarea
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            placeholder={ja ? "例: 仙台旅行のプランを立てたい（4月・車・子ども連れ）" : "e.g. Plan a trip to Sendai in April by car with kids"}
+            placeholder={`${ja ? "例: " : "e.g. "}${topicPlaceholder}`}
             rows={2}
             className="w-full text-sm bg-muted/30 border border-border rounded-xl px-3 py-2 resize-none outline-none focus:border-foreground/40 placeholder:text-muted-foreground/40 leading-relaxed"
           />
@@ -234,7 +401,9 @@ export default function PromptModeForm({ onSubmit, onCancel }: Props) {
             type="text"
             value={config.decisionTarget}
             onChange={(e) => setConfig((p) => ({ ...p, decisionTarget: e.target.value }))}
-            placeholder={ja ? "例: 旅行プランを1つ決める / 候補を3つまで絞る" : "e.g. Pick one travel plan / Narrow to 3 options"}
+            placeholder={ja
+              ? "例: 施策を1つ選ぶ / 候補を3つまで絞る / 導入方針を決める"
+              : "e.g. Pick one initiative / Narrow to 3 options / Decide on rollout policy"}
             className="w-full text-sm bg-muted/30 border border-border rounded-xl px-3 py-2 outline-none focus:border-foreground/40 placeholder:text-muted-foreground/40"
           />
         </div>
@@ -268,7 +437,7 @@ export default function PromptModeForm({ onSubmit, onCancel }: Props) {
             </Chip>
           </div>
 
-          {/* Custom axis input — shown when "その他" is active */}
+          {/* Custom axis input */}
           {showCustomAxis && (
             <div className="mt-2.5 space-y-2">
               <div className="flex gap-2">
@@ -280,7 +449,7 @@ export default function PromptModeForm({ onSubmit, onCancel }: Props) {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") { e.preventDefault(); addCustomAxis(); }
                   }}
-                  placeholder={ja ? "例: 写真映え / 雨耐性 / 子どもの満足度" : "e.g. Photogenic / Rain resistance"}
+                  placeholder={ja ? "例: 市場規模 / ブランド整合性 / 差別化度" : "e.g. Market size / Brand fit / Differentiation"}
                   className="flex-1 text-sm bg-muted/30 border border-border rounded-xl px-3 py-1.5 outline-none focus:border-foreground/40 placeholder:text-muted-foreground/40"
                 />
                 <button
@@ -325,7 +494,9 @@ export default function PromptModeForm({ onSubmit, onCancel }: Props) {
             type="text"
             value={config.constraints}
             onChange={(e) => setConfig((p) => ({ ...p, constraints: e.target.value }))}
-            placeholder={ja ? "例: 1日で回る・車移動・予算2万円以内" : "e.g. One day, by car, budget under ¥20k"}
+            placeholder={ja
+              ? "例: 予算100万円以内 / 2か月以内に実施 / 追加採用なし / 現体制で回す"
+              : "e.g. Budget under ¥1M / Ship within 2 months / No new hires / Current team only"}
             className="w-full text-sm bg-muted/30 border border-border rounded-xl px-3 py-2 outline-none focus:border-foreground/40 placeholder:text-muted-foreground/40"
           />
         </div>
@@ -337,7 +508,9 @@ export default function PromptModeForm({ onSubmit, onCancel }: Props) {
             type="text"
             value={config.priorities}
             onChange={(e) => setConfig((p) => ({ ...p, priorities: e.target.value }))}
-            placeholder={ja ? "例: 1.移動の楽さ　2.食事　3.景色" : "e.g. 1. Ease of travel  2. Food  3. Scenery"}
+            placeholder={ja
+              ? "例: 1.スピード　2.コスト　3.リスク最小化"
+              : "e.g. 1. Speed  2. Cost  3. Risk minimization"}
             className="w-full text-sm bg-muted/30 border border-border rounded-xl px-3 py-2 outline-none focus:border-foreground/40 placeholder:text-muted-foreground/40"
           />
         </div>

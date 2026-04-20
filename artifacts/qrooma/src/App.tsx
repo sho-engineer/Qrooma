@@ -56,8 +56,8 @@ function DevPlanSwitcher() {
     pro:     "Pro",
   };
   return (
-    <div className="fixed bottom-5 right-5 z-[200] flex items-center gap-0.5 px-1 py-1 rounded-full border border-border bg-card/95 backdrop-blur shadow-lg shadow-black/5">
-      <span className="text-[9px] font-bold text-muted-foreground/40 pl-2 pr-1.5 uppercase tracking-widest select-none">
+    <div className="fixed bottom-5 right-5 z-[200] flex items-center gap-0.5 px-1 py-1 rounded-full border border-border bg-card shadow-lg shadow-black/8">
+      <span className="text-[9px] font-bold text-foreground/30 pl-2 pr-1.5 uppercase tracking-widest select-none">
         DEV
       </span>
       {(["free", "connect", "pro"] as Plan[]).map((p) => (
@@ -67,7 +67,7 @@ function DevPlanSwitcher() {
           className={`px-2.5 py-1 text-[10px] font-semibold rounded-full transition-all duration-150 ${
             plan === p
               ? "bg-foreground text-background"
-              : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              : "text-foreground/60 hover:text-foreground hover:bg-accent"
           }`}
         >
           {planLabels[p]}
