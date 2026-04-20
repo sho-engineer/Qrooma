@@ -787,6 +787,100 @@ SELF-CHECK: Before outputting, verify: Is every sentence in Japanese? If not, re
 \n`;
 }
 
+// ─── Ambiguity check route ─────────────────────────────────────────────────────
+
+router.post("/check-ambiguity", async (req, res) => {
+  const {
+    message,
+    apiKeys: clientApiKeys = {},
+  } = req.body as {
+    message: string;
+    apiKeys?: { openai?: string; anthropic?: string; google?: string };
+  };
+
+  if (!message?.trim()) {
+    return res.json({ needsClarification: false, questions: [], assumptions: [] });
+  }
+
+  const apiKeys = {
+    openai:    clientApiKeys.openai    || process.env["OPENAI_API_KEY"]    || undefined,
+    google:    clientApiKeys.google    || process.env["GOOGLE_API_KEY"]    || undefined,
+    anthropic: clientApiKeys.anthropic || process.env["ANTHROPIC_API_KEY"] || undefined,
+  };
+
+  const systemPrompt = `You analyze user questions to decide if pre-debate clarification is needed.
+
+Return a JSON object ONLY (no other text):
+{
+  "needsClarification": boolean,
+  "questions": string[],    // max 3 if needsClarification is true; empty otherwise
+  "assumptions": string[]   // what you'd assume if proceeding without clarification
+}
+
+Clarification IS needed when:
+- Multiple conditions significantly affect the answer (timing, budget, group size, age, transport, region)
+- The question is very open-ended and underconstrained ("which should I choose?", "where should I go?")
+- Missing info would cause AI to make very different recommendations
+- Prioritization is unclear with 3+ competing factors
+
+Clarification is NOT needed when:
+- The question is already specific enough
+- It's a brainstorming/ideation request ("give me ideas for...")
+- Slightly underconstrained but any assumption is fine
+- User says "just discuss" or similar
+- Simple comparison with clear axes
+
+Questions must be max 3, short, impactful — only the most decision-critical unknowns.
+Assumptions = what AI would assume if user skips clarification.
+
+Examples that need clarification:
+- "どこに家族旅行すればいい?" → needs: timing, child ages, transport preference
+- "転職すべき?" → needs: current situation, goal, timeline
+
+Examples that do NOT need clarification:
+- "リモートワークのメリットとデメリットを議論して" → clear enough
+- "ChatGPTとClaudeどっちがいい?" → can discuss with standard axes
+
+Return ONLY valid JSON.`;
+
+  const availableProviders: Array<{ provider: "openai" | "google" | "anthropic"; model: string; key: string }> = [];
+  if (apiKeys.openai)    availableProviders.push({ provider: "openai",    model: "gpt-4o-mini",          key: apiKeys.openai });
+  if (apiKeys.google)    availableProviders.push({ provider: "google",    model: "gemini-2.5-flash-lite", key: apiKeys.google });
+  if (apiKeys.anthropic) availableProviders.push({ provider: "anthropic", model: "claude-3-haiku-20240307", key: apiKeys.anthropic });
+
+  if (availableProviders.length === 0) {
+    return res.json({ needsClarification: false, questions: [], assumptions: [] });
+  }
+
+  for (const { provider, model, key } of availableProviders) {
+    try {
+      const text = await callAI({
+        provider,
+        model,
+        systemPrompt,
+        messages: [{ role: "user", content: `User question: "${message}"\n\nReturn JSON only.` }],
+        apiKey: key,
+      });
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) continue;
+      const parsed = JSON.parse(jsonMatch[0]) as {
+        needsClarification?: boolean;
+        questions?: unknown[];
+        assumptions?: unknown[];
+      };
+      return res.json({
+        needsClarification: !!parsed.needsClarification,
+        questions:   (Array.isArray(parsed.questions)  ? parsed.questions  : []).slice(0, 3) as string[],
+        assumptions: (Array.isArray(parsed.assumptions) ? parsed.assumptions : []).slice(0, 5) as string[],
+      });
+    } catch {
+      continue;
+    }
+  }
+
+  return res.json({ needsClarification: false, questions: [], assumptions: [] });
+});
+
 // ─── Query decomposition ─────────────────────────────────────────────────────
 
 /**
@@ -836,11 +930,21 @@ function decomposeQuery(text: string): string {
   if (/予算|円|万円|費用|コスト/.test(text)) elements.push("予算制約: 記載あり — 具体的に参照すること");
   if (/時間|〜時間|〜泊|日程|スケジュール/.test(text)) elements.push("日程/時間: 制約あり");
 
+  // Shopping / purchase
+  if (/買う|購入|おすすめ.*(?:PC|スマホ|カメラ|家電|機種|製品)|どれがいい/.test(text)) {
+    elements.push("購入検討: ユーザーが具体的な選択を求めている");
+  }
+
+  // Career / life decisions
+  if (/転職|就職|退職|独立|起業/.test(text)) elements.push("キャリア判断: 重大な人生の決断");
+  if (/結婚|離婚|引っ越し|移住/.test(text)) elements.push("ライフイベント: 重大な個人的決断");
+
   // Return only if multi-element (single-topic questions don't need decomposition)
   if (elements.length < 2) return "";
 
   return elements.map((e) => `• ${e}`).join("\n") +
-    "\n→ Your response MUST address ALL of the above elements. Omitting any = error.";
+    "\n→ Your response MUST address ALL of the above elements. Omitting any = error." +
+    "\n→ In your CONCLUSION, verify each element is addressed before finalizing.";
 }
 
 // ─── Route ────────────────────────────────────────────────────────────────────
@@ -1081,6 +1185,12 @@ router.post("/discuss", async (req, res) => {
         .map((m) => `[Round ${m.round} — ${m.roleLabel}]:\n${m.content}`)
         .join("\n\n");
 
+      // Re-inject the requirement checklist so the conclusion doesn't drop any original elements
+      const decomposedForConclusion = decomposeQuery(userMessage);
+      const conclusionContext = decomposedForConclusion
+        ? `${fullContext}\n\n${"─".repeat(40)}\n[ORIGINAL QUESTION REQUIREMENTS — must all be addressed in the conclusion]\n${decomposedForConclusion}`
+        : fullContext;
+
       // ── PROVISIONAL CHECKPOINT PROMPT (default after rounds) ─────────────────
       // Used whenever forceConclusion is false — the human will then decide to end or continue.
       const PROVISIONAL_PROMPT = `You are the MODERATOR generating a PROVISIONAL CHECKPOINT.
@@ -1120,7 +1230,7 @@ RULES:
             provider:     conf.provider as Provider,
             model:        conf.model,
             systemPrompt: conclusionSystemPrompt,
-            messages:     [{ role: "user", content: fullContext }],
+            messages:     [{ role: "user", content: conclusionContext }],
             apiKey:       key,
           });
           if (conclusionText) break;

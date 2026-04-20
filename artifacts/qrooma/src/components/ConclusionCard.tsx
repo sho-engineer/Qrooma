@@ -218,7 +218,7 @@ function ConclusionUnresolvedState({
   );
 }
 
-// ─── Provisional checkpoint action buttons ────────────────────────────────────
+// ─── Checkpoint action buttons (always rendered at the TOP of card body) ──────
 
 function CheckpointActions({
   onEndHere,
@@ -229,8 +229,8 @@ function CheckpointActions({
 }) {
   const { t, locale } = useLocale();
   return (
-    <div className="px-4 pb-4 pt-1 space-y-2 border-t border-border/30 mt-1">
-      <p className="text-[10px] text-muted-foreground/40 pt-2">
+    <div className="px-4 pt-4 pb-3 space-y-2 border-b border-border/30">
+      <p className="text-[10px] text-muted-foreground/50">
         {locale === "ja" ? "この先どうしますか？" : "What would you like to do next?"}
       </p>
       <div className="grid grid-cols-2 gap-2">
@@ -477,7 +477,8 @@ export default function ConclusionCard({
   const prevConcCount   = useRef(0);
   const { t, locale }   = useLocale();
 
-  // Auto-open + flash when a new conclusion/checkpoint arrives
+  // Auto-open + flash when a new conclusion/checkpoint arrives.
+  // NOTE: Do NOT auto-open when status is "loading" — avoids "jump to conclusion" UX bug.
   useEffect(() => {
     const wasLoading    = prevStatus.current === "loading";
     const isNowSuccess  = conclusionStatus === "provisional" || conclusionStatus === "final";
@@ -490,10 +491,6 @@ export default function ConclusionCard({
       prevStatus.current    = conclusionStatus;
       prevConcCount.current = conclusions.length;
       return () => clearTimeout(timer);
-    }
-
-    if (conclusionStatus === "loading" && prevStatus.current !== "loading") {
-      setIsOpen(true);
     }
 
     prevStatus.current    = conclusionStatus;
@@ -588,6 +585,8 @@ export default function ConclusionCard({
           isOpen ? "accordion-open" : ""
         }`}
       >
+        {/* accordion-inner must have overflow:hidden for the CSS grid animation.
+            We constrain height + scroll on the inner content instead. */}
         <div className="accordion-inner">
           {isLoading ? (
             <ConclusionLoadingSkeleton isProvisional />
@@ -601,9 +600,7 @@ export default function ConclusionCard({
             />
           ) : hasConc ? (
             <>
-              <ConclusionBody conclusion={current!} locale={locale} />
-
-              {/* ── Checkpoint action buttons (only for provisional) ── */}
+              {/* ── Checkpoint action buttons — at the TOP so they're always visible ── */}
               {isProvisional && (
                 <CheckpointActions
                   onEndHere={onEndHere}
@@ -611,40 +608,45 @@ export default function ConclusionCard({
                 />
               )}
 
-              {/* ── History section ── */}
-              {history.length > 0 && (
-                <div className="px-4 pb-4">
-                  <button
-                    onClick={() => setShowHistory((p) => !p)}
-                    className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors mt-1"
-                  >
-                    <ClockIcon size={10} />
-                    <span>
-                      {locale === "ja"
-                        ? `過去の結論 ${history.length} 件`
-                        : `${history.length} previous conclusion${history.length > 1 ? "s" : ""}`}
-                    </span>
-                    <ChevronDownIcon
-                      size={10}
-                      className="transition-transform duration-200"
-                      style={{ transform: showHistory ? "rotate(180deg)" : "rotate(0deg)" }}
-                    />
-                  </button>
-                  {showHistory && (
-                    <div className="mt-3 space-y-2">
-                      {history.map((conc, i) => (
-                        <PastConclusionRow
-                          key={conc.generatedAt}
-                          conclusion={conc}
-                          index={i + 1}
-                          total={conclusions.length}
-                          locale={locale}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* ── Scrollable conclusion body ── */}
+              <div className="overflow-y-auto max-h-[42vh]">
+                <ConclusionBody conclusion={current!} locale={locale} />
+
+                {/* ── History section ── */}
+                {history.length > 0 && (
+                  <div className="px-4 pb-4">
+                    <button
+                      onClick={() => setShowHistory((p) => !p)}
+                      className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors mt-1"
+                    >
+                      <ClockIcon size={10} />
+                      <span>
+                        {locale === "ja"
+                          ? `過去の結論 ${history.length} 件`
+                          : `${history.length} previous conclusion${history.length > 1 ? "s" : ""}`}
+                      </span>
+                      <ChevronDownIcon
+                        size={10}
+                        className="transition-transform duration-200"
+                        style={{ transform: showHistory ? "rotate(180deg)" : "rotate(0deg)" }}
+                      />
+                    </button>
+                    {showHistory && (
+                      <div className="mt-3 space-y-2">
+                        {history.map((conc, i) => (
+                          <PastConclusionRow
+                            key={conc.generatedAt}
+                            conclusion={conc}
+                            index={i + 1}
+                            total={conclusions.length}
+                            locale={locale}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             <div className="px-5 py-7 text-center">

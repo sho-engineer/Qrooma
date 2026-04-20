@@ -84,16 +84,24 @@ src/
 
 ---
 
-## Run Flow (dummy simulation)
+## Run Flow (real AI)
 
 1. User types a message → presses Enter or Send  
-2. `RoomDetailPage.sendMessage()` creates a user `Message` with a new `runId`  
-3. `triggerAgentReplies()` fires 3 staggered `setTimeout` calls (one per agent)  
-4. Each callback appends an assistant `Message` with the same `runId`  
-5. After the last callback, `runStatus` → `"completed"`  
-6. Re-run button repeats step 3–5 with a new `runId`
+2. `RoomDetailPage.sendMessage()` calls `POST /api/check-ambiguity` first  
+   - If ambiguity detected → shows `ClarificationCard` with up to 3 questions  
+   - User can answer or skip; either way the debate begins  
+3. Creates a user `Message` with a new `runId`  
+4. Calls `POST /api/discuss` via SSE; receives streamed agent messages + checkpoint/conclusion events  
+5. After all rounds, a provisional checkpoint appears; user chooses to end or continue  
+6. Re-run button repeats the real AI run with the same message
 
-**Production replacement**: replace `triggerAgentReplies` with a Trigger.dev job trigger and stream responses via Supabase Realtime.
+## Pre-debate Clarification Flow
+
+- `POST /api/check-ambiguity` — fast AI call (gpt-4o-mini or Gemini) returns `{ needsClarification, questions[], assumptions[] }`
+- `ClarificationCard` component shows questions + optional answer textarea + "Answer first" / "Start anyway" buttons
+- If user answers: original message is concatenated with `\n\n補足: <answer>` before sending to debate
+- If user skips: debate starts with stated assumptions in context
+- Ambiguity check failure is silent (falls through to normal run)
 
 ---
 

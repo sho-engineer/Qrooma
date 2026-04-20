@@ -28,6 +28,7 @@ import type { ConclusionData, ConclusionStatus, Message, RunStatus, Provider } f
 import RoomHeader from "../components/RoomHeader";
 import MessageBubble from "../components/MessageBubble";
 import ConclusionCard from "../components/ConclusionCard";
+import ClarificationCard from "../components/ClarificationCard";
 import MessageInput from "../components/MessageInput";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
@@ -126,6 +127,14 @@ export default function RoomDetailPage() {
     () => messagesService.getConclusions(roomId),
   );
   const [conclusionStatus,  setConclusionStatus]  = useState<ConclusionStatus>("idle");
+
+  // ─── Clarification state ────────────────────────────────────────────────────
+  const [clarifyState, setClarifyState] = useState<{
+    questions: string[];
+    assumptions: string[];
+    pendingInput: string;
+  } | null>(null);
+  const [isCheckingAmbiguity, setIsCheckingAmbiguity] = useState(false);
 
   const cancelRun = useRef<(() => void) | null>(null);
 
@@ -383,15 +392,13 @@ export default function RoomDetailPage() {
     }
   }
 
-  function sendMessage() {
-    if (!input.trim() || isRunActive) return;
-
+  function _doSendMessage(text: string) {
     const newRunId = `run-${Date.now()}`;
     const userMsg: Message = {
       id:        `m-${Date.now()}`,
       roomId,
       role:      "user",
-      content:   input.trim(),
+      content:   text,
       createdAt: new Date().toISOString(),
       runId:     newRunId,
     };
@@ -400,9 +407,46 @@ export default function RoomDetailPage() {
     shouldScrollToBottom.current = true;
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setClarifyState(null);
     const nextCount = runCount + 1;
     setRunCount(nextCount);
-    triggerRun(newRunId, input.trim(), nextCount);
+    triggerRun(newRunId, text, nextCount);
+  }
+
+  async function sendMessage() {
+    if (!input.trim() || isRunActive) return;
+
+    const text = input.trim();
+    const apiKeyPayload = isFree ? {} : {
+      openai:    settings.openaiApiKey    || undefined,
+      anthropic: settings.anthropicApiKey || undefined,
+      google:    settings.googleApiKey    || undefined,
+    };
+
+    setIsCheckingAmbiguity(true);
+    try {
+      const res = await fetch("/api/check-ambiguity", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ message: text, apiKeys: apiKeyPayload }),
+      });
+      if (res.ok) {
+        const data = await res.json() as {
+          needsClarification: boolean;
+          questions: string[];
+          assumptions: string[];
+        };
+        if (data.needsClarification && data.questions.length > 0) {
+          setIsCheckingAmbiguity(false);
+          setClarifyState({ questions: data.questions, assumptions: data.assumptions, pendingInput: text });
+          return;
+        }
+      }
+    } catch {
+      // If ambiguity check fails, proceed with the run anyway
+    }
+    setIsCheckingAmbiguity(false);
+    _doSendMessage(text);
   }
 
   function rerun() {
@@ -718,6 +762,31 @@ export default function RoomDetailPage() {
         />
       )}
 
+      {/* Clarification card — shown before debate starts when ambiguity detected */}
+      {clarifyState && !isRunActive && (
+        <ClarificationCard
+          questions={clarifyState.questions}
+          assumptions={clarifyState.assumptions}
+          onAnswer={(answer) => {
+            const combined = `${clarifyState.pendingInput}\n\n補足: ${answer}`;
+            _doSendMessage(combined);
+          }}
+          onSkip={() => {
+            _doSendMessage(clarifyState.pendingInput);
+          }}
+        />
+      )}
+
+      {/* Ambiguity checking indicator */}
+      {isCheckingAmbiguity && (
+        <div className="mx-3 sm:mx-4 mb-2 flex items-center gap-2 px-4 py-3 rounded-2xl border border-border/40 bg-muted/20">
+          <span className="w-3 h-3 rounded-full border-2 border-foreground/20 border-t-foreground/60 animate-spin" />
+          <p className="text-xs text-muted-foreground">
+            {locale === "ja" ? "確認中…" : "Checking…"}
+          </p>
+        </div>
+      )}
+
       {plan === "free" && (
         <div className="shrink-0 px-4 py-2 border-t border-border/60 bg-muted/30 flex items-center justify-between gap-3 min-w-0">
           <p className="text-[11px] text-muted-foreground/70 leading-relaxed truncate min-w-0">
@@ -734,7 +803,7 @@ export default function RoomDetailPage() {
         value={input}
         onChange={setInput}
         onSend={sendMessage}
-        isRunning={isRunActive}
+        isRunning={isRunActive || isCheckingAmbiguity}
         apiKeysReady={plan === "free" || plan === "pro" ? true : hasSomeKey}
       />
     </div>

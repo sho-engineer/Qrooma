@@ -229,6 +229,12 @@ export interface Translations {
   whatChanged: string;
   provisionalBadge: string;
   finalBadge: string;
+  // Clarification flow
+  clarifyTitle: string;
+  clarifyAnswerBtn: string;
+  clarifySkipBtn: string;
+  clarifyAssumptionLabel: string;
+  clarifyChecking: string;
 }
 
 const ja: Translations = {
@@ -311,9 +317,9 @@ const ja: Translations = {
     if (mode === "structured-debate") {
       return side === "A" ? "提案" : side === "B" ? "検証" : "実行";
     }
-    return `Side ${side}`;
+    return side === "A" ? "観点A" : side === "B" ? "観点B" : "観点C";
   },
-  roleSubLabel: (side) => `Side ${side}`,
+  roleSubLabel: (side) => side === "A" ? "観点A" : side === "B" ? "観点B" : "観点C",
   // API key / BYOK — basic
   apiKeyNotSet: "APIキー未設定",
   apiKeyByokBannerTitle: "APIキーの設定",
@@ -462,6 +468,11 @@ const ja: Translations = {
   whatChanged: "更新点",
   provisionalBadge: "暫定",
   finalBadge: "確定",
+  clarifyTitle: "議論を始める前に、少しだけ確認したいことがあります",
+  clarifyAnswerBtn: "回答してから始める",
+  clarifySkipBtn: "このまま議論する",
+  clarifyAssumptionLabel: "「このまま議論する」を選ぶと、以下の前提で進みます",
+  clarifyChecking: "確認中…",
 };
 
 const en: Translations = {
@@ -696,6 +707,11 @@ const en: Translations = {
   whatChanged: "What Changed",
   provisionalBadge: "Provisional",
   finalBadge: "Final",
+  clarifyTitle: "Before we start, I'd like to confirm a few things",
+  clarifyAnswerBtn: "Answer first",
+  clarifySkipBtn: "Start anyway",
+  clarifyAssumptionLabel: "\"Start anyway\" will use these assumptions",
+  clarifyChecking: "Checking…",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };
