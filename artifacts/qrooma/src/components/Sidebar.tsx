@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
+import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { useRooms } from "../context/RoomsContext";
 import { useLocale } from "../context/LocaleContext";
@@ -284,100 +285,116 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
         {rooms.length === 0 && (
           <p className="px-3 py-3 text-xs text-muted-foreground">{t.noRooms}</p>
         )}
-        {rooms.map((room) => {
-          const isActive  = location === `/rooms/${room.id}`;
-          const hasError  = room.lastRunStatus === "error";
-          const isEditing = editingId === room.id;
-          const menuOpen  = menuOpenId === room.id;
+        <AnimatePresence initial={false}>
+          {rooms.map((room) => {
+            const isActive  = location === `/rooms/${room.id}`;
+            const hasError  = room.lastRunStatus === "error";
+            const isEditing = editingId === room.id;
+            const menuOpen  = menuOpenId === room.id;
 
-          return (
-            <div
-              key={room.id}
-              className={`group relative flex items-center gap-1 mb-0.5 rounded-lg ${
-                isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/60"
-              }`}
-            >
-              {isEditing ? (
-                <div className="flex items-center gap-1 flex-1 px-2 py-1.5">
-                  <input
-                    autoFocus
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") commitEdit(room.id);
-                      if (e.key === "Escape") cancelEdit();
-                    }}
-                    className="flex-1 text-sm bg-background border border-input rounded-lg px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-ring"
-                  />
-                  <button onClick={() => commitEdit(room.id)} className="text-primary p-0.5">
-                    <CheckIcon size={12} />
-                  </button>
-                  <button onClick={cancelEdit} className="text-muted-foreground p-0.5">
-                    <XIcon size={12} />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <Link
-                    href={`/rooms/${room.id}`}
-                    className="flex-1 min-w-0 px-2.5 py-2"
-                    onClick={handleRoomClick}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {hasError && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-destructive/60 shrink-0" />
-                      )}
-                      <span className={`block text-sm truncate ${
-                        isActive ? "text-foreground font-medium" : "text-sidebar-foreground"
-                      }`}>
-                        {room.name}
-                      </span>
-                    </div>
-                    {room.lastMessage && (
-                      <span className="block text-xs text-muted-foreground truncate mt-0.5">
-                        {room.lastMessage}
-                      </span>
-                    )}
-                  </Link>
-
-                  {/* Rename button — desktop hover only */}
-                  <button
-                    onClick={() => startEdit(room.id, room.name)}
-                    className="hidden sm:flex p-1.5 text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                    title={t.rename}
-                  >
-                    <PencilIcon size={11} />
-                  </button>
-
-                  {/* ··· menu — always visible on mobile, hover-only on desktop */}
-                  <div className="relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMenuOpenId(menuOpen ? null : room.id);
+            return (
+              <motion.div
+                key={room.id}
+                layout
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{
+                  opacity: 0,
+                  x: -24,
+                  scaleY: 0.7,
+                  height: 0,
+                  marginBottom: 0,
+                  paddingTop: 0,
+                  paddingBottom: 0,
+                  transition: { duration: 0.22, ease: "easeIn" },
+                }}
+                transition={{ duration: 0.16, ease: "easeOut" }}
+                className={`group relative flex items-center gap-1 mb-0.5 rounded-lg overflow-hidden ${
+                  isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/60"
+                }`}
+              >
+                {isEditing ? (
+                  <div className="flex items-center gap-1 flex-1 px-2 py-1.5">
+                    <input
+                      autoFocus
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") commitEdit(room.id);
+                        if (e.key === "Escape") cancelEdit();
                       }}
-                      className={`p-2 mr-0.5 rounded-md transition-all touch-manipulation ${
-                        menuOpen
-                          ? "opacity-100 text-foreground bg-sidebar-accent"
-                          : "opacity-70 sm:opacity-0 sm:group-hover:opacity-100 text-muted-foreground hover:text-foreground"
-                      }`}
-                      title="メニュー"
-                    >
-                      <MoreHorizontalIcon size={14} />
+                      className="flex-1 text-sm bg-background border border-input rounded-lg px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-ring"
+                    />
+                    <button onClick={() => commitEdit(room.id)} className="text-primary p-0.5">
+                      <CheckIcon size={12} />
                     </button>
-                    {menuOpen && (
-                      <RoomContextMenu
-                        roomId={room.id}
-                        roomName={room.name}
-                        onClose={() => setMenuOpenId(null)}
-                      />
-                    )}
+                    <button onClick={cancelEdit} className="text-muted-foreground p-0.5">
+                      <XIcon size={12} />
+                    </button>
                   </div>
-                </>
-              )}
-            </div>
-          );
-        })}
+                ) : (
+                  <>
+                    <Link
+                      href={`/rooms/${room.id}`}
+                      className="flex-1 min-w-0 px-2.5 py-2"
+                      onClick={handleRoomClick}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {hasError && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-destructive/60 shrink-0" />
+                        )}
+                        <span className={`block text-sm truncate ${
+                          isActive ? "text-foreground font-medium" : "text-sidebar-foreground"
+                        }`}>
+                          {room.name}
+                        </span>
+                      </div>
+                      {room.lastMessage && (
+                        <span className="block text-xs text-muted-foreground truncate mt-0.5">
+                          {room.lastMessage}
+                        </span>
+                      )}
+                    </Link>
+
+                    {/* Rename button — desktop hover only */}
+                    <button
+                      onClick={() => startEdit(room.id, room.name)}
+                      className="hidden sm:flex p-1.5 text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                      title={t.rename}
+                    >
+                      <PencilIcon size={11} />
+                    </button>
+
+                    {/* ··· menu — always visible on mobile, hover-only on desktop */}
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuOpenId(menuOpen ? null : room.id);
+                        }}
+                        className={`p-2 mr-0.5 rounded-md transition-all touch-manipulation ${
+                          menuOpen
+                            ? "opacity-100 text-foreground bg-sidebar-accent"
+                            : "opacity-70 sm:opacity-0 sm:group-hover:opacity-100 text-muted-foreground hover:text-foreground"
+                        }`}
+                        title="メニュー"
+                      >
+                        <MoreHorizontalIcon size={14} />
+                      </button>
+                      {menuOpen && (
+                        <RoomContextMenu
+                          roomId={room.id}
+                          roomName={room.name}
+                          onClose={() => setMenuOpenId(null)}
+                        />
+                      )}
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </nav>
 
       <div className="border-t border-sidebar-border px-1.5 py-2 space-y-0.5">

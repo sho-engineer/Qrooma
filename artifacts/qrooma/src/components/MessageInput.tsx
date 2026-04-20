@@ -18,12 +18,23 @@ interface Props {
   onTogglePromptMode?: () => void;
 }
 
-/** Detect touch-primary devices (phones / tablets). Memoised once per mount. */
+/**
+ * Detect touch-primary / mobile devices.
+ *
+ * We combine three signals so the check works correctly on:
+ *   • Real phones/tablets  (maxTouchPoints > 0 OR userAgent match)
+ *   • Replit preview pane on a desktop computer (viewport < 768 serves as tie-breaker)
+ *
+ * The goal is: never send on Enter when the device is primarily touch-based.
+ */
 function useIsMobile(): boolean {
-  return useMemo(
-    () => typeof navigator !== "undefined" && navigator.maxTouchPoints > 0,
-    [],
-  );
+  return useMemo(() => {
+    if (typeof navigator === "undefined" || typeof window === "undefined") return false;
+    const hasTouchPoints = navigator.maxTouchPoints > 0;
+    const mobileUA       = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const coarsePointer  = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+    return hasTouchPoints || mobileUA || coarsePointer;
+  }, []);
 }
 
 const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInput({
@@ -119,6 +130,8 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
           }
           rows={2}
           disabled={isRunning}
+          // enterKeyHint="enter" tells iOS/Android to show "Return" key (newline), not "Send"/"Go"
+          enterKeyHint={isMobile ? "enter" : "send"}
           className="flex-1 resize-none text-sm bg-transparent outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed leading-relaxed"
         />
 

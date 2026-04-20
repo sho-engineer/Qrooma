@@ -1,23 +1,4 @@
-/**
- * Rooms Context
- *
- * ARCHITECTURE NOTE
- * ─────────────────
- * This context is a thin UI layer over `roomsService`.
- * All data access goes through the service — never import from `../data/dummy` here.
- *
- * When Supabase is connected:
- * 1. `roomsService` methods call `supabase.from("rooms").*`
- * 2. Add a Supabase realtime subscription here to keep `rooms` in sync:
- *
- *   supabase
- *     .channel("rooms")
- *     .on("postgres_changes", { event: "*", table: "rooms", filter: `user_id=eq.${userId}` },
- *         () => refresh())
- *     .subscribe()
- */
-
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import type { Room } from "../types";
 import { roomsService } from "../services/roomsService";
 import { useAuth } from "./AuthContext";
@@ -37,32 +18,29 @@ const RoomsContext = createContext<RoomsContextValue | null>(null);
 
 export function RoomsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [rooms, setRooms]       = useState<Room[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  /**
+   * Track IDs that have been explicitly deleted in this session.
+   * This prevents a race where refresh() re-fetches from storage
+   * and re-adds a room that was just deleted optimistically.
+   */
+  const deletedIds = useRef<Set<string>>(new Set());
 
   const refresh = useCallback(() => {
     setIsLoading(true);
     roomsService.list(user?.id ?? "demo").then((r) => {
-      setRooms(r);
+      // Never restore rooms that were deleted in this session
+      setRooms(r.filter((room) => !deletedIds.current.has(room.id)));
       setIsLoading(false);
     });
   }, [user?.id]);
 
   useEffect(() => {
     refresh();
-    // SUPABASE CONNECTION POINT:
-    // const channel = supabase.channel("rooms")
-    //   .on("postgres_changes", { event: "*", table: "rooms", filter: `user_id=eq.${user?.id}` },
-    //       () => refresh())
-    //   .subscribe()
-    // return () => channel.unsubscribe()
   }, [refresh]);
 
-  /**
-   * Optimistic create: updates local state immediately, persists via service.
-   * In production (Supabase), the optimistic ID is replaced by the server UUID
-   * via the realtime subscription above.
-   */
   function addRoom(name: string): Room {
     const room: Room = {
       id:        `room-${Date.now()}`,
@@ -70,7 +48,6 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
     };
     setRooms((prev) => [room, ...prev]);
-    // Fire-and-forget to service; realtime subscription updates state in production
     roomsService.create(user?.id ?? "demo", name).catch(console.error);
     return room;
   }
@@ -96,12 +73,21 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
   }
 
   function deleteRoom(id: string): void {
+    // Mark as deleted immediately so no refresh can restore it
+    deletedIds.current.add(id);
+    // Remove from React state
     setRooms((prev) => prev.filter((r) => r.id !== id));
-    roomsService.delete(id).catch(console.error);
+    // Persist to storage (sync inside async wrapper — runs before next event loop tick)
+    roomsService.delete(id).catch((err) => {
+      // On failure: un-mark and restore by refreshing from storage
+      deletedIds.current.delete(id);
+      console.error("deleteRoom failed, restoring:", err);
+      refresh();
+    });
   }
 
   function getRoomById(id: string): Room | undefined {
-    return rooms.find((r) => r.id === id);
+    return rooms.find((r) => r.id !== undefined && !deletedIds.current.has(r.id) && r.id === id);
   }
 
   return (
