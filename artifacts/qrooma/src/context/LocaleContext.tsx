@@ -209,6 +209,11 @@ export interface Translations {
   conclusionLoading: string;
   conclusionError: string;
   conclusionErrorRetry: string;
+  conclusionUnresolved: string;
+  conclusionUnresolvedDesc: string;
+  conclusionContinue: string;
+  conclusionProvisional: string;
+  conclusionAddCondition: string;
 }
 
 const ja: Translations = {
@@ -420,8 +425,13 @@ const ja: Translations = {
   jpHardnessFormal: "かため",
   // Conclusion states
   conclusionLoading: "結論を生成中…",
-  conclusionError: "結論を生成できませんでした。再実行してください",
-  conclusionErrorRetry: "再実行",
+  conclusionError: "結論を生成できませんでした",
+  conclusionErrorRetry: "もう一度試す",
+  conclusionUnresolved: "結論はまだ未確定です",
+  conclusionUnresolvedDesc: "争点が残っているため、この時点では確定結論を出していません。",
+  conclusionContinue: "議論を続ける",
+  conclusionProvisional: "暫定結論を出す",
+  conclusionAddCondition: "条件を追加する",
 };
 
 const en: Translations = {
@@ -634,8 +644,13 @@ const en: Translations = {
   jpHardnessFormal: "Formal",
   // Conclusion states
   conclusionLoading: "Generating conclusion…",
-  conclusionError: "Could not generate a conclusion. Try re-running the discussion.",
-  conclusionErrorRetry: "Re-run",
+  conclusionError: "Could not generate a conclusion",
+  conclusionErrorRetry: "Try again",
+  conclusionUnresolved: "No conclusion yet",
+  conclusionUnresolvedDesc: "Key questions remain open. The discussion hasn't reached a clear verdict.",
+  conclusionContinue: "Continue discussion",
+  conclusionProvisional: "Get provisional conclusion",
+  conclusionAddCondition: "Add a condition",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };

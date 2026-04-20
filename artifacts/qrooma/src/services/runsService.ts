@@ -37,6 +37,8 @@ export interface RealRunParams {
   apiKeys:          { openai?: string; anthropic?: string; google?: string };
   previousMessages: { role: string; agentId?: string; content: string }[];
   writingStyle?:    WritingStyle;
+  /** When true: skip all debate rounds and only generate the conclusion */
+  forceConclusion?: boolean;
 }
 
 export interface RoundStartEvent {
@@ -166,8 +168,16 @@ export const runsService = {
                 createdAt: String(data["createdAt"] ?? new Date().toISOString()),
               });
             } else if (data["type"] === "conclusion") {
-              const conc = data["conclusion"] as ConclusionData;
-              if (conc?.summary && conc.summary.trim().length > 0) {
+              // API sends { type:"conclusion", content:"...", createdAt:"..." }
+              // Build ConclusionData from the raw content string.
+              const content = String(data["content"] ?? "").trim();
+              if (content) {
+                const conc: ConclusionData = {
+                  summary:     content,
+                  keyPoints:   [],
+                  generatedAt: String(data["createdAt"] ?? new Date().toISOString()),
+                  runId:       params.runId,
+                };
                 onConclusion(conc);
               } else {
                 onConclusionError?.();

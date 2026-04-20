@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { ChevronDownIcon, ClockIcon, RotateCcwIcon } from "lucide-react";
+import { ChevronDownIcon, ClockIcon, RotateCcwIcon, MessageSquarePlusIcon, PlayIcon, PlusCircleIcon } from "lucide-react";
 import type { ConclusionData, ConclusionStatus } from "../types";
 import { useLocale } from "../context/LocaleContext";
 
 interface Props {
-  runCount:         number;
-  conclusions:      ConclusionData[];
-  conclusionStatus: ConclusionStatus;
-  onRerun?:         () => void;
+  runCount:           number;
+  conclusions:        ConclusionData[];
+  conclusionStatus:   ConclusionStatus;
+  onRerun?:           () => void;
+  onContinue?:        () => void;
+  onProvisional?:     () => void;
+  onAddCondition?:    () => void;
 }
 
 function formatDate(iso: string, locale: string): string {
@@ -90,7 +93,7 @@ function ConclusionLoadingSkeleton() {
   );
 }
 
-// ─── Error state ──────────────────────────────────────────────────────────────
+// ─── Error state (catastrophic failure) ──────────────────────────────────────
 
 function ConclusionErrorState({ onRerun }: { onRerun?: () => void }) {
   const { t } = useLocale();
@@ -108,6 +111,85 @@ function ConclusionErrorState({ onRerun }: { onRerun?: () => void }) {
           {t.conclusionErrorRetry}
         </button>
       )}
+    </div>
+  );
+}
+
+// ─── Unresolved state (rounds done, no clear verdict yet) ────────────────────
+
+function ConclusionUnresolvedState({
+  onContinue,
+  onProvisional,
+  onAddCondition,
+}: {
+  onContinue?:     () => void;
+  onProvisional?:  () => void;
+  onAddCondition?: () => void;
+}) {
+  const { t, locale } = useLocale();
+  return (
+    <div className="px-5 py-5 space-y-4">
+      <div className="rounded-xl border border-amber-200/60 dark:border-amber-800/40 bg-amber-50/40 dark:bg-amber-950/20 px-4 py-3.5">
+        <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">
+          {t.conclusionUnresolved}
+        </p>
+        <p className="text-xs text-amber-700/70 dark:text-amber-400/60 leading-relaxed">
+          {t.conclusionUnresolvedDesc}
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        {onContinue && (
+          <button
+            onClick={onContinue}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-card transition-colors text-left group"
+          >
+            <div className="shrink-0 w-6 h-6 rounded-lg bg-violet-100 dark:bg-violet-950/60 flex items-center justify-center">
+              <PlayIcon size={10} className="text-violet-600 dark:text-violet-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-foreground">{t.conclusionContinue}</p>
+              <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                {locale === "ja" ? "次ラウンドを追加して議論を深める" : "Add another round to deepen the debate"}
+              </p>
+            </div>
+          </button>
+        )}
+
+        {onProvisional && (
+          <button
+            onClick={onProvisional}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-card transition-colors text-left"
+          >
+            <div className="shrink-0 w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-950/60 flex items-center justify-center">
+              <MessageSquarePlusIcon size={10} className="text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-foreground">{t.conclusionProvisional}</p>
+              <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                {locale === "ja" ? "完全収束でなくても現時点の最善案を出す" : "Extract the best current option without full consensus"}
+              </p>
+            </div>
+          </button>
+        )}
+
+        {onAddCondition && (
+          <button
+            onClick={onAddCondition}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-card transition-colors text-left"
+          >
+            <div className="shrink-0 w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center">
+              <PlusCircleIcon size={10} className="text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-foreground">{t.conclusionAddCondition}</p>
+              <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                {locale === "ja" ? "予算・人数・制約など前提を補足して再開" : "Add budget, constraints, or priorities to refocus"}
+              </p>
+            </div>
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -226,25 +308,36 @@ function PastConclusionRow({
 
 // ─── Main component ────────────────────────────────────────────────────────────
 
-export default function ConclusionCard({ runCount, conclusions, conclusionStatus, onRerun }: Props) {
+export default function ConclusionCard({
+  runCount,
+  conclusions,
+  conclusionStatus,
+  onRerun,
+  onContinue,
+  onProvisional,
+  onAddCondition,
+}: Props) {
   const [isOpen,       setIsOpen]       = useState(false);
   const [showHistory,  setShowHistory]  = useState(false);
   const { t, locale } = useLocale();
 
-  const current  = conclusions[0] ?? null;
-  const history  = conclusions.slice(1);
-  const hasConc  = !!current && !!current.summary?.trim();
-  const isLoading = conclusionStatus === "loading";
-  const isError   = conclusionStatus === "error";
+  const current    = conclusions[0] ?? null;
+  const history    = conclusions.slice(1);
+  const hasConc    = !!current && !!current.summary?.trim();
+  const isLoading    = conclusionStatus === "loading";
+  const isError      = conclusionStatus === "error";
+  const isUnresolved = conclusionStatus === "unresolved";
 
-  // Auto-open when loading starts (so user sees progress)
-  // handled by the parent setting conclusionStatus
+  // Auto-open on loading so user sees progress
+  // Controlled by parent setting conclusionStatus
 
   // Badge label
   const badgeLabel = isLoading
     ? (locale === "ja" ? "生成中" : "Generating")
     : isError
     ? (locale === "ja" ? "エラー" : "Error")
+    : isUnresolved
+    ? (locale === "ja" ? "未確定" : "Unresolved")
     : hasConc
     ? t.runsCount(runCount)
     : undefined;
@@ -261,16 +354,16 @@ export default function ConclusionCard({ runCount, conclusions, conclusionStatus
         }`}
       >
         <div className="flex items-center gap-2 text-foreground">
-          <span className={`text-base leading-none select-none ${isLoading ? "animate-spin" : ""} ${isError ? "text-rose-400/70" : "text-foreground/30"}`}>
-            {isError ? "!" : "◈"}
+          <span className={`text-base leading-none select-none ${isLoading ? "animate-spin" : ""} ${isError ? "text-rose-400/70" : isUnresolved ? "text-amber-400/70" : "text-foreground/30"}`}>
+            {isError ? "!" : isUnresolved ? "◎" : "◈"}
           </span>
           <span className="text-sm font-semibold">{t.conclusion}</span>
           {badgeLabel && (
-            <span className={`text-[11px] font-normal ${isError ? "text-rose-500/70" : isLoading ? "text-blue-500/70" : "text-muted-foreground/50"}`}>
+            <span className={`text-[11px] font-normal ${isError ? "text-rose-500/70" : isUnresolved ? "text-amber-500/70" : isLoading ? "text-blue-500/70" : "text-muted-foreground/50"}`}>
               {badgeLabel}
             </span>
           )}
-          {!isLoading && !isError && history.length > 0 && (
+          {!isLoading && !isError && !isUnresolved && history.length > 0 && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground/60 font-medium">
               v{conclusions.length}
             </span>
@@ -295,6 +388,12 @@ export default function ConclusionCard({ runCount, conclusions, conclusionStatus
             <ConclusionLoadingSkeleton />
           ) : isError ? (
             <ConclusionErrorState onRerun={onRerun} />
+          ) : isUnresolved ? (
+            <ConclusionUnresolvedState
+              onContinue={onContinue}
+              onProvisional={onProvisional}
+              onAddCondition={onAddCondition}
+            />
           ) : hasConc ? (
             <>
               <ConclusionBody conclusion={current!} locale={locale} />

@@ -14,7 +14,7 @@
  * 3. Remove all setTimeout-based simulation
  */
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useParams } from "wouter";
 import { RotateCcwIcon } from "lucide-react";
 import { AGENTS } from "../data/dummy";
@@ -132,6 +132,7 @@ export default function RoomDetailPage() {
   const topRef            = useRef<HTMLDivElement>(null);
   const bottomRef         = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef          = useRef<HTMLTextAreaElement>(null);
   const isFirstMount      = useRef(true);
   const shouldScrollToBottom = useRef(false);
 
@@ -337,8 +338,9 @@ export default function RoomDetailPage() {
           setMessages((prev) => [...prev, summaryMsg]);
         },
         () => {
-          // conclusion_error: server could not generate conclusion
-          setConclusionStatus("error");
+          // conclusion_error: rounds completed but no conclusion generated.
+          // Show "unresolved" state with continue/provisional/add-condition actions.
+          setConclusionStatus("unresolved");
         },
       );
       cancelRun.current = cancel;
@@ -387,6 +389,71 @@ export default function RoomDetailPage() {
     setRunCount(nextCount);
     triggerRun(newRunId, lastUserMsg?.content ?? "", nextCount);
   }
+
+  // "暫定結論を出す" — skip rounds, generate conclusion from current context
+  const handleProvisional = useCallback(() => {
+    if (runStatus === "running" || messages.length === 0) return;
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUserMsg) return;
+    if (!hasSomeKey && !isFree) return;
+
+    const sides = isFree
+      ? (["A", "B"] as const)
+      : ((agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[]);
+    const sideConfigs = isFree ? FREE_SIDES : [settings.sideA, settings.sideB, settings.sideC];
+    const agentConfig = sides
+      .map((side, i) => ({ side, provider: sideConfigs[i]!.provider, model: sideConfigs[i]!.model }))
+      .filter((a) => isFree || !!({ openai: settings.openaiApiKey, anthropic: settings.anthropicApiKey, google: settings.googleApiKey }[a.provider]));
+
+    setConclusionStatus("loading");
+    setRunStatus("running");
+
+    const runId = `run-${Date.now()}-provisional`;
+    const params: RealRunParams = {
+      roomId,
+      runId,
+      userMessage:      lastUserMsg.content,
+      mode:             settings.defaultMode,
+      agentConfig,
+      apiKeys: isFree ? {} : {
+        openai:    settings.openaiApiKey    || undefined,
+        anthropic: settings.anthropicApiKey || undefined,
+        google:    settings.googleApiKey    || undefined,
+      },
+      previousMessages: messages
+        .filter((m) => m.role !== "summary")
+        .slice(-20)
+        .map((m) => ({ role: m.role, agentId: m.agentId, content: m.content })),
+      writingStyle:    settings.writingStyle,
+      forceConclusion: true,
+    };
+
+    const cancel = runsService.realRun(
+      params,
+      () => {},  // no new messages expected (rounds skipped)
+      (conc) => {
+        const enriched: ConclusionData = { ...conc, runId, runNumber: runCount };
+        messagesService.saveConclusion(roomId, enriched);
+        setConclusions(messagesService.getConclusions(roomId));
+        setConclusionStatus("success");
+        setRunStatus("completed");
+      },
+      (status) => {
+        setRunStatus(status);
+        if (status === "error") setConclusionStatus("unresolved");
+      },
+      undefined,
+      undefined,
+      undefined,
+      () => { setConclusionStatus("unresolved"); setRunStatus("completed"); },
+    );
+    cancelRun.current = cancel;
+  }, [runStatus, messages, hasSomeKey, isFree, agentCount, settings, roomId, runCount]);
+
+  // "条件を追加する" — focus the message input
+  const handleAddCondition = useCallback(() => {
+    inputRef.current?.focus();
+  }, []);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -500,6 +567,9 @@ export default function RoomDetailPage() {
           conclusions={conclusions}
           conclusionStatus={conclusionStatus}
           onRerun={rerun}
+          onContinue={rerun}
+          onProvisional={handleProvisional}
+          onAddCondition={handleAddCondition}
         />
       )}
 
@@ -515,6 +585,7 @@ export default function RoomDetailPage() {
       )}
 
       <MessageInput
+        ref={inputRef}
         value={input}
         onChange={setInput}
         onSend={sendMessage}

@@ -39,8 +39,14 @@ export interface AgentInfo {
 
 export type RunStatus = "idle" | "running" | "completed" | "error";
 
-/** loading = in progress, success = done, error = failed to generate */
-export type ConclusionStatus = "idle" | "loading" | "success" | "error";
+/**
+ * idle       = not started yet
+ * loading    = generation in progress
+ * success    = conclusion ready
+ * unresolved = rounds done but conclusion couldn't be generated (show continue actions)
+ * error      = catastrophic failure (API down, etc.)
+ */
+export type ConclusionStatus = "idle" | "loading" | "success" | "unresolved" | "error";
 
 export interface ConclusionData {
   summary: string;

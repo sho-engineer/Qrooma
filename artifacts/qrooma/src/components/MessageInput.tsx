@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Link } from "wouter";
 import { SendIcon, ZapIcon, KeyRoundIcon } from "lucide-react";
 import { useLocale } from "../context/LocaleContext";
@@ -11,13 +12,13 @@ interface Props {
   apiKeysReady: boolean;
 }
 
-export default function MessageInput({
+const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInput({
   value,
   onChange,
   onSend,
   isRunning,
   apiKeysReady,
-}: Props) {
+}, ref) {
   const { t } = useLocale();
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -57,6 +58,7 @@ export default function MessageInput({
         }`}
       >
         <textarea
+          ref={ref}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -80,4 +82,6 @@ export default function MessageInput({
       </p>
     </div>
   );
-}
+});
+
+export default MessageInput;

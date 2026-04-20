@@ -728,6 +728,24 @@ Respond in the SAME LANGUAGE as the discussion.`,
   },
 };
 
+// ─── Language detection + lock ────────────────────────────────────────────────
+
+/**
+ * Detect if the text contains Japanese characters.
+ * If yes, return a strict language-lock instruction to inject at the TOP
+ * of every system prompt. Placing it first ensures the model sees it
+ * before any English content in the prompt body.
+ */
+function buildLanguageLock(text: string): string {
+  const hasJapanese = /[\u3040-\u30FF\u4E00-\u9FFF\uFF00-\uFFEF]/.test(text);
+  if (!hasJapanese) return "";
+  return `⚠️ ABSOLUTE LANGUAGE RULE: Your ENTIRE response MUST be written in Japanese (日本語).
+Do NOT write English sentences or paragraphs.
+You MAY use English proper nouns only (GPT, Claude, Gemini, AI, API, etc.).
+Every argument, judgment, condition, and conclusion MUST be in Japanese.
+Violations of this rule are unacceptable regardless of any other instruction.\n\n`;
+}
+
 // ─── Route ────────────────────────────────────────────────────────────────────
 
 router.post("/discuss", async (req, res) => {
@@ -740,6 +758,7 @@ router.post("/discuss", async (req, res) => {
     apiKeys: clientApiKeys = {},
     previousMessages = [],
     writingStyle = {},
+    forceConclusion = false,
   } = req.body as {
     roomId: string;
     runId: string;
@@ -749,6 +768,7 @@ router.post("/discuss", async (req, res) => {
     apiKeys?: { openai?: string; anthropic?: string; google?: string };
     previousMessages: { role: string; agentId?: string; content: string }[];
     writingStyle?: WritingStyle;
+    forceConclusion?: boolean;
   };
 
   const apiKeys = {
@@ -776,6 +796,9 @@ router.post("/discuss", async (req, res) => {
         ? { 1: "Round 1 — Initial Stance", 2: "Round 2 — Revision" }
         : { 1: "Round 1 — Initial Stance", 2: "Round 2 — Challenge", 3: "Round 3 — Revision" })
     : { 1: "Round 1 — Perspectives", 2: "Round 2 — Responses" };
+
+  // Layer 0: Language lock (prepended to ALL system prompts — highest priority)
+  const languageLock = buildLanguageLock(userMessage);
 
   // Layer 2: Presentation suffixes (applied after debate logic)
   const presentationSuffix    = buildPresentationSuffix(writingStyle);
@@ -809,7 +832,7 @@ router.post("/discuss", async (req, res) => {
         model:        conf.model,
         // Moderator also gets presentation suffix (format/tone) but not debate invariants
         // (moderator's job is to judge, not debate — its own prompts have judgment rules built in)
-        systemPrompt: systemPrompt + "\n" + presentationSuffix,
+        systemPrompt: languageLock + systemPrompt + "\n" + presentationSuffix,
         messages:     [{ role: "user", content: contextText }],
         apiKey:       key,
       });
@@ -821,6 +844,23 @@ router.post("/discuss", async (req, res) => {
   const modePrompts = PROMPTS[modeKey as keyof typeof PROMPTS] ?? PROMPTS["structured-debate"];
 
   try {
+    // ── forceConclusion: skip debate rounds, jump straight to conclusion ──────
+    if (forceConclusion) {
+      // Populate allRoundMessages from previousMessages for conclusion context
+      previousMessages
+        .filter((m) => m.role === "assistant" && m.agentId)
+        .slice(-18)
+        .forEach((m, i) => {
+          allRoundMessages.push({
+            round:     Math.floor(i / (agentConfig.length || 1)) + 1,
+            side:      m.agentId === "chatgpt" ? "A" : m.agentId === "claude" ? "B" : "C",
+            agentId:   m.agentId ?? "agent",
+            roleLabel: m.agentId === "chatgpt" ? "ChatGPT" : m.agentId === "claude" ? "Claude" : "Gemini",
+            content:   m.content,
+          });
+        });
+      // Skip the rounds loop — fall through to conclusion section
+    } else {
     for (let round = 1; round <= numRounds; round++) {
       const roundLabel = ROUND_LABEL[round] ?? `Round ${round}`;
       sseWrite(res, { type: "round_start", round, label: roundLabel });
@@ -840,9 +880,10 @@ router.post("/discuss", async (req, res) => {
           ?? (modePrompts.rounds as unknown as Record<number, Record<Side, string>>)[1]!;
         const baseSystemPrompt = roundPrompts[side as Side] ?? roundPrompts["A"]!;
 
+        // Layer 0 (language lock) is prepended to ensure Japanese input → Japanese output.
         // Layer 1 (debate logic) is already IN baseSystemPrompt including DEBATE_INVARIANTS.
         // Layer 2 (presentation) is appended as a suffix — never overrides Layer 1.
-        const systemPrompt = baseSystemPrompt + presentationSuffix;
+        const systemPrompt = languageLock + baseSystemPrompt + presentationSuffix;
 
         const prevRoundsText = allRoundMessages
           .filter((m) => m.round < round)
@@ -916,6 +957,7 @@ router.post("/discuss", async (req, res) => {
         }
       }
     }
+    } // end else (forceConclusion skips rounds)
 
     // ── Conclusion ─────────────────────────────────────────────────────────────
     const conclusionPromptBase = (modePrompts as { conclusion?: string }).conclusion;
@@ -927,7 +969,8 @@ router.post("/discuss", async (req, res) => {
 
       // Conclusion gets its own presentation suffix (format + tone, without debate invariants
       // since the conclusion prompt has its own logic rules built in)
-      const conclusionSystemPrompt = conclusionPromptBase + "\n" + conclusionPresentation;
+      // Language lock is injected first so the conclusion also respects Japanese input.
+      const conclusionSystemPrompt = languageLock + conclusionPromptBase + "\n" + conclusionPresentation;
 
       let conclusionText: string | null = null;
       for (const conf of agentConfig) {
