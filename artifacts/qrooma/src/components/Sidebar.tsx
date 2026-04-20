@@ -340,30 +340,30 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
                     )}
                   </Link>
 
-                  {/* Rename button (desktop hover) */}
+                  {/* Rename button — desktop hover only */}
                   <button
                     onClick={() => startEdit(room.id, room.name)}
-                    className="p-1.5 text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="hidden sm:flex p-1.5 text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                     title={t.rename}
                   >
                     <PencilIcon size={11} />
                   </button>
 
-                  {/* ··· menu */}
+                  {/* ··· menu — always visible on mobile, hover-only on desktop */}
                   <div className="relative">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setMenuOpenId(menuOpen ? null : room.id);
                       }}
-                      className={`p-1.5 mr-0.5 rounded-md transition-all ${
+                      className={`p-2 mr-0.5 rounded-md transition-all touch-manipulation ${
                         menuOpen
                           ? "opacity-100 text-foreground bg-sidebar-accent"
-                          : "opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-muted-foreground"
+                          : "opacity-70 sm:opacity-0 sm:group-hover:opacity-100 text-muted-foreground hover:text-foreground"
                       }`}
-                      title={t.rename}
+                      title="メニュー"
                     >
-                      <MoreHorizontalIcon size={13} />
+                      <MoreHorizontalIcon size={14} />
                     </button>
                     {menuOpen && (
                       <RoomContextMenu

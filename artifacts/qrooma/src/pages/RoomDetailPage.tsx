@@ -569,6 +569,8 @@ export default function RoomDetailPage() {
     setCurrentRound(null);
     setAgentErrors([]);
     setConclusionStatus("loading");
+    // Scroll to the bottom so the new round is immediately visible
+    shouldScrollToBottom.current = true;
 
     const params: RealRunParams = {
       roomId,

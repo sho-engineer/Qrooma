@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useMemo } from "react";
 import { Link } from "wouter";
 import { SendIcon, ZapIcon, KeyRoundIcon } from "lucide-react";
 import { useLocale } from "../context/LocaleContext";
@@ -12,6 +12,14 @@ interface Props {
   apiKeysReady: boolean;
 }
 
+/** Detect touch-primary devices (phones / tablets). Memoised once per mount. */
+function useIsMobile(): boolean {
+  return useMemo(
+    () => typeof navigator !== "undefined" && navigator.maxTouchPoints > 0,
+    [],
+  );
+}
+
 const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInput({
   value,
   onChange,
@@ -19,16 +27,22 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
   isRunning,
   apiKeysReady,
 }, ref) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const isMobile   = useIsMobile();
+  const isFreeMode = !apiKeysReady;
 
   function handleKeyDown(e: React.KeyboardEvent) {
+    // On touch devices: Enter = newline (never send). Send via button only.
+    if (isMobile) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (!isRunning) onSend();
     }
   }
 
-  const isFreeMode = !apiKeysReady;
+  const hintText = isMobile
+    ? (locale === "ja" ? "送信は右のボタンから" : "Tap the button to send")
+    : (isFreeMode ? t.freeModeDesc : t.sendingAutoRun);
 
   return (
     <div className="shrink-0 px-3 pb-3 pt-1 sm:px-4 sm:pb-4">
@@ -62,7 +76,13 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={isRunning ? t.agentsResponding : t.messagePlaceholder}
+          placeholder={
+            isRunning
+              ? t.agentsResponding
+              : (isMobile
+                  ? (locale === "ja" ? "メッセージを入力" : "Type a message")
+                  : t.messagePlaceholder)
+          }
           rows={2}
           disabled={isRunning}
           className="flex-1 resize-none text-sm bg-transparent outline-none placeholder:text-muted-foreground/50 disabled:cursor-not-allowed leading-relaxed"
@@ -70,15 +90,15 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
         <button
           onClick={() => !isRunning && onSend()}
           disabled={!value.trim() || isRunning}
-          className="self-end p-1.5 text-foreground/50 hover:text-foreground/80 disabled:opacity-30 transition-colors active:scale-[0.92]"
+          className="self-end p-2 rounded-xl bg-foreground text-background disabled:opacity-20 transition-all active:scale-[0.92] hover:opacity-90"
           title={t.sendingAutoRun}
         >
-          <SendIcon size={15} />
+          <SendIcon size={14} />
         </button>
       </div>
 
       <p className="mt-1 text-[11px] text-muted-foreground/40 text-right">
-        {isFreeMode ? t.freeModeDesc : t.sendingAutoRun}
+        {hintText}
       </p>
     </div>
   );

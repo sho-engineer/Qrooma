@@ -665,7 +665,11 @@ export default function ConclusionCard({
               {isProvisional && (
                 <CheckpointActions
                   onEndHere={onEndHere}
-                  onContinueDiscussion={onContinueDiscussion}
+                  onContinueDiscussion={(direction) => {
+                    // Collapse the card immediately so the new round is visible
+                    setIsOpen(false);
+                    onContinueDiscussion?.(direction);
+                  }}
                 />
               )}
 
