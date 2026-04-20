@@ -67,20 +67,26 @@ function DeleteConfirmDialog({
 }
 
 // ─── Room context menu ────────────────────────────────────────────────────────
+// NOTE: DeleteConfirmDialog is intentionally NOT rendered here.
+// Rendering it inside RoomContextMenu caused a race condition:
+// the "mousedown" click-outside handler unmounted this component (and the dialog)
+// before the "click" event on "削除する" could fire. The dialog is now lifted to
+// the Sidebar level so it survives the menu unmount.
 
 function RoomContextMenu({
   roomId,
   roomName,
   onClose,
+  onDeleteRequest,
 }: {
-  roomId:   string;
-  roomName: string;
-  onClose:  () => void;
+  roomId:          string;
+  roomName:        string;
+  onClose:         () => void;
+  /** Called when user selects Delete — Sidebar owns the confirmation dialog */
+  onDeleteRequest: (id: string, name: string) => void;
 }) {
   const { locale } = useLocale();
-  const { archiveRoom, deleteRoom } = useRooms();
-  const [location, setLocation] = useLocation();
-  const [showDelete, setShowDelete] = useState(false);
+  const { archiveRoom } = useRooms();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -98,51 +104,41 @@ function RoomContextMenu({
     onClose();
   }
 
-  function handleDeleteConfirmed() {
-    deleteRoom(roomId);
+  function handleDeleteClick() {
+    // Close the dropdown first, then signal the parent to show the confirmation dialog.
+    // This ensures the dialog is mounted at the Sidebar level before the menu unmounts.
     onClose();
-    if (location === `/rooms/${roomId}`) {
-      setLocation("/rooms");
-    }
+    onDeleteRequest(roomId, roomName);
   }
 
   return (
-    <>
-      <div
-        ref={menuRef}
-        className="absolute right-0 top-7 z-50 w-40 rounded-xl border border-border bg-card shadow-xl py-1 text-sm"
+    <div
+      ref={menuRef}
+      className="absolute right-0 top-7 z-50 w-40 rounded-xl border border-border bg-card shadow-xl py-1 text-sm"
+    >
+      <button
+        onClick={handleArchive}
+        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent transition-colors text-left text-xs"
       >
-        <button
-          onClick={handleArchive}
-          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent transition-colors text-left text-xs"
-        >
-          <ArchiveIcon size={12} className="text-muted-foreground" />
-          <span>{locale === "ja" ? "アーカイブ" : "Archive"}</span>
-        </button>
-        <div className="my-1 border-t border-border/40" />
-        <button
-          onClick={() => setShowDelete(true)}
-          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-destructive/10 transition-colors text-left text-xs text-destructive"
-        >
-          <Trash2Icon size={12} />
-          <span>{locale === "ja" ? "削除" : "Delete"}</span>
-        </button>
-      </div>
-      {showDelete && (
-        <DeleteConfirmDialog
-          roomName={roomName}
-          onConfirm={handleDeleteConfirmed}
-          onCancel={() => setShowDelete(false)}
-        />
-      )}
-    </>
+        <ArchiveIcon size={12} className="text-muted-foreground" />
+        <span>{locale === "ja" ? "アーカイブ" : "Archive"}</span>
+      </button>
+      <div className="my-1 border-t border-border/40" />
+      <button
+        onClick={handleDeleteClick}
+        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-destructive/10 transition-colors text-left text-xs text-destructive"
+      >
+        <Trash2Icon size={12} />
+        <span>{locale === "ja" ? "削除" : "Delete"}</span>
+      </button>
+    </div>
   );
 }
 
 export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, signOut } = useAuth();
-  const { rooms, addRoom, updateRoom } = useRooms();
+  const { rooms, addRoom, updateRoom, deleteRoom } = useRooms();
   const { t } = useLocale();
 
   const [editingId,    setEditingId]    = useState<string | null>(null);
@@ -150,6 +146,9 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
   const [newRoomMode,  setNewRoomMode]  = useState(false);
   const [newRoomName,  setNewRoomName]  = useState("");
   const [menuOpenId,   setMenuOpenId]   = useState<string | null>(null);
+  /** Target room pending deletion — lifted here so the confirmation dialog
+   *  survives the RoomContextMenu unmount (mousedown race condition fix). */
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   function startEdit(id: string, name: string) {
     setMenuOpenId(null);
@@ -177,6 +176,24 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
 
   function handleRoomClick() {
     onClose();
+  }
+
+  /** Called by RoomContextMenu when user picks Delete — shows confirmation at Sidebar level */
+  function handleDeleteRequest(id: string, name: string) {
+    setDeleteTarget({ id, name });
+  }
+
+  /** Called when user confirms deletion in the dialog */
+  function handleDeleteConfirmed() {
+    if (!deleteTarget) return;
+    const { id } = deleteTarget;
+    setDeleteTarget(null);
+    // Optimistic: remove from context immediately (animates out via AnimatePresence)
+    deleteRoom(id);
+    // If the user was viewing the deleted room, navigate away
+    if (location === `/rooms/${id}`) {
+      setLocation("/rooms");
+    }
   }
 
   if (!isOpen && !isMobile) {
@@ -386,6 +403,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
                           roomId={room.id}
                           roomName={room.name}
                           onClose={() => setMenuOpenId(null)}
+                          onDeleteRequest={handleDeleteRequest}
                         />
                       )}
                     </div>
@@ -423,6 +441,18 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
           )}
         </button>
       </div>
+
+      {/* ── Delete confirmation dialog — rendered at Sidebar level so it is NEVER
+           unmounted when RoomContextMenu closes. Without this, the mousedown
+           click-outside handler in RoomContextMenu would unmount the dialog
+           before the "click" event on "削除する" could fire. ─────────────── */}
+      {deleteTarget && (
+        <DeleteConfirmDialog
+          roomName={deleteTarget.name}
+          onConfirm={handleDeleteConfirmed}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </aside>
   );
 }
