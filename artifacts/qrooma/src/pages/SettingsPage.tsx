@@ -201,39 +201,22 @@ function SideConfig({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <div>
-          <label className="block text-[11px] text-muted-foreground mb-1">{t.provider}</label>
-          <select
-            value={config.provider}
-            onChange={(e) => {
-              const p = e.target.value as Provider;
-              onChange({ ...config, provider: p, model: PROVIDER_MODELS[p][0].value });
-            }}
-            className="w-full px-2.5 py-1.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring"
-          >
-            {(["openai", "anthropic", "google"] as Provider[]).map((p) => (
-              <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-[11px] text-muted-foreground mb-1">{t.model}</label>
-          <select
-            value={currentModelValue}
-            onChange={(e) => onChange({ ...config, model: e.target.value })}
-            className="w-full px-2.5 py-1.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring"
-          >
-            {models.map((m) => {
-              const taken = otherCombos.has(comboKey(config.provider, m.value));
-              return (
-                <option key={m.value} value={m.value} disabled={taken}>
-                  {taken ? `${m.label} ✕` : m.label}
-                </option>
-              );
-            })}
-          </select>
-        </div>
+      <div>
+        <label className="block text-[11px] text-muted-foreground mb-1">{t.model}</label>
+        <select
+          value={currentModelValue}
+          onChange={(e) => onChange({ ...config, provider: "openai", model: e.target.value })}
+          className="w-full px-2.5 py-1.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring"
+        >
+          {PROVIDER_MODELS["openai"].map((m) => {
+            const taken = otherCombos.has(comboKey("openai", m.value));
+            return (
+              <option key={m.value} value={m.value} disabled={taken}>
+                {taken ? `${m.label} ✕` : m.label}
+              </option>
+            );
+          })}
+        </select>
       </div>
     </div>
   );
@@ -274,16 +257,16 @@ function FreePlanCard() {
           </p>
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#10a37f] shrink-0" />
-            <span className="text-[11px] text-foreground/70">{isJa ? "提案" : "Proposal"}</span>
+            <span className="text-[11px] text-foreground/70">{isJa ? "Builder（候補提案）" : "Builder"}</span>
             <span className="ml-auto text-[11px] font-mono text-muted-foreground/60">GPT-4o mini</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#4285f4] shrink-0" />
-            <span className="text-[11px] text-foreground/70">{isJa ? "検証" : "Review"}</span>
-            <span className="ml-auto text-[11px] font-mono text-muted-foreground/60">Gemini 2.5 Flash</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#d97706] shrink-0" />
+            <span className="text-[11px] text-foreground/70">{isJa ? "Breaker（検証・反証）" : "Breaker"}</span>
+            <span className="ml-auto text-[11px] font-mono text-muted-foreground/60">GPT-4o mini</span>
           </div>
           <p className="text-[10px] text-muted-foreground/40 pt-0.5">
-            {isJa ? "Claude は Connect / Pro で利用可" : "Claude available on Connect / Pro"}
+            {isJa ? "Connect プランで Operator（実行整理）も利用可" : "Operator role available on Connect plan"}
           </p>
         </div>
         {/* Free limit note */}
@@ -511,15 +494,13 @@ function WritingStyleSection({
 // ─── Draft type ───────────────────────────────────────────────────────────────
 
 type DraftSettings = {
-  openaiApiKey:    string;
-  anthropicApiKey: string;
-  googleApiKey:    string;
-  defaultMode:     DefaultMode;
-  agentCount:      2 | 3;
-  sideA:           AgentSideConfig;
-  sideB:           AgentSideConfig;
-  sideC:           AgentSideConfig;
-  writingStyle:    WritingStyle;
+  openaiApiKey: string;
+  defaultMode:  DefaultMode;
+  agentCount:   2 | 3;
+  sideA:        AgentSideConfig;
+  sideB:        AgentSideConfig;
+  sideC:        AgentSideConfig;
+  writingStyle: WritingStyle;
 };
 
 // ─── Main Settings Page ───────────────────────────────────────────────────────
@@ -534,15 +515,13 @@ export default function SettingsPage() {
   };
 
   const [draft, setDraft] = useState<DraftSettings>({
-    openaiApiKey:    settings.openaiApiKey,
-    anthropicApiKey: settings.anthropicApiKey,
-    googleApiKey:    settings.googleApiKey,
-    defaultMode:     settings.defaultMode,
-    agentCount:      settings.agentCount ?? 3,
-    sideA:           settings.sideA,
-    sideB:           settings.sideB,
-    sideC:           settings.sideC,
-    writingStyle:    settings.writingStyle ?? defaultWritingStyle,
+    openaiApiKey: settings.openaiApiKey,
+    defaultMode:  settings.defaultMode,
+    agentCount:   settings.agentCount ?? 3,
+    sideA:        settings.sideA,
+    sideB:        settings.sideB,
+    sideC:        settings.sideC,
+    writingStyle: settings.writingStyle ?? defaultWritingStyle,
   });
 
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -554,15 +533,13 @@ export default function SettingsPage() {
   }
 
   const savedSnap: DraftSettings = {
-    openaiApiKey:    settings.openaiApiKey,
-    anthropicApiKey: settings.anthropicApiKey,
-    googleApiKey:    settings.googleApiKey,
-    defaultMode:     settings.defaultMode,
-    agentCount:      settings.agentCount ?? 3,
-    sideA:           settings.sideA,
-    sideB:           settings.sideB,
-    sideC:           settings.sideC,
-    writingStyle:    settings.writingStyle ?? defaultWritingStyle,
+    openaiApiKey: settings.openaiApiKey,
+    defaultMode:  settings.defaultMode,
+    agentCount:   settings.agentCount ?? 3,
+    sideA:        settings.sideA,
+    sideB:        settings.sideB,
+    sideC:        settings.sideC,
+    writingStyle: settings.writingStyle ?? defaultWritingStyle,
   };
   const isDirty = JSON.stringify(draft) !== JSON.stringify(savedSnap);
 
@@ -605,10 +582,8 @@ export default function SettingsPage() {
     setTimeout(() => setSavedAt(null), 2500);
   }
 
-  function apiKeyForProvider(provider: Provider): string {
-    if (provider === "openai")    return draft.openaiApiKey;
-    if (provider === "anthropic") return draft.anthropicApiKey;
-    return draft.googleApiKey;
+  function apiKeyForProvider(_provider: Provider): string {
+    return draft.openaiApiKey;
   }
 
   const modes: { value: DefaultMode; label: string; description: string }[] = [
@@ -728,16 +703,6 @@ export default function SettingsPage() {
                   provider="openai"
                   value={draft.openaiApiKey}
                   onChange={(v) => patchDraft({ openaiApiKey: v })}
-                />
-                <ApiKeyField
-                  provider="anthropic"
-                  value={draft.anthropicApiKey}
-                  onChange={(v) => patchDraft({ anthropicApiKey: v })}
-                />
-                <ApiKeyField
-                  provider="google"
-                  value={draft.googleApiKey}
-                  onChange={(v) => patchDraft({ googleApiKey: v })}
                 />
               </div>
             </section>

@@ -377,7 +377,7 @@ export default function LandingPage() {
       <section className="max-w-6xl mx-auto px-5 sm:px-6 pt-20 sm:pt-28 pb-16 sm:pb-24">
         <div className="max-w-4xl mx-auto text-center">
           <div className="animate-fade-up inline-flex items-center rounded-full border border-border bg-card/80 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur mb-7 tracking-wide uppercase">
-            ChatGPT · Claude · Gemini
+            Builder · Breaker · Operator
           </div>
 
           <h1 className="animate-fade-up anim-d1 text-5xl sm:text-6xl md:text-[4.25rem] font-bold tracking-tight leading-[1.06] text-foreground whitespace-pre-line mb-5">

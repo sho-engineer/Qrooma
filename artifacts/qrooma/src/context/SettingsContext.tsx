@@ -14,10 +14,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem("qrooma_settings");
     if (stored) {
       try {
-        const parsed = JSON.parse(stored) as Settings;
+        const parsed = JSON.parse(stored) as Settings & {
+          anthropicApiKey?: unknown;
+          googleApiKey?: unknown;
+          sideA?: { provider?: string; model?: string; side?: string };
+          sideB?: { provider?: string; model?: string; side?: string };
+          sideC?: { provider?: string; model?: string; side?: string };
+        };
         if (parsed.defaultMode === "debate" || parsed.defaultMode === "collaborate" || parsed.defaultMode === "critique") {
           parsed.defaultMode = "structured-debate";
         }
+        // Migrate: remove legacy multi-provider fields, force all sides to openai
+        delete parsed.anthropicApiKey;
+        delete parsed.googleApiKey;
+        if (parsed.sideA) parsed.sideA.provider = "openai";
+        if (parsed.sideB) parsed.sideB.provider = "openai";
+        if (parsed.sideC) parsed.sideC.provider = "openai";
         return { ...DEFAULT_SETTINGS, ...parsed };
       } catch { /* ignore */ }
     }

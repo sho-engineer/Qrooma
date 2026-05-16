@@ -27,9 +27,9 @@ const router = Router();
 // ─── Role labels ──────────────────────────────────────────────────────────────
 
 const ROLE_LABEL: Record<string, string> = {
-  A: "Proposal (提案)",
-  B: "Review (検証)",
-  C: "Execution (実行)",
+  A: "Builder (候補提案)",
+  B: "Breaker (検証・反証)",
+  C: "Operator (実行整理)",
 };
 
 type Side = "A" | "B" | "C";
@@ -178,11 +178,11 @@ Respond in the SAME LANGUAGE as the discussion.`;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function agentIdForProvider(provider: string): string {
-  if (provider === "openai")    return "gpt";
-  if (provider === "anthropic") return "claude";
-  if (provider === "google")    return "gemini";
-  return provider;
+function agentIdFromSide(side: string): string {
+  if (side === "A") return "builder";
+  if (side === "B") return "breaker";
+  if (side === "C") return "operator";
+  return side;
 }
 
 function sseWrite(res: import("express").Response, data: object) {
@@ -996,26 +996,21 @@ Trigger clarification when ANY of these are true:
 
 Return ONLY valid JSON.`;
 
-  const availableProviders: Array<{ provider: "openai" | "google" | "anthropic"; model: string; key: string }> = [];
-  if (apiKeys.openai)    availableProviders.push({ provider: "openai",    model: "gpt-4o-mini",          key: apiKeys.openai });
-  if (apiKeys.google)    availableProviders.push({ provider: "google",    model: "gemini-2.5-flash-lite", key: apiKeys.google });
-  if (apiKeys.anthropic) availableProviders.push({ provider: "anthropic", model: "claude-3-haiku-20240307", key: apiKeys.anthropic });
-
-  if (availableProviders.length === 0) {
+  const openaiKey = apiKeys.openai;
+  if (!openaiKey) {
     return res.json({ needsClarification: false, questions: [], assumptions: [] });
   }
 
-  for (const { provider, model, key } of availableProviders) {
-    try {
-      const text = await callAI({
-        provider,
-        model,
-        systemPrompt,
-        messages: [{ role: "user", content: `User question: "${message}"\n\nReturn JSON only.` }],
-        apiKey: key,
-      });
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) continue;
+  try {
+    const text = await callAI({
+      provider: "openai",
+      model:    "gpt-4o-mini",
+      systemPrompt,
+      messages: [{ role: "user", content: `User question: "${message}"\n\nReturn JSON only.` }],
+      apiKey:   openaiKey,
+    });
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]) as {
         needsClarification?: boolean;
         questions?: unknown[];
@@ -1026,9 +1021,9 @@ Return ONLY valid JSON.`;
         questions:   (Array.isArray(parsed.questions)  ? parsed.questions  : []).slice(0, 3) as string[],
         assumptions: (Array.isArray(parsed.assumptions) ? parsed.assumptions : []).slice(0, 5) as string[],
       });
-    } catch {
-      continue;
     }
+  } catch {
+    // fall through
   }
 
   return res.json({ needsClarification: false, questions: [], assumptions: [] });
@@ -1218,11 +1213,17 @@ router.post("/discuss", async (req, res) => {
         .filter((m) => m.role === "assistant" && m.agentId)
         .slice(-18)
         .forEach((m, i) => {
+          const sideFromId = m.agentId === "builder" ? "A" : m.agentId === "breaker" ? "B" : "C";
+          const labelFromId = m.agentId === "builder"
+            ? ROLE_LABEL["A"]!
+            : m.agentId === "breaker"
+            ? ROLE_LABEL["B"]!
+            : ROLE_LABEL["C"]!;
           allRoundMessages.push({
             round:     Math.floor(i / (agentConfig.length || 1)) + 1,
-            side:      m.agentId === "chatgpt" ? "A" : m.agentId === "claude" ? "B" : "C",
+            side:      sideFromId,
             agentId:   m.agentId ?? "agent",
-            roleLabel: m.agentId === "chatgpt" ? "ChatGPT" : m.agentId === "claude" ? "Claude" : "Gemini",
+            roleLabel: labelFromId,
             content:   m.content,
           });
         });
@@ -1239,7 +1240,7 @@ router.post("/discuss", async (req, res) => {
           continue;
         }
 
-        const agentId   = agentIdForProvider(provider);
+        const agentId   = agentIdFromSide(side);
         const roleLabel = ROLE_LABEL[side] ?? side;
 
         const roundPrompts =

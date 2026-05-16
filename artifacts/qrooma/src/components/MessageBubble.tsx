@@ -3,16 +3,16 @@ import { useLocale } from "../context/LocaleContext";
 
 // Fixed side mapping for the MVP
 const AGENT_SIDE_MAP: Record<string, "A" | "B" | "C"> = {
-  gpt:    "A",
-  claude: "B",
-  gemini: "C",
+  builder:  "A",
+  breaker:  "B",
+  operator: "C",
 };
 
-// Short brand names used in the combined label "提案（GPT）" / "Proposal (GPT)"
+// Short role names used in the combined label "提案（Builder）" / "Proposal (Builder)"
 const AGENT_BRAND: Record<string, string> = {
-  gpt:    "GPT",
-  claude: "Claude",
-  gemini: "Gemini",
+  builder:  "Builder",
+  breaker:  "Breaker",
+  operator: "Operator",
 };
 
 const SIDE_COLORS: Record<"A" | "B" | "C", string> = {

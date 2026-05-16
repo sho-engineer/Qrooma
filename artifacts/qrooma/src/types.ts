@@ -27,7 +27,7 @@ export interface Message {
   runId?: string;
 }
 
-export type AgentId = "gpt" | "claude" | "gemini";
+export type AgentId = "builder" | "breaker" | "operator";
 
 export interface AgentInfo {
   id: AgentId;
@@ -112,13 +112,11 @@ export interface PromptConfig {
 }
 
 export interface Settings {
-  openaiApiKey:    string;
-  anthropicApiKey: string;
-  googleApiKey:    string;
-  sideA:           AgentSideConfig;
-  sideB:           AgentSideConfig;
-  sideC:           AgentSideConfig;
-  defaultMode:     DefaultMode;
-  agentCount:      2 | 3;
-  writingStyle:    WritingStyle;
+  openaiApiKey: string;
+  sideA:        AgentSideConfig;
+  sideB:        AgentSideConfig;
+  sideC:        AgentSideConfig;
+  defaultMode:  DefaultMode;
+  agentCount:   2 | 3;
+  writingStyle: WritingStyle;
 }
