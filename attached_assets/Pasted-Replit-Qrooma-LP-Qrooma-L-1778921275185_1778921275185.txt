@@ -1,0 +1,237 @@
+Replitへ
+
+Qrooma のシングルモデル化が完了した前提で、次は LP更新とリリース最小構成の整理 を進めてください。
+
+今回の目的は、機能追加ではなく、Qroomaの新しいポジショニングをLPとプロダクト表示に反映し、MVPリリースできる状態に近づけることです。
+
+---
+
+## 1. LPのポジショニングを更新する
+
+Qroomaの説明を、従来の「複数AIが議論するツール」から、以下の方向に変更してください。
+
+### 新しい定義
+
+Qroomaは、曖昧なテーマを比較・反証・整理し、実行に渡せる形へ変換するAIチームルームです。
+
+### 強調したい価値
+
+- ただ答えを出すのではなく、判断を前に進める
+- 候補を比較する
+- メリット / デメリットを整理する
+- 反証を入れる
+- 採用 / 棄却 / 残論点を明確にする
+- 次アクションに落とす
+- Decision Brief / Task List として外部ツールに渡せる形にする
+
+### 避けたい表現
+
+- 複数モデルが議論
+- GPT / Claude / Gemini が同時に回答
+- 3つのAIが話し合う
+
+### 使いたい表現
+
+- 複数の専門役割AI
+- マルチロール
+- 意思決定と実行の接続レイヤー
+- Decision Brief
+- Task List
+- Future Consideration / 将来検討
+
+---
+
+## 2. Heroセクションを更新する
+
+### 英語案
+
+Headline:
+Turn messy ideas into executable decisions.
+
+Subheadline:
+Qrooma helps solo founders and business builders compare options, challenge assumptions, decide what to do next, and turn the result into execution-ready briefs and task lists.
+
+CTA:
+Start for free
+
+Secondary CTA:
+See how it works
+
+### 日本語案が必要な場合
+
+見出し:
+曖昧なアイデアを、実行できる判断に変える。
+
+サブコピー:
+Qroomaは、一人で事業を作る人のために、候補比較・反証・採用/棄却・残論点整理・次アクション化までを支援するAIチームルームです。
+
+---
+
+## 3. 「How it works」を更新する
+
+以下の4ステップで見せてください。
+
+### Step 1: Input your messy idea
+曖昧なテーマや判断したいことを入力する
+
+### Step 2: Compare options
+複数案を出し、メリット・デメリットを整理する
+
+### Step 3: Challenge assumptions
+崩れる条件や前提依存を明らかにする
+
+### Step 4: Create handoff
+Decision Brief / Task List / Future Consideration として実行に渡せる形にする
+
+---
+
+## 4. 対象ユーザーを明確化する
+
+LP上では、最初のユーザー像を以下に寄せてください。
+
+### Primary audience
+
+- Solo founders
+- Business builders
+- Product-minded founders
+- Small teams building new products
+- People who use multiple AI tools manually today
+
+### 訴求
+
+あなたが今やっている、
+ChatGPTで叩き台を作り、Claudeでレビューし、ManusやReplitに渡す前に整理する作業を、Qroomaが構造化します。
+
+---
+
+## 5. 機能セクションを更新する
+
+以下を主要機能として表示してください。
+
+### Core features
+
+1. Multi-role AI discussion
+- Builder / Breaker / Operator の役割で整理
+
+2. Option comparison
+- 複数案、メリット、デメリット、向いている条件、向いていない条件
+
+3. Assumption challenge
+- 崩れる条件、前提依存、失敗シナリオ
+
+4. Decision output
+- 採用、棄却、残論点、次アクション
+
+5. Execution handoff
+- Decision Brief + Task List
+
+6. Future Consideration
+- 今回やらないが、将来検討すべきことを整理
+
+---
+
+## 6. プラン表示を簡略化する
+
+MVPリリース時点では、基本は Freeのみ で出してください。
+
+### Free
+
+- Start with Qrooma for free
+- Single model
+- Multi-role workflow
+- Decision Brief
+- Task List
+- Limited usage
+
+### Pro / Connect
+
+現時点では Coming Soon 扱いにしてください。
+
+#### Pro Coming Soon
+- Higher usage limits
+- Advanced handoff
+- External tool integrations
+- Priority execution workflows
+
+#### Connect Coming Soon
+- Bring your own API key
+- Advanced model settings
+- Future multi-model options
+
+### 重要
+
+課金処理はまだ入れなくてよいです。  
+プランカードは出してもよいですが、Pro / Connect は明確に Coming Soon と表示してください。
+
+---
+
+## 7. アプリ内の表示もFree中心に整理する
+
+アプリ内で複数プランが過度に目立っている場合は、Free中心にしてください。
+
+### 対応
+
+- Free表示を見やすくする
+- Pro / Connect はComing Soonまたは非表示でもよい
+- ユーザーが「今何を使えるのか」が分かるようにする
+
+---
+
+## 8. 法人化前提に見える表現を避ける
+
+現時点では個人でMVP検証する前提なので、LP上で以下のような表現は避けてください。
+
+避ける:
+- Enterprise-ready
+- For teams at scale
+- Organization-wide deployment
+- Enterprise security
+- SLA
+- Admin controls
+
+使う:
+- For solo founders
+- For builders
+- For early-stage product decisions
+- Start small
+- Free MVP access
+
+---
+
+## 9. CTAの方針
+
+当面は課金ではなく、利用開始に寄せてください。
+
+CTA:
+- Start for free
+- Try Qrooma
+- Create your first room
+
+避ける:
+- Buy now
+- Upgrade now
+- Subscribe
+
+---
+
+## 10. 受け入れ条件
+
+以下を満たしたらOKです。
+
+- LPが「複数モデル議論ツール」ではなく「意思決定と実行の接続レイヤー」として見える
+- Free中心のリリース構成になっている
+- Pro / Connect は Coming Soon として扱われている
+- 対象ユーザーが Solo founder / Business builder に寄っている
+- Decision Brief / Task List / Future Consideration が訴求されている
+- 法人向けエンタープライズ感が強すぎない
+- CTAが無料利用開始に向いている
+
+---
+
+## 11. 返してほしいもの
+
+1. LPで変更した文言
+2. 更新したセクション一覧
+3. Free / Pro / Connect 表示の扱い
+4. アプリ内プラン表示の変更内容
+5. before / after のスクリーンショット

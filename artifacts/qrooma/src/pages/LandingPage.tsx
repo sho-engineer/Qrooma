@@ -166,115 +166,77 @@ function ProductPreview() {
 function PricingSection() {
   const { t } = useLocale();
 
-  const plans = [
-    {
-      name: "Free",
-      price: "$0",
-      period: "",
-      desc: t.planFreeDesc,
-      features: [t.planFreeFeature1, t.planFreeFeature2, t.planFreeFeature3, t.planFreeFeature4],
-      cta: t.planFreeCta,
-      href: "/signup",
-      badge: null,
-      highlight: false,
-      note: t.pricingFreeLimit,
-    },
+  const comingSoonPlans = [
     {
       name: "Connect",
-      price: "$9",
-      period: "/ mo",
       desc: t.planConnectDesc,
       features: [t.planConnectFeature1, t.planConnectFeature2, t.planConnectFeature3, t.planConnectFeature4],
-      cta: t.planConnectCta,
-      href: "/signup",
-      badge: t.planConnectBadge,
-      highlight: true,
-      note: null,
     },
     {
       name: "Pro",
-      price: "$20",
-      period: "/ mo",
       desc: t.planProDesc,
       features: [t.planProFeature1, t.planProFeature2, t.planProFeature3, t.planProFeature4],
-      cta: t.planProCta,
-      href: "/signup",
-      badge: null,
-      highlight: false,
-      note: null,
     },
   ];
 
   return (
-    <div className="grid sm:grid-cols-3 gap-3">
-      {plans.map((plan) => (
+    <div className="grid sm:grid-cols-[1fr_1fr] lg:grid-cols-[1.4fr_1fr_1fr] gap-3 items-start">
+      {/* Free — featured */}
+      <div className="rounded-[20px] border border-foreground/12 bg-card p-6 flex flex-col shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[11px] font-semibold tracking-widest uppercase text-foreground">Free</span>
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#10a37f] text-white leading-none">MVP</span>
+        </div>
+        <div className="flex items-baseline gap-1 mb-1">
+          <span className="text-3xl font-bold tracking-tight text-foreground">$0</span>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed mb-5">{t.planFreeDesc}</p>
+        <ul className="space-y-2 mb-6 flex-1">
+          {[t.planFreeFeature1, t.planFreeFeature2, t.planFreeFeature3, t.planFreeFeature4].map((f, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <CheckIcon size={11} className="shrink-0 mt-[3px] text-foreground/50" />
+              <span className="text-xs leading-relaxed text-foreground/80">{f}</span>
+            </li>
+          ))}
+        </ul>
+        <Link href="/signup">
+          <button className="w-full py-2 text-sm font-medium rounded-full bg-foreground text-background hover:opacity-85 active:scale-[0.97] transition-all duration-150">
+            {t.planFreeCta}
+          </button>
+        </Link>
+        <div className="mt-3 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40">
+          <span className="text-amber-500 text-[10px] leading-none">⚠</span>
+          <p className="text-[10px] text-amber-700 dark:text-amber-400 text-center">{t.pricingFreeLimit}</p>
+        </div>
+      </div>
+
+      {/* Connect + Pro — coming soon */}
+      {comingSoonPlans.map((plan) => (
         <div
           key={plan.name}
-          className={`rounded-[20px] border p-6 flex flex-col transition-all duration-200
-            ${plan.highlight
-              ? "border-foreground/15 bg-card shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_28px_rgba(0,0,0,0.08)]"
-              : "border-border bg-background hover:border-foreground/10 hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
-            }`}
+          className="rounded-[20px] border border-border bg-background/60 p-6 flex flex-col opacity-60"
         >
-          {/* Plan name + badge */}
           <div className="flex items-center gap-2 mb-3">
-            <span className={`text-[11px] font-semibold tracking-widest uppercase
-              ${plan.highlight ? "text-foreground" : "text-muted-foreground/70"}`}>
-              {plan.name}
+            <span className="text-[11px] font-semibold tracking-widest uppercase text-muted-foreground/70">{plan.name}</span>
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-border text-muted-foreground leading-none">
+              Coming Soon
             </span>
-            {plan.badge && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-foreground text-background leading-none">
-                {plan.badge}
-              </span>
-            )}
           </div>
-
-          {/* Price */}
-          <div className="flex items-baseline gap-1 mb-1">
-            <span className="text-3xl font-bold tracking-tight text-foreground">{plan.price}</span>
-            {plan.period && (
-              <span className="text-xs text-muted-foreground">{plan.period}</span>
-            )}
-          </div>
-
-          {/* Desc */}
           <p className="text-xs text-muted-foreground leading-relaxed mb-5">{plan.desc}</p>
-
-          {/* Features */}
           <ul className="space-y-2 mb-6 flex-1">
             {plan.features.map((f, i) => (
               <li key={i} className="flex items-start gap-2">
-                <CheckIcon
-                  size={11}
-                  className={`shrink-0 mt-[3px] ${plan.highlight ? "text-foreground/50" : "text-muted-foreground/40"}`}
-                />
-                <span className={`text-xs leading-relaxed ${plan.highlight ? "text-foreground/80" : "text-muted-foreground"}`}>
-                  {f}
-                </span>
+                <CheckIcon size={11} className="shrink-0 mt-[3px] text-muted-foreground/30" />
+                <span className="text-xs leading-relaxed text-muted-foreground/60">{f}</span>
               </li>
             ))}
           </ul>
-
-          {/* CTA */}
-          <Link href={plan.href}>
-            <button
-              className={`w-full py-2 text-sm font-medium rounded-full transition-all duration-150 active:scale-[0.97]
-                ${plan.highlight
-                  ? "bg-foreground text-background hover:opacity-85"
-                  : "border border-border bg-transparent text-foreground hover:bg-accent"
-                }`}
-            >
-              {plan.cta}
-            </button>
-          </Link>
-
-          {/* Free-tier note */}
-          {plan.note && (
-            <div className="mt-3 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40">
-              <span className="text-amber-500 text-[10px] leading-none">⚠</span>
-              <p className="text-[10px] text-amber-700 dark:text-amber-400 text-center">{plan.note}</p>
-            </div>
-          )}
+          <button
+            disabled
+            className="w-full py-2 text-sm font-medium rounded-full border border-border bg-transparent text-muted-foreground/40 cursor-not-allowed"
+          >
+            Coming soon
+          </button>
         </div>
       ))}
     </div>
@@ -306,7 +268,7 @@ function SecondaryBtn({ children, className = "" }: { children: React.ReactNode;
 
 // ─── Main Landing Page ────────────────────────────────────────────────────────
 export default function LandingPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { user } = useAuth();
 
   const cards = [
@@ -315,8 +277,8 @@ export default function LandingPage() {
     { title: t.landingCard3Title, body: t.landingCard3Body },
   ];
 
-  const steps = [t.landingHowStep1, t.landingHowStep2, t.landingHowStep3];
-  const stepLabels = [t.landingHowStep1Label, t.landingHowStep2Label, t.landingHowStep3Label];
+  const steps = [t.landingHowStep1, t.landingHowStep2, t.landingHowStep3, t.landingHowStep4];
+  const stepLabels = [t.landingHowStep1Label, t.landingHowStep2Label, t.landingHowStep3Label, t.landingHowStep4Label];
 
   // Scroll-triggered sections
   const secCards    = useFadeSection();
@@ -377,7 +339,7 @@ export default function LandingPage() {
       <section className="max-w-6xl mx-auto px-5 sm:px-6 pt-20 sm:pt-28 pb-16 sm:pb-24">
         <div className="max-w-4xl mx-auto text-center">
           <div className="animate-fade-up inline-flex items-center rounded-full border border-border bg-card/80 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur mb-7 tracking-wide uppercase">
-            Builder · Breaker · Operator
+            Multi-role AI · Decision Brief · Task List
           </div>
 
           <h1 className="animate-fade-up anim-d1 text-5xl sm:text-6xl md:text-[4.25rem] font-bold tracking-tight leading-[1.06] text-foreground whitespace-pre-line mb-5">
@@ -410,7 +372,7 @@ export default function LandingPage() {
         <div className="animate-fade-up anim-d4 max-w-4xl mx-auto">
           <ProductPreview />
           <p className="mt-3 text-center text-xs text-muted-foreground/50">
-            {t.landingHowTitle}
+            {locale === "ja" ? "意思決定と実行の接続レイヤー" : "The layer between decision and execution"}
           </p>
         </div>
       </section>
@@ -462,7 +424,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Modes */}
+      {/* Roles */}
       <section
         ref={secModes.ref as React.RefObject<HTMLElement>}
         style={secModes.style}
@@ -471,19 +433,35 @@ export default function LandingPage() {
         <div className="max-w-2xl mb-10">
           <SectionTitle>{t.landingModesTitle}</SectionTitle>
         </div>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <div className="rounded-[20px] border border-border bg-card p-6 transition-all duration-200 hover:border-foreground/15 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2.5">
-              {t.structuredDebate}
-            </p>
-            <p className="text-sm text-foreground leading-7">{t.debateDesc}</p>
-          </div>
-          <div className="rounded-[20px] border border-border bg-card p-6 transition-all duration-200 hover:border-foreground/15 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2.5">
-              {t.freeTalk}
-            </p>
-            <p className="text-sm text-foreground leading-7">{t.freeTalkDesc}</p>
-          </div>
+        <div className="grid sm:grid-cols-3 gap-3">
+          {[
+            {
+              color: "#10a37f",
+              label: "Builder",
+              descJa: "候補となる選択肢を複数提案し、メリット・デメリット・向いている条件・向いていない条件を整理します。",
+              descEn: "Generates multiple candidate options and maps out pros, cons, and fit conditions for each.",
+            },
+            {
+              color: "#d97706",
+              label: "Breaker",
+              descJa: "崩れる条件・前提依存・失敗シナリオを明らかにします。反証と検証で判断の信頼性を高めます。",
+              descEn: "Challenges each option — surfacing shaky assumptions, hidden dependencies, and failure scenarios.",
+            },
+            {
+              color: "#4285f4",
+              label: "Operator",
+              descJa: "採用・棄却・残論点・次アクション・将来検討を整理し、Decision Brief と Task List として出力します。",
+              descEn: "Structures outcomes into adoption decisions, open questions, next actions, and a Future Considerations list.",
+            },
+          ].map((role) => (
+            <div key={role.label} className="rounded-[20px] border border-border bg-card p-6 transition-all duration-200 hover:border-foreground/15 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: role.color }} />
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">{role.label}</p>
+              </div>
+              <p className="text-sm text-foreground leading-7">{locale === "ja" ? role.descJa : role.descEn}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -535,7 +513,7 @@ export default function LandingPage() {
       <footer className="border-t border-border/60 bg-card/40">
         <div className="max-w-6xl mx-auto px-5 sm:px-6 h-12 flex items-center justify-between text-[11px] text-muted-foreground/50">
           <span>© 2025 Qrooma</span>
-          <span className="hidden sm:inline">BYOK · Async AI Team Room</span>
+          <span className="hidden sm:inline">Multi-role AI · Decision Brief · Task List</span>
         </div>
       </footer>
     </div>

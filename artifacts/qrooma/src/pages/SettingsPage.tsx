@@ -278,44 +278,13 @@ function FreePlanCard() {
         </div>
       </div>
 
-      {/* How keys work explanation */}
-      <div className="rounded-2xl border border-border/60 bg-muted/20 p-4 mb-3 space-y-2.5">
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
-          {isJa ? "APIキーについて" : "About API keys"}
+      {/* Coming soon note */}
+      <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+        <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+          {isJa
+            ? "Pro / Connect は近日公開予定です。現在は Free プランのみ提供中です。"
+            : "Pro and Connect plans are coming soon. The Free plan is available now."}
         </p>
-        {(isJa
-          ? [
-              { plan: "Free",    color: "bg-muted",        desc: "APIキー不要。Qrooma のサーバーキーで動作します" },
-              { plan: "Connect", color: "bg-foreground/80", desc: "自分のAPIキーで本格利用。モデル・エージェント数を自由に設定" },
-              { plan: "Pro",     color: "bg-foreground",    desc: "APIキー不要。利用量込みのプランで、そのまま使えます" },
-            ]
-          : [
-              { plan: "Free",    color: "bg-muted",        desc: "No API keys required. Runs on Qrooma's server keys" },
-              { plan: "Connect", color: "bg-foreground/80", desc: "Use your own keys. Full model and agent configuration" },
-              { plan: "Pro",     color: "bg-foreground",    desc: "No API keys required. Usage is included in your plan" },
-            ]
-        ).map(({ plan, color, desc }) => (
-          <div key={plan} className="flex items-start gap-2.5">
-            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full text-background shrink-0 mt-0.5 ${color}`}>
-              {plan}
-            </span>
-            <span className="text-[11px] text-muted-foreground/70 leading-relaxed">{desc}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Upgrade CTAs */}
-      <div className="grid grid-cols-2 gap-2">
-        <Link href="/signup">
-          <button className="w-full py-2 text-xs font-semibold rounded-xl bg-foreground text-background hover:opacity-85 active:scale-[0.98] transition-all">
-            Connect — $9/mo
-          </button>
-        </Link>
-        <Link href="/signup">
-          <button className="w-full py-2 text-xs font-semibold rounded-xl border border-border text-foreground hover:bg-accent active:scale-[0.98] transition-all">
-            Pro — $20/mo
-          </button>
-        </Link>
       </div>
     </section>
   );
@@ -331,27 +300,16 @@ function ProPlanCard() {
       </h3>
       <div className="rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-foreground text-background">Pro</span>
-          <span className="text-xs font-semibold text-foreground">$20 / mo</span>
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Free</span>
+          <span className="text-xs text-muted-foreground">
+            {isJa ? "現在 Free プランをご利用中です" : "You're on the Free plan"}
+          </span>
         </div>
-        <ul className="space-y-2.5 mb-4">
-          {(isJa
-            ? ["APIキー不要で利用できます", "月30回の議論が含まれます", "2 / 3エージェント利用可", "超過分は従量課金"]
-            : ["No API keys required", "30 discussions per month included", "2 or 3 agents", "Additional usage billed separately"]
-          ).map((f, i) => (
-            <li key={i} className="flex items-start gap-2">
-              <CheckIcon size={11} className="text-foreground/40 shrink-0 mt-0.5" />
-              <span className="text-xs text-muted-foreground leading-relaxed">{f}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="border-t border-border/60 pt-3">
-          <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
-            {isJa
-              ? "Pro ではAPIキーの入力は不要です。Qrooma が管理するサーバーキーで動作します。"
-              : "Pro requires no API keys — discussions run on Qrooma's managed server keys."}
-          </p>
-        </div>
+        <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+          {isJa
+            ? "Pro / Connect は近日公開予定です。"
+            : "Pro and Connect plans are coming soon."}
+        </p>
       </div>
     </section>
   );
