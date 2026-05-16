@@ -8,13 +8,6 @@ const AGENT_SIDE_MAP: Record<string, "A" | "B" | "C"> = {
   operator: "C",
 };
 
-// Short role names used in the combined label "提案（Builder）" / "Proposal (Builder)"
-const AGENT_BRAND: Record<string, string> = {
-  builder:  "Builder",
-  breaker:  "Breaker",
-  operator: "Operator",
-};
-
 const SIDE_COLORS: Record<"A" | "B" | "C", string> = {
   A: "#10a37f",
   B: "#d97706",
@@ -63,13 +56,12 @@ function RichContent({ text }: { text: string }) {
 }
 
 interface Props {
-  message:      Message;
-  mode:         DefaultMode;
-  sideModelMap: Record<"A" | "B" | "C", string>;
+  message: Message;
+  mode:    DefaultMode;
 }
 
-export default function MessageBubble({ message, mode, sideModelMap: _sideModelMap }: Props) {
-  const { t, locale } = useLocale();
+export default function MessageBubble({ message, mode }: Props) {
+  const { t } = useLocale();
 
   if (message.role === "user") {
     return (
@@ -84,15 +76,9 @@ export default function MessageBubble({ message, mode, sideModelMap: _sideModelM
   const agentId = message.agentId ?? "";
   // Prefer the side stored on the message itself (set by the backend at generation time).
   // Fall back to the static map only when message.side is absent (e.g. older messages).
-  const side      = (message.side as "A" | "B" | "C" | undefined) ?? AGENT_SIDE_MAP[agentId] ?? "A";
-  const color     = SIDE_COLORS[side];
-  const roleLabel = t.roleLabel(side, mode);
-  const brand     = AGENT_BRAND[agentId] ?? agentId;
-
-  // Combined display: "提案（GPT）" / "Proposal (GPT)"
-  const displayLabel = locale === "ja"
-    ? `${roleLabel}（${brand}）`
-    : `${roleLabel} (${brand})`;
+  const side         = (message.side as "A" | "B" | "C" | undefined) ?? AGENT_SIDE_MAP[agentId] ?? "A";
+  const color        = SIDE_COLORS[side];
+  const displayLabel = t.roleLabel(side, mode);
 
   return (
     <div className="flex gap-3 max-w-[95%] sm:max-w-[88%] overflow-hidden">

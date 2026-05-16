@@ -1,0 +1,205 @@
+Replitへ
+
+Qrooma のシングルモデル化について、Freeの基本動作は一旦OKです。  
+ただし、各部屋・各発言のロール表示にまだ AIモデル名が残っているため、ここを修正してください。
+
+## 今回の修正対象
+
+Connect / Pro の設定画面には、まだマルチモデル対応のUIが残っていますが、そこは一旦後回しでOKです。
+
+今回優先して直すのは、ルーム内の表示名 です。
+
+---
+
+## 問題
+
+現在、各部屋や発言表示で以下のように AIモデル名が出ています。
+
+例:
+- GPT
+- Claude
+- Gemini
+- Side A（GPT）
+- Side B（Claude）
+- Side C（Gemini）
+- 提案（GPT）
+- 検証（Claude）
+- 実行（Gemini）
+
+しかし、現在のMVP方針では、Qroomaは シングルモデル + マルチロール で動かします。
+
+そのため、ユーザーに複数モデルが動いているように見せるのは不適切です。
+
+---
+
+## 修正方針
+
+表示名は、モデル名ではなく 役割名 にしてください。
+
+### 日本語UIの場合
+
+以下のように表示してください。
+
+- 提案
+- 検証
+- 実行整理
+
+または必要に応じて、
+
+- 提案役
+- 検証役
+- 実行整理役
+
+でもOKです。
+
+### 英語UIの場合
+
+以下のように表示してください。
+
+- Builder
+- Breaker
+- Operator
+
+または、
+
+- Builder
+- Validator
+- Operator
+
+でもOKです。
+
+---
+
+## 表示から消すもの
+
+Freeのルーム内表示では、以下を出さないでください。
+
+- GPT
+- Claude
+- Gemini
+- OpenAI
+- model name
+- provider name
+- Side A / Side B / Side C
+
+### NG例
+
+- 提案（GPT）
+- 検証（Claude）
+- 実行（Gemini）
+- Side A（GPT）
+- Side C（Gemini）
+
+### OK例
+
+日本語:
+- 提案
+- 検証
+- 実行整理
+
+英語:
+- Builder
+- Breaker
+- Operator
+
+---
+
+## 対象箇所
+
+以下の表示を確認して修正してください。
+
+1. ルーム内の各AI発言ヘッダー
+2. Round表示内のロール名
+3. 暫定まとめ内のロール参照
+4. 結論カード内の参照文
+5. 履歴表示
+6. ルーム設定表示
+7. エラー表示や生成中表示
+8. モバイル表示
+9. 英語UI / 日本語UI の両方
+
+---
+
+## 多言語対応ルール
+
+UI言語に応じて、役割名を切り替えてください。
+
+### 日本語
+
+- Builder → 提案
+- Breaker / Validator → 検証
+- Operator → 実行整理
+
+### 英語
+
+- 提案 → Builder
+- 検証 → Breaker or Validator
+- 実行整理 → Operator
+
+### 注意
+
+日本語UIで Builder や Operator が出ないようにしてください。  
+英語UIで 提案 や 検証 が出ないようにしてください。
+
+---
+
+## データ構造について
+
+内部的に provider / model を保持するのはOKです。  
+ただし、ユーザー向けUIでは表示しないでください。
+
+### 内部では保持してよいもの
+
+- provider
+- model
+- role
+- runId
+- roomId
+
+### UIで表示するもの
+
+- role display name のみ
+
+---
+
+## 実装方針
+
+可能であれば、役割表示を一箇所で管理してください。
+
+例:
+
+ts const roleLabels = {   ja: {     builder: "提案",     breaker: "検証",     operator: "実行整理",   },   en: {     builder: "Builder",     breaker: "Breaker",     operator: "Operator",   }, } 
+
+各コンポーネントで個別に GPT / Claude / Gemini を直接書かないでください。
+
+---
+
+## Connect / Proについて
+
+Connect / Pro の設定画面にマルチモデルUIが残っている件は、今回は一旦修正対象外でOKです。
+
+ただし、Freeのルーム表示では、Connect / Pro設定の影響でモデル名が出ないようにしてください。
+
+---
+
+## 受け入れ条件
+
+以下を満たしたらOKです。
+
+- Freeのルーム内でモデル名が表示されない
+- GPT / Claude / Gemini が表示されない
+- Side A / Side B / Side C が表示されない
+- 日本語UIでは 提案 / 検証 / 実行整理 と表示される
+- 英語UIでは Builder / Breaker / Operator と表示される
+- 内部的な provider / model 管理は維持される
+- Connect / Pro設定画面は一旦未対応でもよい
+
+---
+
+## 返してほしいもの
+
+1. モデル名が表示されていた箇所
+2. 役割名表示に変更した箇所
+3. 多言語対応の実装方法
+4. 修正したファイル一覧
+5. before / after のスクリーンショット

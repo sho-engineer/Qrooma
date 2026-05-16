@@ -6,40 +6,23 @@ interface Props {
   roomName: string;
   runStatus: RunStatus;
   modeLabel: string;
-  activeModels: string[];
+  activeRoleLabels: string[];
   hasMessages: boolean;
   canRun: boolean;
   onRerun: () => void;
-}
-
-const MODEL_SHORT: Record<string, string> = {
-  "gpt-4o":                      "GPT-4o",
-  "gpt-4o-mini":                 "GPT-4o mini",
-  "gpt-4-turbo":                 "GPT-4 Turbo",
-  "gpt-3.5-turbo":               "GPT-3.5 Turbo",
-  "claude-3-5-sonnet-20241022":  "Claude 3.5 Sonnet",
-  "claude-3-opus-20240229":      "Claude 3 Opus",
-  "claude-3-haiku-20240307":     "Claude 3 Haiku",
-  "gemini-1.5-pro":              "Gemini 1.5 Pro",
-  "gemini-1.5-flash":            "Gemini 1.5 Flash",
-  "gemini-1.0-pro":              "Gemini 1.0 Pro",
-};
-
-function shorten(model: string): string {
-  return MODEL_SHORT[model] ?? model;
 }
 
 export default function RoomHeader({
   roomName,
   runStatus,
   modeLabel,
-  activeModels,
+  activeRoleLabels,
   hasMessages,
   canRun,
   onRerun,
 }: Props) {
   const { t } = useLocale();
-  const modelLine = activeModels.map(shorten).join(" · ");
+  const roleLine = activeRoleLabels.join(" · ");
 
   return (
     <div className="shrink-0 border-b border-border bg-card/80 backdrop-blur-sm overflow-hidden">
@@ -64,14 +47,14 @@ export default function RoomHeader({
         <RunStatusBadge status={runStatus} />
         <span className="text-border text-xs shrink-0">·</span>
         <ModeBadge label={modeLabel} />
-        {modelLine && (
+        {roleLine && (
           <>
             <span className="text-border text-xs shrink-0 hidden sm:block">·</span>
             <span
               className="text-[11px] text-muted-foreground/50 hidden sm:block truncate min-w-0"
-              title={modelLine}
+              title={roleLine}
             >
-              {modelLine}
+              {roleLine}
             </span>
           </>
         )}

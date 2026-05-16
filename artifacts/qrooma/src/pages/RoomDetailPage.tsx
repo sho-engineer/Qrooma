@@ -36,31 +36,18 @@ import ErrorState from "../components/ErrorState";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const MODEL_SHORT: Record<string, string> = {
-  "gpt-4o":                      "GPT-4o",
-  "gpt-4o-mini":                 "GPT-4o mini",
-  "gpt-4-turbo":                 "GPT-4 Turbo",
-  "gpt-3.5-turbo":               "GPT-3.5 Turbo",
-  "claude-3-5-sonnet-20241022":  "Claude 3.5 Sonnet",
-  "claude-3-opus-20240229":      "Claude 3 Opus",
-  "claude-3-haiku-20240307":     "Claude 3 Haiku",
-  "gemini-2.5-flash-lite":       "Gemini 2.5 Flash",
-  "gemini-2.5-flash":            "Gemini 2.5 Flash",
-  "gemini-1.5-pro":              "Gemini 1.5 Pro",
-  "gemini-1.5-flash":            "Gemini 1.5 Flash",
-  "gemini-1.0-pro":              "Gemini 1.0 Pro",
+// Side mapping for role labels (agentId → side)
+const AGENT_SIDE: Record<string, "A" | "B" | "C"> = {
+  builder:  "A",
+  breaker:  "B",
+  operator: "C",
 };
 
 // Free plan: fixed 2-agent config (no API keys required)
-// Side A = Builder (GPT-4o mini),  Side B = Breaker (GPT-4o mini)
 const FREE_SIDES: Array<{ provider: "openai"; model: string }> = [
   { provider: "openai", model: "gpt-4o-mini" },
   { provider: "openai", model: "gpt-4o-mini" },
 ];
-
-function shortenModel(model: string): string {
-  return MODEL_SHORT[model] ?? model;
-}
 
 function hasApiKeyFor(_provider: string, settings: { openaiApiKey: string }): boolean {
   return !!settings.openaiApiKey;
@@ -165,22 +152,16 @@ export default function RoomDetailPage() {
 
   const canRun = plan !== "connect" ? true : hasSomeKey;
 
-  const sideModelMap = useMemo(() => {
+  const activeRoleLabels = useMemo(() => {
     if (isFree) {
-      return {
-        A: shortenModel(FREE_SIDES[0].model),
-        B: shortenModel(FREE_SIDES[1].model),
-        C: shortenModel(FREE_SIDES[1].model),
-      };
+      return [
+        t.roleLabel("A", settings.defaultMode),
+        t.roleLabel("B", settings.defaultMode),
+      ];
     }
-    return {
-      A: shortenModel(settings.sideA.model),
-      B: shortenModel(settings.sideB.model),
-      C: shortenModel(settings.sideC.model),
-    };
-  }, [isFree, settings.sideA.model, settings.sideB.model, settings.sideC.model]);
-
-  const activeModels  = activeSides.map((s) => s.model);
+    const sideCodes: Array<"A" | "B" | "C"> = agentCount === 2 ? ["A", "B"] : ["A", "B", "C"];
+    return sideCodes.map((s) => t.roleLabel(s, settings.defaultMode));
+  }, [isFree, agentCount, t, settings.defaultMode]);
 
   const MODE_LABELS: Record<string, string> = {
     "structured-debate": t.structuredDebate,
@@ -644,7 +625,7 @@ export default function RoomDetailPage() {
         roomName={roomName}
         runStatus={runStatus}
         modeLabel={modeLabel}
-        activeModels={plan === "free" ? activeModels.slice(0, 2) : activeModels}
+        activeRoleLabels={activeRoleLabels}
         hasMessages={hasMessages}
         canRun={canRun}
         onRerun={rerun}
@@ -697,7 +678,6 @@ export default function RoomDetailPage() {
                     <MessageBubble
                       message={msg}
                       mode={settings.defaultMode}
-                      sideModelMap={sideModelMap}
                     />
                   </div>
                 );
@@ -961,6 +941,11 @@ function ThinkingIndicator({
   const nextAgent     = pending[0];
   const remaining     = pending.length;
 
+  // Locale-aware role display name for the next responding agent
+  const nextAgentLabel = nextAgent
+    ? t.roleLabel(AGENT_SIDE[nextAgent.id] ?? "A", "structured-debate")
+    : "";
+
   const isConclusion  = currentRound?.label?.toLowerCase().includes("conclusion");
   const isSummary     = currentRound?.label?.toLowerCase().includes("summary");
 
@@ -1014,9 +999,9 @@ function ThinkingIndicator({
             : remaining === agentCount
               ? t.agentsResponding
               : remaining > 1
-                ? t.agentAndMoreResponding(nextAgent?.name ?? "")
+                ? t.agentAndMoreResponding(nextAgentLabel)
                 : remaining === 1
-                  ? t.agentResponding(nextAgent?.name ?? "")
+                  ? t.agentResponding(nextAgentLabel)
                   : t.finishingUp}
         </span>
       </div>
