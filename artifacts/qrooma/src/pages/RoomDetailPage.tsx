@@ -192,7 +192,8 @@ export default function RoomDetailPage() {
     const top = savedConcs[0];
     if (top?.isProvisional && !top?.isFinal) {
       setConclusionStatus("provisional");
-    } else if (top?.isFinal) {
+    } else if (top?.isFinal || (top && !top?.isProvisional)) {
+      // Explicit isFinal OR an existing conclusion without the provisional flag — both are final
       setConclusionStatus("final");
     } else {
       setConclusionStatus("idle");

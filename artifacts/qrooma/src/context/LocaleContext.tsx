@@ -237,6 +237,20 @@ export interface Translations {
   clarifySkipBtn: string;
   clarifyAssumptionLabel: string;
   clarifyChecking: string;
+  // Handoff panel
+  handoffDecisionBrief: string;
+  handoffTaskList: string;
+  handoffFutureConsiderations: string;
+  handoffTaskCount: (n: number) => string;
+  handoffFutureCount: (n: number) => string;
+  handoffCopyBrief: string;
+  handoffCopyTasks: string;
+  handoffCopyAll: string;
+  handoffCopyManus: string;
+  handoffCopyCode: string;
+  handoffCopied: string;
+  handoffNoFuture: string;
+  handoffNoTasks: string;
 }
 
 const ja: Translations = {
@@ -472,6 +486,20 @@ const ja: Translations = {
   clarifySkipBtn: "このまま議論する",
   clarifyAssumptionLabel: "「このまま議論する」を選ぶと、以下の前提で進みます",
   clarifyChecking: "確認中…",
+  // Handoff panel
+  handoffDecisionBrief:       "Decision Brief",
+  handoffTaskList:             "タスクリスト",
+  handoffFutureConsiderations: "将来検討",
+  handoffTaskCount:   (n) => `${n}件`,
+  handoffFutureCount: (n) => `${n}件`,
+  handoffCopyBrief:  "Decision Briefをコピー",
+  handoffCopyTasks:  "Task Listをコピー",
+  handoffCopyAll:    "まとめてコピー",
+  handoffCopyManus:  "Manus向け",
+  handoffCopyCode:   "Claude Code / Replit向け",
+  handoffCopied:     "コピーしました",
+  handoffNoFuture:   "現時点では将来検討事項はありません",
+  handoffNoTasks:    "タスクが見つかりません",
 };
 
 const en: Translations = {
@@ -708,6 +736,20 @@ const en: Translations = {
   clarifySkipBtn: "Start anyway",
   clarifyAssumptionLabel: "\"Start anyway\" will use these assumptions",
   clarifyChecking: "Checking…",
+  // Handoff panel
+  handoffDecisionBrief:       "Decision Brief",
+  handoffTaskList:             "Task List",
+  handoffFutureConsiderations: "Future Considerations",
+  handoffTaskCount:   (n) => `${n} task${n === 1 ? "" : "s"}`,
+  handoffFutureCount: (n) => `${n} item${n === 1 ? "" : "s"}`,
+  handoffCopyBrief:  "Copy Decision Brief",
+  handoffCopyTasks:  "Copy Task List",
+  handoffCopyAll:    "Copy All",
+  handoffCopyManus:  "For Manus",
+  handoffCopyCode:   "For Claude Code / Replit",
+  handoffCopied:     "Copied",
+  handoffNoFuture:   "No future considerations at this time",
+  handoffNoTasks:    "No tasks found",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };

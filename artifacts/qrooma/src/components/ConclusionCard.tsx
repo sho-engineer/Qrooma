@@ -6,6 +6,7 @@ import {
 import type { ConclusionData, ConclusionStatus } from "../types";
 import { useLocale } from "../context/LocaleContext";
 import { isMobile } from "../lib/isMobile";
+import HandoffPanel from "./HandoffPanel";
 
 interface Props {
   runCount:           number;
@@ -688,6 +689,9 @@ export default function ConclusionCard({
               {/* ── Scrollable conclusion body ── */}
               <div className="overflow-y-auto max-h-[42vh]">
                 <ConclusionBody conclusion={current!} locale={locale} />
+
+                {/* ── Handoff panel — only for final conclusions ── */}
+                {isFinal && <HandoffPanel conclusion={current!} />}
 
                 {/* ── History section ── */}
                 {history.length > 0 && (

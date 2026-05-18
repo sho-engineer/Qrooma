@@ -453,12 +453,13 @@ Respond in the SAME LANGUAGE as the discussion.`,
     conclusion: `You are the MODERATOR delivering the FINAL VERDICT of a 2-agent debate (Proposal vs Review).
 All debate rounds are in the context above. This is a judgment — not a summary.
 
-Use EXACTLY these four section headers, each followed by content:
+Use EXACTLY these five section headers, each followed by content:
 
 [採用] Adopted approach:
 [棄却] Rejected / deferred:
 [残論点] Open question:
 [次アクション] Next action:
+[将来検討] Future consideration (optional — omit if nothing relevant):
 
 DEBATE LOGIC rules for conclusion (Layer 1 — mandatory):
 — Each section: 1–2 sentences. Be specific.
@@ -468,6 +469,7 @@ DEBATE LOGIC rules for conclusion (Layer 1 — mandatory):
 — [棄却] must name what was set aside and under what condition it could be revisited.
 — [残論点] must name the ONE unresolved variable that could change the verdict.
 — [次アクション] must be concrete and executable.
+— [将来検討] name ONE thing worth revisiting later (different scope, condition, or time horizon). Omit if none.
 
 Respond in the SAME LANGUAGE as the discussion.`,
   },
@@ -557,12 +559,13 @@ Rules: State a clear lean. No "both are valid" endings. Respond in the SAME LANG
 
     conclusion: `You are the MODERATOR of a 2-person AI discussion.
 
-Use EXACTLY these four section headers, each followed by content:
+Use EXACTLY these five section headers, each followed by content:
 
 [採用] Key insight:
 [棄却] What to avoid:
 [残論点] Open question:
 [次アクション] Next step:
+[将来検討] Future consideration (optional — omit if nothing relevant):
 
 Rules:
 — Each section: 1–2 sentences. Be direct.
@@ -570,6 +573,7 @@ Rules:
 — [採用] must name a specific direction, not a vague principle.
 — [棄却] must name what to de-prioritize and why.
 — [次アクション] must be concrete and executable.
+— [将来検討] name ONE thing worth revisiting later. Omit if none.
 
 Respond in the SAME LANGUAGE as the discussion.`,
   },
@@ -752,12 +756,13 @@ Respond in the SAME LANGUAGE as the discussion.`,
     conclusion: `You are the MODERATOR delivering the FINAL VERDICT of a 3-agent structured debate.
 All rounds are in the context above. This is a judgment — not a summary.
 
-Use EXACTLY these four section headers, each followed by content:
+Use EXACTLY these five section headers, each followed by content:
 
 [採用] Adopted approach:
 [棄却] Rejected / deferred:
 [残論点] Open questions:
 [次アクション] Next action:
+[将来検討] Future consideration (optional — omit if nothing relevant):
 
 DEBATE LOGIC rules for conclusion (Layer 1 — mandatory):
 — Each section: 1–2 sentences. Be specific.
@@ -767,6 +772,7 @@ DEBATE LOGIC rules for conclusion (Layer 1 — mandatory):
 — [棄却] must name what was set aside and under what condition it could be revisited.
 — [残論点] must name the ONE variable that could change the verdict.
 — [次アクション] must be concrete and executable (who does what).
+— [将来検討] name ONE thing worth revisiting at a different scope or timing. Omit if none.
 
 Respond in the SAME LANGUAGE as the discussion.`,
   },
@@ -876,12 +882,13 @@ Rules: 3 sentences max. State a clear lean. Respond in the SAME LANGUAGE as the 
 
     conclusion: `You are the MODERATOR of a 3-person AI discussion.
 
-Use EXACTLY these four section headers, each followed by content:
+Use EXACTLY these five section headers, each followed by content:
 
 [採用] Key insight:
 [棄却] What to avoid:
 [残論点] Open question:
 [次アクション] Next step:
+[将来検討] Future consideration (optional — omit if nothing relevant):
 
 Rules:
 — Each section: 1–2 sentences. Be direct.
@@ -889,6 +896,7 @@ Rules:
 — [採用] must name a specific direction, not a vague principle.
 — [棄却] must name what to de-prioritize and why.
 — [次アクション] must be concrete and executable.
+— [将来検討] name ONE thing worth revisiting later. Omit if none.
 
 Respond in the SAME LANGUAGE as the discussion.`,
   },
