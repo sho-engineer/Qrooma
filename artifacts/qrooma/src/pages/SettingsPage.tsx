@@ -3,8 +3,11 @@ import { Link } from "wouter";
 import { useSettings } from "../context/SettingsContext";
 import { useLocale, type Locale } from "../context/LocaleContext";
 import { usePlan } from "../context/PlanContext";
+import { useUserProfile } from "../context/UserProfileContext";
+import { usageService } from "../services/usageService";
 import type { AgentSideConfig, Provider, DefaultMode, WritingTone, ConclusionFormat, JpHardness, WritingStyle } from "../types";
 import { AlertCircleIcon, ArrowUpRightIcon, CheckIcon } from "lucide-react";
+import InviteCodeSection from "../components/InviteCodeSection";
 
 // ─── Provider metadata ────────────────────────────────────────────────────────
 
@@ -225,31 +228,66 @@ function SideConfig({
 // ─── Plan Cards ───────────────────────────────────────────────────────────────
 
 function FreePlanCard() {
-  const { locale } = useLocale();
-  const isJa = locale === "ja";
+  const { locale, t } = useLocale();
+  const { profile }   = useUserProfile();
+  const isJa          = locale === "ja";
+
+  const dailyUsed    = usageService.getDailyCount();
+  const monthlyUsed  = usageService.getMonthlyCount();
+  const dailyLimit   = profile.dailyRunLimit;
+  const monthlyLimit = profile.monthlyRunLimit;
+  const isUnlimited  = profile.isUnlimitedUser;
+
   return (
     <section>
       <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
         {isJa ? "現在のプラン" : "Current plan"}
       </h3>
 
-      {/* Current plan badge */}
+      {/* Plan badge */}
       <div className="rounded-2xl border border-border bg-card p-5 mb-3">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Free</span>
-          <span className="text-xs text-muted-foreground">{isJa ? "体験版" : "Trial"}</span>
+          {profile.accessType !== "normal" && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 capitalize">
+              {profile.accessType.replace("_", " ")}
+            </span>
+          )}
         </div>
-        <ul className="space-y-2.5 mb-3">
-          {(isJa
-            ? ["APIキー不要で今すぐ試せます", "1日3回まで利用可"]
-            : ["Try it now — no API keys needed", "Up to 3 discussions per day"]
-          ).map((f, i) => (
-            <li key={i} className="flex items-start gap-2">
-              <CheckIcon size={11} className="text-muted-foreground/40 shrink-0 mt-0.5" />
-              <span className="text-xs text-muted-foreground leading-relaxed">{f}</span>
-            </li>
-          ))}
-        </ul>
+
+        {/* Usage display */}
+        <div className="rounded-xl bg-muted/30 px-3 py-2.5 space-y-2 mb-3">
+          <p className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-1">
+            {isJa ? "利用状況" : "Usage"}
+          </p>
+          {isUnlimited ? (
+            <p className="text-xs font-medium text-emerald-600">{t.usageUnlimited}</p>
+          ) : (
+            <>
+              {dailyLimit !== null && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-foreground/70">
+                    {t.usageTodayRemaining(dailyUsed, dailyLimit)}
+                  </span>
+                  <div className="flex gap-0.5 ml-2">
+                    {Array.from({ length: dailyLimit }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`w-3 h-1.5 rounded-full ${i < dailyUsed ? "bg-foreground/25" : "bg-foreground/60"}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {monthlyLimit !== null && (
+                <p className="text-[10px] text-muted-foreground/50">
+                  {t.usageMonthly(monthlyUsed, monthlyLimit)}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+
         {/* Fixed model config */}
         <div className="rounded-xl bg-muted/30 px-3 py-2.5 space-y-1.5 mb-3">
           <p className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-1.5">
@@ -269,13 +307,18 @@ function FreePlanCard() {
             {isJa ? "Connect プランで Operator（実行整理）も利用可" : "Operator role available on Connect plan"}
           </p>
         </div>
-        {/* Free limit note */}
-        <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 mb-3">
-          <span className="text-amber-600 text-[11px]">⚠</span>
-          <span className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
-            {isJa ? "無料枠には利用制限があります" : "Free tier has usage limits"}
-          </span>
-        </div>
+
+        {/* Limit note (only for non-unlimited) */}
+        {!isUnlimited && (
+          <div className="flex items-start gap-1.5 px-3 py-2 rounded-xl bg-muted/40 border border-border/60">
+            <span className="text-muted-foreground text-[11px] shrink-0 mt-px">i</span>
+            <span className="text-[11px] text-muted-foreground/70 leading-relaxed">
+              {isJa
+                ? `1日5回・月100回まで。継続議論は1回まで。`
+                : "5 runs/day · 100 runs/month (fair use) · 1 continuation per discussion."}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Coming soon note */}
@@ -646,6 +689,9 @@ export default function SettingsPage() {
 
           {/* ── Pro plan card ───────────────────────────────────────────── */}
           {isPro && <ProPlanCard />}
+
+          {/* ── Invite Code (always visible) ────────────────────────────── */}
+          <InviteCodeSection />
 
           {/* ── API Keys (Connect only) ─────────────────────────────────── */}
           {isConnect && (

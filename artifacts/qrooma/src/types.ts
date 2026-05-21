@@ -1,5 +1,18 @@
-export type Provider = "openai" | "anthropic" | "google";
-export type Plan = "free" | "connect" | "pro";
+export type Provider   = "openai" | "anthropic" | "google";
+export type Plan       = "free" | "connect" | "pro";
+export type AccessType = "normal" | "tester" | "early_access" | "special";
+export type UserRole   = "user" | "admin";
+
+export interface UserProfile {
+  role:                UserRole;
+  plan:                Plan;
+  accessType:          AccessType;
+  isUnlimitedUser:     boolean;
+  dailyRunLimit:       number | null;
+  monthlyRunLimit:     number | null;
+  continuationLimit:   number | null;
+  inviteCodeAppliedAt: string | null;
+}
 
 export interface Room {
   id: string;

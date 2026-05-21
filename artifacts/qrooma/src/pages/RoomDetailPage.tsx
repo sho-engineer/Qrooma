@@ -24,6 +24,8 @@ import { useSettings } from "../context/SettingsContext";
 import { useRooms } from "../context/RoomsContext";
 import { useLocale } from "../context/LocaleContext";
 import { usePlan } from "../context/PlanContext";
+import { useUserProfile } from "../context/UserProfileContext";
+import { usageService } from "../services/usageService";
 import type { ConclusionData, ConclusionStatus, Message, PromptConfig, RunStatus } from "../types";
 import RoomHeader from "../components/RoomHeader";
 import MessageBubble from "../components/MessageBubble";
@@ -86,6 +88,7 @@ export default function RoomDetailPage() {
   const { getRoomById, updateRoom } = useRooms();
   const { t, locale } = useLocale();
   const { plan } = usePlan();
+  const { profile } = useUserProfile();
 
   const room = getRoomById(roomId);
   const roomName = room?.name ?? "Room";
@@ -111,6 +114,7 @@ export default function RoomDetailPage() {
     () => messagesService.getConclusions(roomId),
   );
   const [conclusionStatus,  setConclusionStatus]  = useState<ConclusionStatus>("idle");
+  const [limitError,        setLimitError]        = useState<string | null>(null);
 
   // ─── Prompt Mode state ──────────────────────────────────────────────────────
   const [promptMode,   setPromptMode]   = useState(false);
@@ -232,7 +236,12 @@ export default function RoomDetailPage() {
     setCurrentRound(null);
     setAgentErrors([]);
     setFatalError(null);
+    setLimitError(null);
     setConclusionStatus("loading");
+    // Count every real run (Free and BYOK)
+    if (isFree || hasSomeKey) {
+      usageService.increment();
+    }
 
     let responseCount = 0;
 
@@ -394,6 +403,19 @@ export default function RoomDetailPage() {
   async function sendMessage() {
     if (!input.trim() || isRunActive) return;
 
+    // ── Usage limit check for Free plan ──
+    if (isFree && !profile.isUnlimitedUser) {
+      if (!usageService.canRunToday(profile.dailyRunLimit)) {
+        setLimitError(t.usageLimitDayReached);
+        return;
+      }
+      if (!usageService.canRunThisMonth(profile.monthlyRunLimit)) {
+        setLimitError(t.usageLimitMonthReached);
+        return;
+      }
+    }
+    setLimitError(null);
+
     const text = input.trim();
     const apiKeyPayload = isFree ? {} : {
       openai: settings.openaiApiKey || undefined,
@@ -523,6 +545,17 @@ export default function RoomDetailPage() {
   const handleContinueDiscussion = useCallback((direction: string = "") => {
     if (isRunActive || messages.length === 0) return;
     if (!hasSomeKey && !isFree) return;
+
+    // ── Continuation limit check for Free plan ──
+    if (isFree && !profile.isUnlimitedUser) {
+      if (!usageService.canContinue(roomId, profile.continuationLimit)) {
+        setLimitError(t.usageContinuationLimit);
+        return;
+      }
+    }
+    setLimitError(null);
+    usageService.incrementContinuation(roomId);
+
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     if (!lastUserMsg) return;
     const previousProvisional = conclusions[0]?.summary ?? "";
@@ -787,6 +820,20 @@ export default function RoomDetailPage() {
         </div>
       )}
 
+      {/* ── Usage limit error banner ──────────────────────────────────────── */}
+      {limitError && (
+        <div className="mx-3 sm:mx-4 mb-2 flex items-start gap-2.5 px-4 py-3 rounded-2xl border border-amber-300/60 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-950/30">
+          <span className="text-amber-600 text-sm shrink-0 mt-px">⚠</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">{limitError}</p>
+          </div>
+          <button
+            onClick={() => setLimitError(null)}
+            className="text-amber-500 hover:text-amber-700 text-xs shrink-0 ml-1 leading-none"
+          >✕</button>
+        </div>
+      )}
+
       <MessageInput
         ref={inputRef}
         value={input}
@@ -801,6 +848,11 @@ export default function RoomDetailPage() {
         apiKeysReady={plan === "free" || plan === "pro" ? true : hasSomeKey}
         promptMode={promptMode}
         onTogglePromptMode={() => setPromptMode((v) => !v)}
+        usageInfo={isFree ? {
+          used:        usageService.getDailyCount(),
+          limit:       profile.dailyRunLimit ?? 5,
+          isUnlimited: profile.isUnlimitedUser,
+        } : null}
       />
     </div>
   );

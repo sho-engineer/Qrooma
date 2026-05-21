@@ -251,6 +251,25 @@ export interface Translations {
   handoffCopied: string;
   handoffNoFuture: string;
   handoffNoTasks: string;
+  // Invite code
+  inviteCodeTitle: string;
+  inviteCodeDesc: string;
+  inviteCodePlaceholder: string;
+  inviteCodeApply: string;
+  inviteCodeApplied: string;
+  inviteCodeSuccess: string;
+  inviteCodeInvalid: string;
+  inviteCodeAlreadyApplied: string;
+  inviteCodeNetworkError: string;
+  inviteCodeNote: string;
+  // Usage limits
+  usageTodayRemaining: (used: number, limit: number) => string;
+  usageMonthly: (used: number, limit: number) => string;
+  usageUnlimited: string;
+  usageFairUse: string;
+  usageLimitDayReached: string;
+  usageLimitMonthReached: string;
+  usageContinuationLimit: string;
 }
 
 const ja: Translations = {
@@ -500,6 +519,25 @@ const ja: Translations = {
   handoffCopied:     "コピーしました",
   handoffNoFuture:   "現時点では将来検討事項はありません",
   handoffNoTasks:    "タスクが見つかりません",
+  // Invite code
+  inviteCodeTitle:          "招待コード",
+  inviteCodeDesc:           "招待コードをお持ちの場合は入力してください。テスター・Early Accessユーザーとして登録されます。",
+  inviteCodePlaceholder:    "コードを入力",
+  inviteCodeApply:          "適用",
+  inviteCodeApplied:        "招待コードが適用済みです",
+  inviteCodeSuccess:        "招待コードを適用しました！",
+  inviteCodeInvalid:        "招待コードが無効です。コードをご確認ください。",
+  inviteCodeAlreadyApplied: "招待コードはすでに適用されています。",
+  inviteCodeNetworkError:   "接続エラーが発生しました。もう一度お試しください。",
+  inviteCodeNote:           "招待コードはテスターやEarly Accessプログラムへの参加を示すものです。1アカウントにつき1回のみ適用できます。",
+  // Usage limits
+  usageTodayRemaining: (used, limit) => `本日の残り: ${limit - used} / ${limit}`,
+  usageMonthly:        (used, limit) => `Fair use: 月${used} / ${limit}回`,
+  usageUnlimited:      "無制限利用",
+  usageFairUse:        "Fair use: 月100回まで",
+  usageLimitDayReached:     "本日のFree利用回数に達しました。明日またお試しください。",
+  usageLimitMonthReached:   "今月のFree利用上限に達しました。",
+  usageContinuationLimit:   "Freeプランでは、継続議論は1回まで利用できます。",
 };
 
 const en: Translations = {
@@ -750,6 +788,25 @@ const en: Translations = {
   handoffCopied:     "Copied",
   handoffNoFuture:   "No future considerations at this time",
   handoffNoTasks:    "No tasks found",
+  // Invite code
+  inviteCodeTitle:          "Invite Code",
+  inviteCodeDesc:           "Enter your invite code to unlock Tester or Early Access access.",
+  inviteCodePlaceholder:    "Enter code",
+  inviteCodeApply:          "Apply",
+  inviteCodeApplied:        "Invite code applied",
+  inviteCodeSuccess:        "Invite code applied successfully!",
+  inviteCodeInvalid:        "Invalid invite code. Please check the code and try again.",
+  inviteCodeAlreadyApplied: "An invite code has already been applied to this account.",
+  inviteCodeNetworkError:   "Connection error. Please try again.",
+  inviteCodeNote:           "Invite codes grant Tester or Early Access status. Each code can be applied once per account.",
+  // Usage limits
+  usageTodayRemaining: (used, limit) => `Today: ${limit - used} / ${limit} remaining`,
+  usageMonthly:        (used, limit) => `Monthly fair use: ${used} / ${limit} used`,
+  usageUnlimited:      "Unlimited access",
+  usageFairUse:        "Monthly fair use: 100 runs",
+  usageLimitDayReached:     "You've reached today's Free usage limit. Please try again tomorrow.",
+  usageLimitMonthReached:   "You've reached this month's Free usage limit.",
+  usageContinuationLimit:   "Free plan allows one continuation per discussion.",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };

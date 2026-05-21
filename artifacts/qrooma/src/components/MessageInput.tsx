@@ -17,6 +17,8 @@ interface Props {
   promptMode?:  boolean;
   /** Toggle between normal and prompt mode */
   onTogglePromptMode?: () => void;
+  /** Usage info for Free plan display */
+  usageInfo?: { used: number; limit: number; isUnlimited: boolean } | null;
 }
 
 const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInput({
@@ -28,6 +30,7 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
   apiKeysReady,
   promptMode,
   onTogglePromptMode,
+  usageInfo,
 }, ref) {
   const { t, locale } = useLocale();
   const isFreeMode = !apiKeysReady;
@@ -50,13 +53,24 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
       {/* Free mode banner */}
       {isFreeMode && (
         <div className="flex items-center justify-between gap-3 mb-2 px-3.5 py-2 rounded-xl bg-card border border-border/80">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
             <ZapIcon size={12} className="shrink-0 text-amber-500" />
             <span className="text-[11px] font-medium text-foreground">{t.freeMode}</span>
-            <span className="text-[11px] text-muted-foreground/60 hidden sm:block">—</span>
-            <span className="text-[11px] text-muted-foreground/60 hidden sm:block leading-snug">
-              {t.freeModeHint}
-            </span>
+            {usageInfo && (
+              <span className="text-[11px] font-medium text-foreground/70 tabular-nums">
+                {usageInfo.isUnlimited
+                  ? t.usageUnlimited
+                  : `${usageInfo.limit - usageInfo.used} / ${usageInfo.limit}`}
+              </span>
+            )}
+            {!usageInfo && (
+              <>
+                <span className="text-[11px] text-muted-foreground/60 hidden sm:block">—</span>
+                <span className="text-[11px] text-muted-foreground/60 hidden sm:block leading-snug">
+                  {t.freeModeHint}
+                </span>
+              </>
+            )}
           </div>
           <Link href="/settings" className="shrink-0">
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap">
