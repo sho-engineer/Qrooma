@@ -538,7 +538,12 @@ export default function RoomDetailPage() {
     setConclusionStatus("final");
     setRunStatus("completed");
     const lastMsg = messagesService.getByRoom(roomId).at(-1);
-    updateRoom(roomId, { lastRunStatus: "completed", ...(lastMsg ? { lastMessage: lastMsg.content.slice(0, 80), lastMessageAt: lastMsg.createdAt } : {}) });
+    updateRoom(roomId, {
+      lastRunStatus: "completed",
+      status: "completed",
+      hasHandoff: true,
+      ...(lastMsg ? { lastMessage: lastMsg.content.slice(0, 80), lastMessageAt: lastMsg.createdAt } : {}),
+    });
   }, [conclusions, roomId, updateRoom]);
 
   // "議論を続ける" — run additional rounds focused on the 残論点 from the last provisional

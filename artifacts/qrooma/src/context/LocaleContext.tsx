@@ -270,6 +270,13 @@ export interface Translations {
   usageLimitDayReached: string;
   usageLimitMonthReached: string;
   usageContinuationLimit: string;
+  // Room status
+  roomStatusInReview: string;
+  roomStatusCompleted: string;
+  roomStatusArchived: string;
+  flagFutureConsideration: string;
+  flagTasks: string;
+  flagHandoff: string;
 }
 
 const ja: Translations = {
@@ -538,6 +545,13 @@ const ja: Translations = {
   usageLimitDayReached:     "本日のFree利用回数に達しました。明日またお試しください。",
   usageLimitMonthReached:   "今月のFree利用上限に達しました。",
   usageContinuationLimit:   "Freeプランでは、継続議論は1回まで利用できます。",
+  // Room status
+  roomStatusInReview:       "検討中",
+  roomStatusCompleted:      "結論済み",
+  roomStatusArchived:       "アーカイブ済み",
+  flagFutureConsideration:  "将来検討あり",
+  flagTasks:                "タスクあり",
+  flagHandoff:              "引き継ぎあり",
 };
 
 const en: Translations = {
@@ -807,6 +821,13 @@ const en: Translations = {
   usageLimitDayReached:     "You've reached today's Free usage limit. Please try again tomorrow.",
   usageLimitMonthReached:   "You've reached this month's Free usage limit.",
   usageContinuationLimit:   "Free plan allows one continuation per discussion.",
+  // Room status
+  roomStatusInReview:       "In Review",
+  roomStatusCompleted:      "Completed",
+  roomStatusArchived:       "Archived",
+  flagFutureConsideration:  "Future Consideration",
+  flagTasks:                "Tasks",
+  flagHandoff:              "Handoff",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };

@@ -1,0 +1,374 @@
+Replitへ
+
+Qroomaの「ルーム管理 / ステータス」まわりを実装してください。
+
+今回の目的は、Qroomaの各ルームが「今どの状態なのか」を分かりやすくし、後から見返しやすくすることです。
+
+重要:
+- Qroomaは単なるチャットではなく、意思決定と実行の接続レイヤーです。
+- そのため、ルームごとに「検討中」「結論済み」「アーカイブ済み」などの状態を持たせたいです。
+- ただし、MVPでは複雑にしすぎず、主ステータスは3つに絞ってください。
+- 日本語UIでは日本語のみ、英語UIでは英語のみで表示してください。日英混在は避けてください。
+
+---
+
+# 1. ルームの主ステータス
+
+MVPでは、ルームの主ステータスは以下の3つにしてください。
+
+## 日本語UI
+
+- 検討中
+- 結論済み
+- アーカイブ済み
+
+## 英語UI
+
+- In Review
+- Completed
+- Archived
+
+---
+
+# 2. 各ステータスの意味
+
+## 検討中 / In Review
+
+最終結論がまだ出ていない状態です。
+
+該当例:
+- ルーム作成直後
+- 議論途中
+- 暫定結論まで出ているが、「ここで終える」を押していない
+- まだ最終結論が確定していない
+
+---
+
+## 結論済み / Completed
+
+最終結論が出ている状態です。
+
+該当例:
+- 「ここで終える」を押した
+- final conclusion が生成された
+- Decision Brief / Task List / Future Consideration が生成された
+
+---
+
+## アーカイブ済み / Archived
+
+ユーザーがアーカイブした状態です。
+
+該当例:
+- 現在の一覧から整理したい
+- 後で履歴として残したい
+- 削除はしないが、通常表示からは外したい
+
+---
+
+# 3. 補助フラグ
+
+以下は「ステータス」ではなく、補助フラグとして扱ってください。
+
+## 日本語UI
+
+- 将来検討あり
+- タスクあり
+- 引き継ぎあり
+
+## 英語UI
+
+- Future Consideration
+- Tasks
+- Handoff
+
+---
+
+# 4. 補助フラグの意味
+
+## 将来検討あり / Future Consideration
+
+Future Consideration / 将来検討 が存在するルーム。
+
+条件:
+- final output に future consideration が1件以上ある
+- または futureConsiderations.length > 0
+
+---
+
+## タスクあり / Tasks
+
+Task List が存在するルーム。
+
+条件:
+- task list が1件以上ある
+- または tasks.length > 0
+
+---
+
+## 引き継ぎあり / Handoff
+
+Decision Brief、Task List、またはAI向けhandoffが生成済みのルーム。
+
+条件:
+- decision brief が存在する
+- または task list が存在する
+- または handoff prompt が生成されている
+
+---
+
+# 5. データ構造
+
+rooms テーブル、または該当するルーム管理データに、以下を追加してください。
+
+status: "in_review" | "completed" | "archived"
+
+hasFutureConsideration: boolean
+hasTasks: boolean
+hasHandoff: boolean
+
+既存の命名に合わせて snake_case にする場合は以下でもOKです。
+
+status: "in_review" | "completed" | "archived"
+
+has_future_consideration: boolean
+has_tasks: boolean
+has_handoff: boolean
+
+---
+
+# 6. ステータス更新タイミング
+
+## ルーム作成時
+
+status = "in_review"
+hasFutureConsideration = false
+hasTasks = false
+hasHandoff = false
+
+---
+
+## 最終結論が生成された時
+
+「ここで終える」または final conclusion 生成時に、
+
+status = "completed"
+
+にしてください。
+
+同時に、生成結果に応じて以下を更新してください。
+
+hasFutureConsideration = futureConsiderations.length > 0
+hasTasks = tasks.length > 0
+hasHandoff = decisionBrief exists OR tasks.length > 0
+
+---
+
+## アーカイブ時
+
+ユーザーがアーカイブした場合、
+
+status = "archived"
+
+にしてください。
+
+---
+
+## アーカイブ解除がある場合
+
+もしアーカイブ解除機能を実装する場合は、元の状態に戻せると良いです。
+
+MVPで難しければ、
+
+status = "in_review"
+
+または
+
+status = "completed"
+
+に戻す簡易実装でもOKです。
+
+---
+
+# 7. ルーム一覧での表示
+
+サイドバーまたはルーム一覧に、以下を表示してください。
+
+## 表示項目
+
+- ルームタイトル
+- 最終更新日時
+- 主ステータス
+- 補助フラグ
+
+---
+
+## 日本語表示例
+
+QroomaのFree制限を決める
+結論済み・タスクあり・将来検討あり
+最終更新: 5/21 18:30
+
+Prompt Modeの設計
+検討中
+最終更新: 5/21 17:10
+
+画像入力機能の検討
+結論済み・将来検討あり
+最終更新: 5/20 22:00
+
+---
+
+## 英語表示例
+
+Decide Qrooma Free Limits
+Completed · Tasks · Future Consideration
+Updated: May 21, 18:30
+
+Prompt Mode Design
+In Review
+Updated: May 21, 17:10
+
+---
+
+# 8. 日英混在禁止
+
+日本語UIでは、以下のように日本語のみで表示してください。
+
+OK:
+- 検討中
+- 結論済み
+- アーカイブ済み
+- 将来検討あり
+- タスクあり
+- 引き継ぎあり
+
+NG:
+- Completed
+- In Review
+- Future Consideration
+- Handoff
+- Tasks
+
+英語UIでは、以下のように英語のみで表示してください。
+
+OK:
+- In Review
+- Completed
+- Archived
+- Future Consideration
+- Tasks
+- Handoff
+
+NG:
+- 検討中
+- 結論済み
+- 将来検討あり
+- タスクあり
+- 引き継ぎあり
+
+---
+
+# 9. アーカイブ表示
+
+アーカイブ済みルームは、通常のルーム一覧からは非表示、または別セクションに分けてください。
+
+MVPでは以下のどちらかでOKです。
+
+## 案A: 通常一覧から非表示
+
+- 通常一覧には status !== "archived" のルームだけ表示
+- アーカイブ済みは後から見る機能を追加予定
+
+## 案B: アーカイブセクションを作る
+
+- 通常一覧
+- アーカイブ済み一覧
+
+の2つに分ける。
+
+MVPでは、実装が軽い方でOKです。  
+ただし、削除とは区別してください。
+
+---
+
+# 10. 削除との違い
+
+アーカイブと削除は分けてください。
+
+## アーカイブ
+
+- データは残る
+- 通常一覧から整理される
+- 後で参照できる余地を残す
+
+## 削除
+
+- ルームを削除する
+- 原則として元に戻せない
+- 削除確認を出す
+
+---
+
+# 11. UI上の優先度
+
+MVPでは、絞り込みや検索までは必須ではありません。
+
+まずは以下を優先してください。
+
+必須:
+- 主ステータスが見える
+- 補助フラグが見える
+- アーカイブと削除が区別される
+- 日本語UIと英語UIが混ざらない
+
+後続:
+- ステータス別フィルター
+- 将来検討ありだけ表示
+- タスクありだけ表示
+- 検索
+
+---
+
+# 12. 受け入れ条件
+
+以下を満たしたらOKです。
+
+## ステータス
+
+- ルーム作成時は「検討中 / In Review」になる
+- 最終結論が出たら「結論済み / Completed」になる
+- アーカイブしたら「アーカイブ済み / Archived」になる
+
+## フラグ
+
+- Future Considerationがある場合、「将来検討あり / Future Consideration」が表示される
+- Task Listがある場合、「タスクあり / Tasks」が表示される
+- Handoffがある場合、「引き継ぎあり / Handoff」が表示される
+
+## UI
+
+- ルーム一覧でステータスが見える
+- ルーム一覧で補助フラグが見える
+- 日本語UIでは日本語のみ
+- 英語UIでは英語のみ
+- 日英混在しない
+
+## アーカイブ / 削除
+
+- アーカイブと削除が別の動作として扱われる
+- アーカイブ済みは通常一覧から整理される
+- 削除時は確認が出る
+
+---
+
+# 13. 返してほしいもの
+
+1. 追加したルームステータスの実装内容
+2. 補助フラグの実装内容
+3. ステータス更新タイミング
+4. ルーム一覧での表示方法
+5. アーカイブと削除の違いの実装内容
+6. 多言語対応の実装内容
+7. 修正したファイル一覧
+8. before / after のスクリーンショット

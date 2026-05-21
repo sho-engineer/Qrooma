@@ -14,6 +14,10 @@ export const DUMMY_ROOMS: Room[] = [
     lastMessage: "Operator: A middle path — hire one versatile engineer now, then reassess.",
     lastMessageAt: "2026-04-14T08:30:00Z",
     lastRunStatus: "completed",
+    status: "completed",
+    hasTasks: true,
+    hasHandoff: true,
+    hasFutureConsideration: false,
   },
   {
     id: "room-2",
@@ -22,6 +26,10 @@ export const DUMMY_ROOMS: Room[] = [
     lastMessage: "Breaker: Freemium works only if the free tier delivers genuine value.",
     lastMessageAt: "2026-04-13T16:50:00Z",
     lastRunStatus: "completed",
+    status: "completed",
+    hasTasks: false,
+    hasHandoff: true,
+    hasFutureConsideration: false,
   },
   {
     id: "room-3",
@@ -30,6 +38,10 @@ export const DUMMY_ROOMS: Room[] = [
     lastMessage: "Operator: Long-term maintainability and ecosystem depth favor Next.js.",
     lastMessageAt: "2026-04-13T12:15:00Z",
     lastRunStatus: "completed",
+    status: "completed",
+    hasTasks: false,
+    hasHandoff: false,
+    hasFutureConsideration: true,
   },
   {
     id: "room-4",
@@ -38,6 +50,10 @@ export const DUMMY_ROOMS: Room[] = [
     lastMessage: "Operator: 'Think together. Decide faster.' — tight and memorable.",
     lastMessageAt: "2026-04-14T10:18:00Z",
     lastRunStatus: "completed",
+    status: "completed",
+    hasTasks: false,
+    hasHandoff: false,
+    hasFutureConsideration: false,
   },
   {
     id: "room-5",
@@ -46,6 +62,10 @@ export const DUMMY_ROOMS: Room[] = [
     lastMessage: "Operator: A 60/30/10 allocation gives flexibility without sacrificing focus.",
     lastMessageAt: "2026-04-15T09:45:00Z",
     lastRunStatus: "completed",
+    status: "completed",
+    hasTasks: true,
+    hasHandoff: true,
+    hasFutureConsideration: true,
   },
   {
     id: "room-6",
@@ -53,7 +73,8 @@ export const DUMMY_ROOMS: Room[] = [
     createdAt: "2026-04-15T14:00:00Z",
     lastMessage: "Builder: 6 to 9 months is realistic for a typical B2B SaaS launch—",
     lastMessageAt: "2026-04-15T14:30:00Z",
-    lastRunStatus: "error",          // ← demo: failed run, Re-run to recover
+    lastRunStatus: "error",
+    status: "in_review",
   },
 ];
 

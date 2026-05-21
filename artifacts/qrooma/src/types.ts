@@ -3,6 +3,9 @@ export type Plan       = "free" | "connect" | "pro";
 export type AccessType = "normal" | "tester" | "early_access" | "special";
 export type UserRole   = "user" | "admin";
 
+/** Primary room status */
+export type RoomStatus = "in_review" | "completed" | "archived";
+
 export interface UserProfile {
   role:                UserRole;
   plan:                Plan;
@@ -23,6 +26,12 @@ export interface Room {
   lastRunStatus?: RunStatus;
   archived?: boolean;
   archivedAt?: string;
+  /** Primary status — drives UI display and filtering */
+  status?: RoomStatus;
+  /** Auxiliary flags: set when final conclusion is generated */
+  hasFutureConsideration?: boolean;
+  hasTasks?: boolean;
+  hasHandoff?: boolean;
 }
 
 export interface Message {

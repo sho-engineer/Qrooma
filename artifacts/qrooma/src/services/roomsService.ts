@@ -44,7 +44,7 @@
 import type { Room } from "../types";
 import { DUMMY_ROOMS } from "../data/dummy";
 
-const STORAGE_KEY = "qrooma_rooms_v2";
+const STORAGE_KEY = "qrooma_rooms_v3";
 
 function load(): Room[] {
   try {
@@ -72,9 +72,13 @@ export const roomsService = {
   /** SUPABASE: .from("rooms").insert({ user_id: userId, name }).select().single() */
   async create(_userId: string, name: string): Promise<Room> {
     const room: Room = {
-      id: `room-${Date.now()}`,
-      name: name.trim(),
+      id:        `room-${Date.now()}`,
+      name:      name.trim(),
       createdAt: new Date().toISOString(),
+      status:    "in_review",
+      hasFutureConsideration: false,
+      hasTasks:               false,
+      hasHandoff:             false,
     };
     const rooms = load();
     rooms.unshift(room);

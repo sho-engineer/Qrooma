@@ -46,6 +46,10 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
       id:        `room-${Date.now()}`,
       name:      name.trim(),
       createdAt: new Date().toISOString(),
+      status:    "in_review",
+      hasFutureConsideration: false,
+      hasTasks:               false,
+      hasHandoff:             false,
     };
     setRooms((prev) => [room, ...prev]);
     roomsService.create(user?.id ?? "demo", name).catch(console.error);
@@ -60,16 +64,16 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
   function archiveRoom(id: string): void {
     const archivedAt = new Date().toISOString();
     setRooms((prev) =>
-      prev.map((r) => r.id === id ? { ...r, archived: true, archivedAt } : r)
+      prev.map((r) => r.id === id ? { ...r, archived: true, archivedAt, status: "archived" as const } : r)
     );
-    roomsService.update(id, { archived: true, archivedAt }).catch(console.error);
+    roomsService.update(id, { archived: true, archivedAt, status: "archived" }).catch(console.error);
   }
 
   function restoreRoom(id: string): void {
     setRooms((prev) =>
-      prev.map((r) => r.id === id ? { ...r, archived: false, archivedAt: undefined } : r)
+      prev.map((r) => r.id === id ? { ...r, archived: false, archivedAt: undefined, status: "in_review" as const } : r)
     );
-    roomsService.update(id, { archived: false, archivedAt: undefined }).catch(console.error);
+    roomsService.update(id, { archived: false, archivedAt: undefined, status: "in_review" }).catch(console.error);
   }
 
   function deleteRoom(id: string): void {
