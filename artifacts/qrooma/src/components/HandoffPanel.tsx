@@ -121,44 +121,125 @@ function mdAll(conclusion: ConclusionData, tasks: TaskItem[], items: FutureItem[
   return parts.join("\n\n---\n\n");
 }
 
-function mdManus(conclusion: ConclusionData, tasks: TaskItem[], locale: string): string {
+function mdGenericAI(conclusion: ConclusionData, tasks: TaskItem[], locale: string): string {
   const isJa = locale === "ja";
-  const adopted = sect(conclusion.summary, "adopted") ?? conclusion.summary.slice(0, 300);
-  const open    = sect(conclusion.summary, "open") ?? (isJa ? "(なし)" : "None");
+  const adopted  = sect(conclusion.summary, "adopted")  ?? conclusion.summary.slice(0, 300);
+  const rejected = sect(conclusion.summary, "rejected") ?? (isJa ? "(なし)" : "None");
+  const open     = sect(conclusion.summary, "open")     ?? (isJa ? "(なし)" : "None");
+  const next     = sect(conclusion.summary, "next")     ?? "";
+  const future   = sect(conclusion.summary, "future")   ?? "";
+
   if (isJa) {
     return [
-      "# Manus 実行プロンプト", "",
-      "以下のタスクリストを順番に実行してください。",
-      "各タスクは人間の確認を得てから次に進んでください。", "",
-      "## 実行タスク",
+      "# 汎用AIプロンプト", "",
+      "以下の情報を踏まえて、私の判断を支援してください。", "",
+      "## 背景",
+      conclusion.summary.slice(0, 200), "",
+      "## 目的",
+      "以下の決定事項に基づき、次の行動を明確にすること。", "",
+      "## 決定事項",
+      adopted, "",
+      "## 採用案", adopted, "",
+      "## 棄却案", rejected, "",
+      "## 残論点", open, "",
+      "## 次アクション",
       ...tasks.map((t, i) => `${i + 1}. ${t.name}`), "",
-      "## 背景・決定事項", adopted, "",
-      "## 残論点（確認事項）", open,
+      ...(future ? ["## 将来検討", future, ""] : []),
+      "## 期待アウトプット",
+      "- 各タスクの具体的な実行手順",
+      "- 残論点に対する意見・見解",
+      "- 優先度の高いアクションの特定", "",
+      "## 注意点",
+      "- 人間が最終判断を行う前提で支援すること",
+      "- 「ケースバイケース」で終わらず、具体的な方向性を示すこと",
+      `- ${next ? `特に次のアクションを優先: ${next}` : "採用案の実行を最優先とすること"}`,
     ].join("\n").trim();
   }
+
   return [
-    "# Manus Execution Prompt", "",
-    "Execute the following tasks in order.",
-    "Confirm with the user before proceeding to each next task.", "",
-    "## Tasks",
+    "# Generic AI Prompt", "",
+    "Please help me based on the following decision context.", "",
+    "## Background",
+    conclusion.summary.slice(0, 200), "",
+    "## Purpose",
+    "Clarify the next steps based on the decisions made.", "",
+    "## Decision Summary",
+    adopted, "",
+    "## Adopted Approach", adopted, "",
+    "## Rejected Options", rejected, "",
+    "## Open Questions", open, "",
+    "## Next Actions",
     ...tasks.map((t, i) => `${i + 1}. ${t.name}`), "",
-    "## Context / Decision", adopted, "",
-    "## Open Questions (confirm these)", open,
+    ...(future ? ["## Future Considerations", future, ""] : []),
+    "## Expected Output",
+    "- Concrete steps for each task",
+    "- Opinions on open questions",
+    "- Identification of highest-priority actions", "",
+    "## Notes",
+    "- The human makes the final decision — your role is to support",
+    "- Do not end with 'it depends' — provide a directional recommendation",
+    `- ${next ? `Prioritize this action first: ${next}` : "Focus on executing the adopted approach"}`,
   ].join("\n").trim();
 }
 
-function mdCode(conclusion: ConclusionData, tasks: TaskItem[]): string {
-  const adopted = sect(conclusion.summary, "adopted") ?? conclusion.summary.slice(0, 300);
-  const open    = sect(conclusion.summary, "open") ?? "None";
+function mdBuildPrompt(conclusion: ConclusionData, tasks: TaskItem[], locale: string): string {
+  const isJa    = locale === "ja";
+  const adopted  = sect(conclusion.summary, "adopted")  ?? conclusion.summary.slice(0, 300);
+  const rejected = sect(conclusion.summary, "rejected") ?? (isJa ? "(なし)" : "None");
+  const open     = sect(conclusion.summary, "open")     ?? (isJa ? "(なし)" : "None");
+
+  if (isJa) {
+    return [
+      "# 実装用プロンプト", "",
+      "以下の仕様に基づいて実装を進めてください。", "",
+      "## 実装目的",
+      adopted, "",
+      "## 採用仕様",
+      adopted, "",
+      "## やらないこと（スコープ外）",
+      rejected, "",
+      "## 受け入れ条件",
+      ...tasks.map((t, i) => `${i + 1}. ${t.name}`), "",
+      "## 残論点（確認事項）", open, "",
+      "## UI要件",
+      "- 既存のUIパターン・デザインシステムに従うこと",
+      "- モバイル対応を考慮すること",
+      "- アクセシビリティを意識すること", "",
+      "## 注意点",
+      "- 各ステップを実施前に人間に確認すること",
+      "- 大きな変更の前にはバックアップを取ること",
+      "- スコープ外の変更は行わないこと", "",
+      "## 返してほしいもの",
+      "- 実装した変更内容の一覧",
+      "- 確認が必要な箇所のリスト",
+      "- テスト方法の提案",
+    ].join("\n").trim();
+  }
+
   return [
-    "# Implementation Brief for Claude Code / Replit", "",
-    "## Decision", adopted, "",
-    "## Tasks to Implement",
-    ...tasks.map((t, i) => `${i + 1}. ${t.name}${t.needsHumanReview ? " *(confirm before starting)*" : ""}`), "",
-    "## Open Questions", open, "",
+    "# Build Prompt", "",
+    "Please implement based on the following specification.", "",
+    "## Implementation Goal",
+    adopted, "",
+    "## Adopted Specification",
+    adopted, "",
+    "## Out of Scope (do NOT implement)",
+    rejected, "",
+    "## Acceptance Criteria",
+    ...tasks.map((t, i) => `${i + 1}. ${t.name}`), "",
+    "## Open Questions (confirm before proceeding)", open, "",
+    "## UI Requirements",
+    "- Follow existing UI patterns and design system",
+    "- Ensure mobile responsiveness",
+    "- Consider accessibility", "",
     "## Notes",
-    "- Confirm with the user before each major step.",
-    "- Do not proceed past human-review tasks without explicit approval.",
+    "- Confirm with the user before each major step",
+    "- Do not make changes outside the defined scope",
+    "- Back up before large structural changes", "",
+    "## Expected Output",
+    "- List of implemented changes",
+    "- List of items requiring human review",
+    "- Testing recommendations",
   ].join("\n").trim();
 }
 
@@ -423,8 +504,8 @@ export default function HandoffPanel({ conclusion }: Props) {
           <CopyButton label={t.handoffCopyBrief} text={mdBrief(conclusion, locale)} />
           <CopyButton label={t.handoffCopyTasks} text={mdTasks(tasks, locale)} />
           <CopyButton label={t.handoffCopyAll}   text={allText} />
-          <CopyButton label={t.handoffCopyManus} text={mdManus(conclusion, tasks, locale)} small />
-          <CopyButton label={t.handoffCopyCode}  text={mdCode(conclusion, tasks)} small />
+          <CopyButton label={t.handoffCopyGenericAI} text={mdGenericAI(conclusion, tasks, locale)} small />
+          <CopyButton label={t.handoffCopyBuild}    text={mdBuildPrompt(conclusion, tasks, locale)} small />
         </div>
       </div>
     </div>

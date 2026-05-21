@@ -1,0 +1,348 @@
+Replitへ
+
+QroomaのFreeプラン利用制限を実装してください。
+
+今回の目的は、MVPリリース時点ではFree中心で提供しつつ、運営側のAPIコストを管理できるようにすることです。
+
+重要:
+- 現時点ではFreeを基本ユーザー向けのメインプランにする
+- Pro / Connect は Coming Soon 扱いでよい
+- ただし、管理者や特典ユーザーなど、一部ユーザーは制限なしで使えるようにする
+
+---
+
+# 1. Freeプランの利用制限
+
+## 基本制限
+
+Freeユーザーには以下の制限を入れてください。
+
+- 1日5回まで
+- 月100回まで
+- 1回の議論は2ラウンドまで
+- 継続議論は1回まで
+
+## 補足
+
+UIでは基本的に「1日5回まで」をメインで表示してください。
+
+月100回は、運営側のコスト保護・Fair Useの意味合いです。
+表示する場合は小さく以下のように表示してください。
+
+日本語:
+- Fair use: 月100回まで
+
+英語:
+- Monthly fair use: 100 runs
+
+---
+
+# 2. Freeでも利用できる機能
+
+FreeでもQroomaのコア価値が伝わるように、以下は利用可能にしてください。
+
+- 候補比較
+- メリット / デメリット整理
+- 反証
+- 採用 / 棄却
+- 残論点
+- 次アクション
+- Decision Brief
+- Task List
+- Future Consideration / 将来検討
+- Markdownコピー
+- Generic AI Promptコピー
+- Build Promptコピー
+
+外部API連携はまだ不要です。
+
+---
+
+# 3. Freeで制限するもの
+
+以下はFreeでは制限、またはComing Soonでよいです。
+
+- 外部API連携
+- 高品質モード
+- 専用handoffプリセット
+  - Manus専用
+  - Claude Code専用
+  - Replit専用
+  - Linear専用
+  - Notion専用
+- 画像入力
+- チーム利用
+- 高度な履歴管理
+- マルチモデル設定
+
+---
+
+# 4. 無制限ユーザーの仕組み
+
+一部ユーザーは、Free制限を受けずに使えるようにしてください。
+
+対象例:
+- 管理者
+- 開発者
+- テスター
+- 特典ユーザー
+- 招待ユーザー
+- 個別に許可されたユーザー
+
+---
+
+## 実装方針
+
+ユーザーごとに、利用制限を免除できるフラグを持たせてください。
+
+シンプルに進めるなら、以下でOKです。
+
+isUnlimitedUser: boolean
+
+より柔軟にするなら、以下でもよいです。
+
+usageTier: "free" | "unlimited" | "admin"
+
+MVPでは、isUnlimitedUser で十分です。
+
+---
+
+## 推奨データ設計
+
+ユーザープロファイル、またはプラン管理テーブルに以下を追加してください。
+
+plan: "free" | "pro" | "connect"
+isUnlimitedUser: boolean
+role: "user" | "admin"
+dailyRunLimit: number | null
+monthlyRunLimit: number | null
+
+### Freeユーザー
+
+plan = "free"
+isUnlimitedUser = false
+dailyRunLimit = 5
+monthlyRunLimit = 100
+
+### 無制限ユーザー
+
+isUnlimitedUser = true
+dailyRunLimit = null
+monthlyRunLimit = null
+
+### 管理者
+
+role = "admin"
+isUnlimitedUser = true
+
+---
+
+# 5. 利用回数のカウント対象
+
+カウント対象は、基本的に「1回の議論実行」としてください。
+
+## カウントするもの
+
+- 通常モードでの議論開始
+- Prompt Modeでの議論開始
+- 継続議論の実行
+
+## カウントしないもの
+
+- ルーム作成だけ
+- テキスト入力だけ
+- Decision Briefの表示
+- Task Listの表示
+- Future Considerationの表示
+- コピー操作
+- Generic AI Promptコピー
+- Build Promptコピー
+- 既存ルームの閲覧
+- アーカイブ / 削除
+
+---
+
+# 6. 継続議論の制限
+
+Freeユーザーは、1回の議論につき継続議論は1回までにしてください。
+
+## 例
+
+利用可能:
+- Round 1
+- Round 2
+- 暫定結論
+- 継続議論 1回
+- 最終結論
+
+利用不可:
+- 継続議論 2回目以降
+
+2回目以降を押した場合は、以下のように表示してください。
+
+日本語:
+「Freeプランでは、継続議論は1回まで利用できます。」
+
+英語:
+“Free plan allows one continuation per discussion.”
+
+---
+
+# 7. 上限到達時のUI
+
+Freeユーザーが上限に達した場合、raw errorではなく、自然な文言を表示してください。
+
+## 日次上限
+
+日本語:
+「本日のFree利用回数に達しました。明日またお試しください。」
+
+英語:
+“You’ve reached today’s Free usage limit. Please try again tomorrow.”
+
+## 月次上限
+
+日本語:
+「今月のFree利用上限に達しました。」
+
+英語:
+“You’ve reached this month’s Free usage limit.”
+
+## 無制限ユーザー
+
+無制限ユーザーには、上記メッセージを出さないでください。
+
+---
+
+# 8. 残り回数表示
+
+可能であれば、Freeユーザーに残り回数を表示してください。
+
+例:
+
+日本語:
+- 本日の残り: 3 / 5
+- 今月の利用: 24 / 100
+
+英語:
+- Today: 3 / 5 remaining
+- This month: 24 / 100 used
+
+ただし、表示が重くなる場合はまず日次残りだけでもOKです。
+
+無制限ユーザーの場合は、以下のように表示してもよいです。
+
+日本語:
+「無制限利用」
+
+英語:
+“Unlimited access”
+
+---
+
+# 9. Pro / Connectの表示
+
+現時点ではPro / ConnectはComing SoonでOKです。
+
+## Pro Coming Soon
+
+表示例:
+- Higher usage limits
+- More continuations
+- Advanced handoff templates
+- Priority workflows
+
+## Connect Coming Soon
+
+表示例:
+- Bring your own API key
+- External tool integrations
+- Advanced model settings
+- Future multi-model options
+
+課金処理はまだ実装しなくてよいです。
+
+---
+
+# 10. 管理者・特典ユーザーの付与方法
+
+MVPでは、管理画面がなくても構いません。
+
+まずは以下のどちらかで対応してください。
+
+## 案A: DB上で手動付与
+
+Supabase上で isUnlimitedUser = true にする。
+
+## 案B: 管理者メールリストで判定
+
+環境変数で管理者メールを持つ。
+
+例:
+
+ADMIN_EMAILS=example@example.com,admin@example.com
+
+該当メールのユーザーは isUnlimitedUser = true として扱う。
+
+MVPでは、AまたはBのどちらか簡単な方でOKです。
+
+---
+
+# 11. 多言語対応
+
+日本語UIでは日本語で表示してください。
+
+英語UIでは英語で表示してください。
+
+以下は必ず言語切り替え対象です。
+
+- 利用回数表示
+- 上限到達メッセージ
+- 無制限表示
+- Free / Pro / Connect の説明文
+
+---
+
+# 12. 受け入れ条件
+
+以下を満たしたらOKです。
+
+## Free制限
+
+- Freeユーザーは1日5回まで
+- Freeユーザーは月100回まで
+- Freeユーザーは継続議論1回まで
+- 上限到達時に自然なメッセージが出る
+- raw errorが出ない
+
+## 無制限ユーザー
+
+- isUnlimitedUser = true のユーザーは日次・月次制限を受けない
+- 管理者は制限を受けない
+- 無制限ユーザーに上限到達メッセージが出ない
+
+## カウント
+
+- 議論開始時に利用回数がカウントされる
+- 継続議論もカウントされる
+- コピーや閲覧はカウントされない
+
+## UI
+
+- 残り回数が表示される
+- Free / Pro / Connect の表示が自然
+- Pro / Connect はComing Soon扱い
+- 日本語 / 英語で表示が切り替わる
+
+---
+
+# 13. 返してほしいもの
+
+1. Free利用制限の実装内容
+2. 利用回数の保存方法
+3. 日次 / 月次リセットの扱い
+4. 無制限ユーザーの判定方法
+5. 管理者の判定方法
+6. 上限到達時のUI
+7. 修正したファイル一覧
+8. before / after のスクリーンショット

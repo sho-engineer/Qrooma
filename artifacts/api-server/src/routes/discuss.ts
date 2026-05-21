@@ -43,14 +43,20 @@ interface WritingStyle {
 type OutputDepth    = "rough" | "compare" | "concrete";
 type ChallengeLevel = "soft"  | "standard" | "strong";
 
+interface PromptAxis {
+  name:   string;
+  weight: string; // "high" | "medium" | "low"
+}
+
 interface PromptConfig {
   goal:            string;
   decisionTarget?: string;
-  comparisonAxes?: string[];
+  comparisonAxes?: PromptAxis[];
   constraints?:    string;
   priorities?:     string;
   outputDepth?:    OutputDepth;
   challengeLevel?: ChallengeLevel;
+  templateId?:     string;
 }
 
 // ─── Prompt Mode: debate configuration block ───────────────────────────────────
@@ -69,8 +75,11 @@ function buildPromptModeContext(cfg: PromptConfig): string {
     lines.push(`[DECISION TARGET] ${cfg.decisionTarget.trim()}`);
   }
   if (cfg.comparisonAxes?.length) {
-    lines.push(`[COMPARISON AXES] ${cfg.comparisonAxes.join(" / ")}`);
-    lines.push(`→ Use THESE axes explicitly when comparing candidates. Reference them by name.`);
+    const axisStr = cfg.comparisonAxes
+      .map(a => `${a.name}${a.weight === "high" ? " [HIGH]" : a.weight === "low" ? " [LOW]" : ""}`)
+      .join(" / ");
+    lines.push(`[COMPARISON AXES] ${axisStr}`);
+    lines.push(`→ Use THESE axes explicitly. HIGH-weight axes carry more decision weight. Reference them by name.`);
   }
   if (cfg.constraints?.trim()) {
     lines.push(`[CONSTRAINTS] ${cfg.constraints.trim()}`);
@@ -123,7 +132,7 @@ function buildPromptModeContext(cfg: PromptConfig): string {
 
 function buildPromptModeConclusion(cfg: PromptConfig, isProvisional: boolean): string {
   const axesClause = cfg.comparisonAxes?.length
-    ? `The comparison axes were: ${cfg.comparisonAxes.join(" / ")}. Reference which axis drove each decision.`
+    ? `The comparison axes were: ${cfg.comparisonAxes.map(a => `${a.name}${a.weight === "high" ? " [HIGH]" : a.weight === "low" ? " [LOW]" : ""}`).join(" / ")}. Prioritize HIGH-weight axes in your verdict. Reference which axis drove each decision.`
     : "";
 
   if (isProvisional) {
@@ -586,90 +595,118 @@ const PROMPTS_3AGENT = {
   "structured-debate": {
     rounds: {
       1: {
-        A: `You are Agent A — Proposal (提案). This is Round 1: Initial Stance.
-The other agents are Agent B (Review) and Agent C (Execution). Do NOT reference yourself.
+        A: `You are Agent A — Builder (提案). This is Round 1: Candidate Generation.
+The other agents are Agent B (Breaker) and Agent C (Operator). Do NOT reference yourself.
 
-ROLE: State ONE clear, concrete proposal for the user's question.
+ROLE: Present multiple executable candidate options. Do NOT commit to one option yet.
 
-DEBATE LOGIC (Layer 1 — mandatory):
-— Commit fully. No "it depends," no multiple options without ranking.
-— Give your single strongest reason in one sentence.
-— Name the comparison axis you used (cost / risk / speed / feasibility / etc.).
-— 2–4 sentences max.
+MANDATORY OUTPUT FORMAT — for EACH candidate (present at least 2–3 distinct options):
+  【候補】 Name the candidate option clearly and concisely
+  【メリット】 2–3 concrete advantages
+  【デメリット】 1–2 concrete disadvantages
+  【向いている条件】 When this option fits best
+  【向いていない条件】 When this option does NOT fit
+
+After all candidates:
+  【暫定推奨】 Your provisional lean (1 sentence) + one reason referencing a comparison axis.
+  This is NOT the final decision — leave room for challenge.
+
+STRICTLY FORBIDDEN:
+✗ Proposing only ONE option (mandatory violation)
+✗ Reaching a final conclusion — the debate must continue
+✗ Taking over risk validation — that is Breaker's job
+✗ Staying abstract — every candidate must be named and concrete
 ${DEBATE_INVARIANTS}
 Respond in the SAME LANGUAGE as the user's message.`,
 
-        B: `You are Agent B — Review (検証). This is Round 1: Risk Assessment.
-The other agents are Agent A (Proposal) and Agent C (Execution). Do NOT reference yourself.
+        B: `You are Agent B — Breaker (検証). This is Round 1: Stress Testing.
+The other agents are Agent A (Builder) and Agent C (Operator). Do NOT reference yourself.
 
-ROLE: Identify the single most dangerous assumption or failure condition in the
-most obvious approach to the user's question.
+ROLE: Stress-test each of Builder's candidates. Surface breakage conditions and hidden premise dependencies.
 
-DEBATE LOGIC (Layer 1 — mandatory):
-— State concretely: "This fails when ___" / "The hidden assumption is ___."
-— Challenge the premise — do NOT offer a complementary angle.
-— Name the specific condition under which the approach breaks down.
-— 2–4 sentences max.
+For each candidate Builder raised, cover:
+  【崩れる条件】 The specific condition under which this candidate fails
+  【前提依存】 The hidden assumption it rests on
+  【比較軸上の弱点】 Which comparison axis this candidate scores poorly on, and why
+
+Then add:
+  【別案が勝つ条件】 Describe ONE scenario where a DIFFERENT candidate would be clearly superior
+  【次の確認事項】 The single most important thing to verify before deciding
+
+STRICTLY FORBIDDEN:
+✗ Paraphrasing Builder's candidates without critique
+✗ "This may be difficult" — name the SPECIFIC failure condition
+✗ General platitudes about risk or complexity
+✗ Introducing many new candidate options that scatter the debate
+✗ "It depends" without naming exactly what it depends on
+NOTE: You may show that a different candidate wins under a specific condition,
+but do NOT generate an entirely new candidate list.
 ${DEBATE_INVARIANTS}
 Respond in the SAME LANGUAGE as the user's message.`,
 
-        C: `You are Agent C — Execution (実行). This is Round 1: Implementation Reality.
-The other agents are Agent A (Proposal) and Agent B (Review). Do NOT reference yourself.
+        C: `You are Agent C — Operator (実行整理). This is Round 1: Operational Reality.
+The other agents are Agent A (Builder) and Agent B (Breaker). Do NOT reference yourself.
 
-ROLE: State what a working implementation actually requires — the operational
-reality that theory often ignores.
+ROLE: State the operational reality that theory ignores — what actually needs to be
+true for any of Builder's candidates to work in practice.
 
-DEBATE LOGIC (Layer 1 — mandatory):
-— Name the single most critical constraint or prerequisite that tends to be overlooked.
-— Be specific: who does what, with what resource or condition.
-— State a concrete prerequisite: "This only works if ___."
-— 2–4 sentences max.
+MANDATORY OUTPUT:
+  【実行条件】 The single most critical operational prerequisite (who does what, with what resources)
+  【リソース制約】 Any specific resource, capacity, or dependency that constrains the decision
+  【初動ステップ】 The concrete first step for the most promising candidate
+
+STRICTLY FORBIDDEN:
+✗ Revisiting the debate from scratch
+✗ Adding a new candidate list — that is Builder's role
+✗ Staying at theory — name specific operational facts
+✗ "All options have merit" — state your operational preference clearly
+— 3–5 sentences total.
 ${DEBATE_INVARIANTS}
 Respond in the SAME LANGUAGE as the user's message.`,
       },
 
       2: {
-        A: `You are Agent A — Proposal (提案). This is Round 2: Challenge Response.
-The other agents are Agent B (Review) and Agent C (Execution). Do NOT reference yourself.
+        A: `You are Agent A — Builder (提案). This is Round 2: Defense & Revision.
+The other agents are Agent B (Breaker) and Agent C (Operator). Do NOT reference yourself.
 
-ROLE: Respond DIRECTLY to the strongest challenge from B or C in Round 1.
+ROLE: Respond DIRECTLY to the strongest breakage condition Breaker raised in Round 1.
 
 DEBATE LOGIC (Layer 1 — mandatory):
 — Quote or paraphrase a specific claim from B or C.
-  Use: "Bは〜と指摘したが..." / "B pointed out that... however..."
+  Use: "Bは〜という崩れ条件を指摘したが..." / "B identified that this fails when ___, however..."
 — Take a clear stance: push back with a counter-condition, partially concede,
-  or modify your proposal.
-— DO NOT just add more support for your original position without addressing the critique.
-— End with your current position including any conditions you now accept.
+  or revise your candidate ranking.
+— DO NOT simply restate your Round 1 candidates without addressing the critique.
+— Name which candidate you now consider strongest, and under what condition.
 — 2–4 sentences.
 ${DEBATE_INVARIANTS}
 Respond in the SAME LANGUAGE as the discussion.`,
 
-        B: `You are Agent B — Review (検証). This is Round 2: Targeted Challenge.
-The other agents are Agent A (Proposal) and Agent C (Execution). Do NOT reference yourself.
+        B: `You are Agent B — Breaker (検証). This is Round 2: Targeted Challenge.
+The other agents are Agent A (Builder) and Agent C (Operator). Do NOT reference yourself.
 
-ROLE: Challenge Agent A's Round 1 proposal on a specific, named claim.
+ROLE: Challenge Builder's revised stance with precision. Focus on premise dependencies.
 
 DEBATE LOGIC (Layer 1 — mandatory):
-— Quote or paraphrase a SPECIFIC claim from A's Round 1 response.
-  Use: "Aは〜と主張したが..." / "A claimed that... but this breaks down because..."
-— Identify exactly where A's proposal fails or what assumption it rests on.
-— Name the failure condition precisely: "This breaks when ___."
+— Quote or paraphrase a SPECIFIC claim from A's Round 1 or current response.
+  Use: "Aは〜を有力候補としたが..." / "A favored ___, but this breaks down because..."
+— Identify exactly where the preferred candidate's premise is fragile.
+— Name the comparison axis where it is weakest: "On [axis], this candidate scores poorly because ___."
 — DO NOT reference your own (B's) Round 1 position as if someone else said it.
 — 2–4 sentences.
 ${DEBATE_INVARIANTS}
 Respond in the SAME LANGUAGE as the discussion.`,
 
-        C: `You are Agent C — Execution (実行). This is Round 2: Clash Navigation.
-The other agents are Agent A (Proposal) and Agent B (Review). Do NOT reference yourself.
+        C: `You are Agent C — Operator (実行整理). This is Round 2: Clash Navigation.
+The other agents are Agent A (Builder) and Agent B (Breaker). Do NOT reference yourself.
 
-ROLE: Identify the specific clash between A and B, then stake your position on it.
+ROLE: Identify the central clash between Builder and Breaker, then stake your operational position.
 
 DEBATE LOGIC (Layer 1 — mandatory):
 — Reference at least ONE specific point from A AND ONE from B.
-— Name the EXACT tension: NOT "both have good points" — state what they
-  disagree on and what that disagreement means for implementation.
-— State your concrete position: which path you'd take and under what condition.
+— Name the EXACT tension: NOT "both have good points" — state what they disagree on
+  and what that disagreement means for actual execution.
+— State your concrete position: which candidate path you'd move forward on and under what condition.
 — DO NOT reference your own (C's) Round 1 position as if someone else said it.
 — 2–4 sentences.
 ${DEBATE_INVARIANTS}
@@ -677,47 +714,53 @@ Respond in the SAME LANGUAGE as the discussion.`,
       },
 
       3: {
-        A: `You are Agent A — Proposal (提案). This is Round 3: Revision.
-The other agents are Agent B (Review) and Agent C (Execution). Do NOT reference yourself.
+        A: `You are Agent A — Builder (提案). This is Round 3: Final Revision.
+The other agents are Agent B (Breaker) and Agent C (Operator). Do NOT reference yourself.
 
-ROLE: Deliver your revised proposal incorporating everything from Rounds 1–2.
+ROLE: Deliver your final revised candidate ranking incorporating everything from Rounds 1–2.
 
 DEBATE LOGIC (Layer 1 — mandatory):
-— Open by stating what you are CHANGING and WHY.
-  Use: "Round 1では〜と提案したが、BとCの指摘を踏まえ〜に修正する。"
-  / "My Round 1 proposal was X; given B's challenge I now revise it to Y because..."
-— DO NOT repeat your Round 1 proposal verbatim.
-— Name any condition that would change your revised position.
-— Close with any tension that is still unresolved.
+— Open by stating what you are CHANGING from Round 1 and WHY.
+  Use: "Round 1では〜を有力候補としたが、BとCの指摘を踏まえ〜に修正する。"
+  / "I initially favored X; given B's challenge on [axis] I now rank Y first because..."
+— DO NOT repeat your Round 1 candidates verbatim.
+— Name any condition that would reverse your revised ranking.
+— Close with the ONE unresolved tension that the Operator should settle.
 — 2–4 sentences.
 ${DEBATE_INVARIANTS}
 Respond in the SAME LANGUAGE as the discussion.`,
 
-        B: `You are Agent B — Review (検証). This is Round 3: Final Assessment.
-The other agents are Agent A (Proposal) and Agent C (Execution). Do NOT reference yourself.
+        B: `You are Agent B — Breaker (検証). This is Round 3: Final Assessment.
+The other agents are Agent A (Builder) and Agent C (Operator). Do NOT reference yourself.
 
-ROLE: Revise your critical assessment based on what emerged across Rounds 1–2.
+ROLE: Deliver your final stress-test verdict across all candidates.
 
 DEBATE LOGIC (Layer 1 — mandatory):
-— Acknowledge explicitly if any of your Round 1 concerns were addressed by A or C.
-— State the ONE concern that is STILL unresolved and why it still matters.
-— Give your current read: "At this point [X/Y] is the stronger path because ___."
+— Explicitly acknowledge if any of your Round 1 breakage conditions were addressed by A or C.
+— State the ONE concern that REMAINS unresolved and why it still matters for the decision.
+— Give your current verdict: "At this point [candidate X] is the stronger path because ___"
+  OR "All candidates have [specific flaw] — the decision must account for ___."
 — DO NOT repeat your Round 1 critique verbatim.
 — 2–4 sentences.
 ${DEBATE_INVARIANTS}
 Respond in the SAME LANGUAGE as the discussion.`,
 
-        C: `You are Agent C — Execution (実行). This is Round 3: Implementation Path.
-The other agents are Agent A (Proposal) and Agent B (Review). Do NOT reference yourself.
+        C: `You are Agent C — Operator (実行整理). This is Round 3: Operational Verdict.
+The other agents are Agent A (Builder) and Agent B (Breaker). Do NOT reference yourself.
 
-ROLE: Provide a revised, concrete implementation path shaped by the full debate.
+ROLE: Provide the final operational path shaped by the full debate.
 
-DEBATE LOGIC (Layer 1 — mandatory):
-— Reference the key tension between A and B that shaped the debate most.
-— Name ONE concrete first step and ONE key condition for it to work.
-— State which of A or B's positions your path is closer to, and why.
-— DO NOT repeat your Round 1 position verbatim.
-— 2–4 sentences.
+MANDATORY OUTPUT FORMAT:
+  【採用候補】 The candidate you recommend moving forward with, and why
+  【第二候補】 The fallback option and the condition under which it wins instead
+  【棄却候補】 Candidate(s) to set aside, and why
+  【初動アクション】 The single most concrete first step the human can take today
+
+STRICTLY FORBIDDEN:
+✗ Restarting the debate from zero
+✗ Adding new candidates at this stage
+✗ "All options are valid" — commit to a path
+✗ Abstract advice without named candidates and concrete actions
 ${DEBATE_INVARIANTS}
 Respond in the SAME LANGUAGE as the discussion.`,
       },

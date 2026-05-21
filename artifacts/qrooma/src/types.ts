@@ -97,18 +97,25 @@ export interface WritingStyle {
 export type OutputDepth     = "rough" | "compare" | "concrete";
 export type ChallengeLevel  = "soft"  | "standard" | "strong";
 
+/** A single comparison axis with a user-assigned weight */
+export interface ComparisonAxis {
+  name:   string;
+  weight: "high" | "medium" | "low";
+}
+
 /**
  * Prompt Mode — user-defined debate configuration.
  * When present, agents must compare multiple candidates against explicit axes.
  */
 export interface PromptConfig {
-  goal:            string;         // A: 議論の目的
-  decisionTarget:  string;         // B: 最終的に決めたいこと
-  comparisonAxes:  string[];       // C: 比較軸 (multi-select)
-  constraints:     string;         // D: 制約条件
-  priorities:      string;         // E: 優先順位
-  outputDepth:     OutputDepth;    // F: 出力の粒度
-  challengeLevel:  ChallengeLevel; // G: 反論の強さ
+  goal:            string;            // 議論の目的 (legacy / free-form goal)
+  decisionTarget:  string;            // 最終的に決めたいこと
+  comparisonAxes:  ComparisonAxis[];  // 比較軸 (with weights)
+  constraints:     string;            // 前提・制約
+  priorities:      string;            // 優先順位 (legacy)
+  outputDepth:     OutputDepth;       // 出力粒度
+  challengeLevel:  ChallengeLevel;    // 反論の強さ
+  templateId?:     string;            // selected template id (optional)
 }
 
 export interface Settings {

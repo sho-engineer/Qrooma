@@ -246,8 +246,8 @@ export interface Translations {
   handoffCopyBrief: string;
   handoffCopyTasks: string;
   handoffCopyAll: string;
-  handoffCopyManus: string;
-  handoffCopyCode: string;
+  handoffCopyGenericAI: string;
+  handoffCopyBuild: string;
   handoffCopied: string;
   handoffNoFuture: string;
   handoffNoTasks: string;
@@ -495,8 +495,8 @@ const ja: Translations = {
   handoffCopyBrief:  "Decision Briefをコピー",
   handoffCopyTasks:  "Task Listをコピー",
   handoffCopyAll:    "まとめてコピー",
-  handoffCopyManus:  "Manus向け",
-  handoffCopyCode:   "Claude Code / Replit向け",
+  handoffCopyGenericAI: "汎用AIプロンプトをコピー",
+  handoffCopyBuild:     "実装用プロンプトをコピー",
   handoffCopied:     "コピーしました",
   handoffNoFuture:   "現時点では将来検討事項はありません",
   handoffNoTasks:    "タスクが見つかりません",
@@ -745,8 +745,8 @@ const en: Translations = {
   handoffCopyBrief:  "Copy Decision Brief",
   handoffCopyTasks:  "Copy Task List",
   handoffCopyAll:    "Copy All",
-  handoffCopyManus:  "For Manus",
-  handoffCopyCode:   "For Claude Code / Replit",
+  handoffCopyGenericAI: "Copy Generic AI Prompt",
+  handoffCopyBuild:     "Copy Build Prompt",
   handoffCopied:     "Copied",
   handoffNoFuture:   "No future considerations at this time",
   handoffNoTasks:    "No tasks found",
