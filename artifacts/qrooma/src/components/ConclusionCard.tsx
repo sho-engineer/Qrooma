@@ -7,6 +7,7 @@ import type { ConclusionData, ConclusionStatus } from "../types";
 import { useLocale } from "../context/LocaleContext";
 import { isMobile } from "../lib/isMobile";
 import HandoffPanel from "./HandoffPanel";
+import DecisionMemoCard from "./DecisionMemoCard";
 
 interface Props {
   runCount:           number;
@@ -688,7 +689,17 @@ export default function ConclusionCard({
 
               {/* ── Scrollable conclusion body ── */}
               <div className="overflow-y-auto max-h-[42vh]">
-                <ConclusionBody conclusion={current!} locale={locale} />
+                {/* ── Decision Memo Card (when available, replaces plain body) ── */}
+                {current!.decisionMemo ? (
+                  <div className="px-4 py-4">
+                    <DecisionMemoCard
+                      memo={current!.decisionMemo}
+                      generatedAt={current!.generatedAt}
+                    />
+                  </div>
+                ) : (
+                  <ConclusionBody conclusion={current!} locale={locale} />
+                )}
 
                 {/* ── Handoff panel — only for final conclusions ── */}
                 {isFinal && <HandoffPanel conclusion={current!} />}

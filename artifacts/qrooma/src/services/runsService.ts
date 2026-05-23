@@ -16,7 +16,7 @@
  * The Trigger.dev task retrieves them server-side from Supabase.
  */
 
-import type { AgentId, ConclusionData, Message, PromptConfig, RunStatus, WritingStyle } from "../types";
+import type { AgentId, ConclusionData, DecisionMemo, Message, PromptConfig, RunStatus, WritingStyle } from "../types";
 import { AGENTS, DEBATE_POOL, FREETALK_POOL } from "../data/dummy";
 
 // ─── Error sanitization ───────────────────────────────────────────────────────
@@ -271,6 +271,7 @@ export const runsService = {
               const content = String(data["content"] ?? "").trim();
               if (content) {
                 receivedConclusion = true;
+                const rawMemo = data["decisionMemo"];
                 const conc: ConclusionData = {
                   summary:      content,
                   keyPoints:    [],
@@ -278,6 +279,7 @@ export const runsService = {
                   runId:        params.runId,
                   isProvisional: false,
                   isFinal:       true,
+                  decisionMemo: rawMemo && typeof rawMemo === "object" ? (rawMemo as DecisionMemo) : undefined,
                 };
                 onConclusion(conc);
               } else {

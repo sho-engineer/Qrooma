@@ -657,180 +657,187 @@ export default function SettingsPage() {
       <div className="px-4 py-5 sm:px-6 sm:py-7 max-w-xl">
         <div className="space-y-8">
 
-          {/* ── UI Language (always) ────────────────────────────────────── */}
+          {/* ══ ACCOUNT ══════════════════════════════════════════════════ */}
           <section>
-            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
-              {t.uiLanguage}
+            <h3 className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-[0.15em] mb-4">
+              {locale === "ja" ? "アカウント" : "Account"}
             </h3>
-            <div className="flex gap-1.5">
-              {(["ja", "en"] as Locale[]).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLocale(l)}
-                  className={`px-3.5 py-1.5 text-sm rounded-xl border transition-all duration-200 active:scale-[0.97] ${
-                    locale === l
-                      ? "bg-foreground text-background border-foreground"
-                      : "bg-background text-foreground border-border hover:bg-accent"
-                  }`}
-                >
-                  {l === "ja" ? "日本語" : "English"}
-                </button>
-              ))}
+            <div className="space-y-4">
+
+              {/* Plan card */}
+              {isFree  && <FreePlanCard />}
+              {isPro   && <ProPlanCard />}
+
+              {/* Invite Code */}
+              <InviteCodeSection />
             </div>
-            <p className="mt-2 text-[11px] text-muted-foreground/50">
-              {locale === "ja"
-                ? "言語設定は即時反映（保存不要）"
-                : "Language applies immediately — no save needed"}
-            </p>
           </section>
 
-          {/* ── Free plan card ──────────────────────────────────────────── */}
-          {isFree && <FreePlanCard />}
+          {/* ══ DISPLAY ══════════════════════════════════════════════════ */}
+          <section>
+            <h3 className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-[0.15em] mb-4">
+              {locale === "ja" ? "表示設定" : "Display"}
+            </h3>
+            <div className="space-y-4">
 
-          {/* ── Pro plan card ───────────────────────────────────────────── */}
-          {isPro && <ProPlanCard />}
-
-          {/* ── Invite Code (always visible) ────────────────────────────── */}
-          <InviteCodeSection />
-
-          {/* ── API Keys (Connect only) ─────────────────────────────────── */}
-          {isConnect && (
-            <section>
-              <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
-                {t.apiKeys}
-              </h3>
-              <div className="mb-4">
-                <ApiKeyStepGuide />
-              </div>
-              <div className="space-y-3">
-                <ApiKeyField
-                  provider="openai"
-                  value={draft.openaiApiKey}
-                  onChange={(v) => patchDraft({ openaiApiKey: v })}
-                />
-              </div>
-            </section>
-          )}
-
-          {/* ── Default Mode (Connect + Pro) ────────────────────────────── */}
-          {!isFree && (
-            <section>
-              <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
-                {t.defaultMode}
-              </h3>
-              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-                {t.agentConfigDesc}
-              </p>
-              <div className="space-y-2">
-                {modes.map(({ value, label, description }) => (
-                  <button
-                    key={value}
-                    onClick={() => patchDraft({ defaultMode: value })}
-                    className={`w-full text-left px-4 py-3 rounded-2xl border transition-all duration-200 active:scale-[0.99] ${
-                      draft.defaultMode === value
-                        ? "border-foreground/20 bg-card"
-                        : "border-border bg-background hover:bg-card"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-0.5 min-w-0">
-                      <span className="text-xs font-semibold text-foreground">{label}</span>
-                      {draft.defaultMode === value && (
-                        <CheckIcon size={12} className="text-foreground/60 shrink-0" />
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground/70 leading-relaxed">{description}</p>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* ── Agent Configuration (Connect + Pro) ─────────────────────── */}
-          {!isFree && (
-            <section>
-              <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">
-                {t.agentConfig}
-              </h3>
-              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-                {t.agentConfigDesc}
-              </p>
-
-              {/* 2 / 3 count toggle */}
-              <div className="flex items-center justify-between mb-4 px-4 py-3 bg-card border border-border rounded-2xl min-w-0">
-                <div className="min-w-0">
-                  <span className="text-xs font-medium text-foreground">{t.agentCount}</span>
-                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">
-                    {draft.agentCount === 2
-                      ? locale === "ja" ? "サイド A / B のみ有効" : "Only Side A / B active"
-                      : locale === "ja" ? "サイド A / B / C すべて有効" : "All sides A / B / C active"}
-                  </p>
-                </div>
-                <div className="flex gap-1 rounded-full border border-border bg-background p-0.5 shrink-0 ml-3">
-                  {([2, 3] as const).map((n) => (
+              {/* Language */}
+              <div>
+                <p className="text-[11px] font-semibold text-foreground mb-2">{t.uiLanguage}</p>
+                <div className="flex gap-1.5">
+                  {(["ja", "en"] as Locale[]).map((l) => (
                     <button
-                      key={n}
-                      onClick={() => patchDraft({ agentCount: n })}
-                      className={`w-8 h-6 text-xs font-medium rounded-full transition-all ${
-                        draft.agentCount === n
-                          ? "bg-foreground text-background"
-                          : "text-muted-foreground hover:text-foreground"
+                      key={l}
+                      onClick={() => setLocale(l)}
+                      className={`px-3.5 py-1.5 text-sm rounded-xl border transition-all duration-200 active:scale-[0.97] ${
+                        locale === l
+                          ? "bg-foreground text-background border-foreground"
+                          : "bg-background text-foreground border-border hover:bg-accent"
                       }`}
                     >
-                      {n}
+                      {l === "ja" ? "日本語" : "English"}
                     </button>
                   ))}
                 </div>
+                <p className="mt-1.5 text-[11px] text-muted-foreground/50">
+                  {locale === "ja"
+                    ? "言語設定は即時反映（保存不要）"
+                    : "Language applies immediately — no save needed"}
+                </p>
               </div>
 
-              {/* Connect: full SideConfig with model selection */}
-              {isConnect && (
-                <>
-                  {(showDupError || hasDuplicate()) && (
-                    <div className="flex items-start gap-2 mb-3 px-3.5 py-2.5 bg-destructive/8 border border-destructive/20 rounded-xl">
-                      <AlertCircleIcon size={13} className="text-destructive/70 shrink-0 mt-0.5" />
-                      <p className="text-xs text-destructive/80">{t.duplicateModelError}</p>
+              {/* Writing Style */}
+              <WritingStyleSection
+                value={draft.writingStyle}
+                onChange={(ws) => {
+                  patchDraft({ writingStyle: ws });
+                  if (isFree) {
+                    updateSettings({ writingStyle: ws });
+                    setSavedAt(Date.now());
+                    setTimeout(() => setSavedAt(null), 1500);
+                  }
+                }}
+                isFree={isFree}
+              />
+            </div>
+          </section>
+
+          {/* ══ AI SETTINGS (Connect + Pro) ══════════════════════════════ */}
+          {!isFree && (
+            <section>
+              <h3 className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-[0.15em] mb-4">
+                {locale === "ja" ? "AI 設定" : "AI Settings"}
+              </h3>
+              <div className="space-y-6">
+
+                {/* API Keys (Connect only) */}
+                {isConnect && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-foreground mb-2">{t.apiKeys}</p>
+                    <div className="mb-3">
+                      <ApiKeyStepGuide />
                     </div>
-                  )}
-                  <div className="space-y-2.5">
-                    {sides.map(({ key, config }) => (
-                      <SideConfig
-                        key={key}
-                        sideKey={key}
-                        config={config}
-                        hasApiKey={!!apiKeyForProvider(config.provider)}
-                        otherCombos={getCombosExcluding(key)}
-                        onChange={(c) => handleSideChange(key, c)}
+                    <div className="space-y-3">
+                      <ApiKeyField
+                        provider="openai"
+                        value={draft.openaiApiKey}
+                        onChange={(v) => patchDraft({ openaiApiKey: v })}
                       />
+                    </div>
+                  </div>
+                )}
+
+                {/* Default Mode */}
+                <div>
+                  <p className="text-[11px] font-semibold text-foreground mb-0.5">{t.defaultMode}</p>
+                  <p className="text-[11px] text-muted-foreground/60 mb-3 leading-relaxed">{t.agentConfigDesc}</p>
+                  <div className="space-y-2">
+                    {modes.map(({ value, label, description }) => (
+                      <button
+                        key={value}
+                        onClick={() => patchDraft({ defaultMode: value })}
+                        className={`w-full text-left px-4 py-3 rounded-2xl border transition-all duration-200 active:scale-[0.99] ${
+                          draft.defaultMode === value
+                            ? "border-foreground/20 bg-card"
+                            : "border-border bg-background hover:bg-card"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-0.5 min-w-0">
+                          <span className="text-xs font-semibold text-foreground">{label}</span>
+                          {draft.defaultMode === value && (
+                            <CheckIcon size={12} className="text-foreground/60 shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground/70 leading-relaxed">{description}</p>
+                      </button>
                     ))}
                   </div>
-                </>
-              )}
+                </div>
 
-              {/* Pro: model auto-selected by Qrooma */}
-              {isPro && (
-                <p className="text-[11px] text-muted-foreground/60 leading-relaxed px-1">
-                  {locale === "ja"
-                    ? "Pro プランではモデルは Qrooma が自動選択します。"
-                    : "On Pro, models are automatically selected by Qrooma."}
-                </p>
-              )}
+                {/* Agent Configuration */}
+                <div>
+                  <p className="text-[11px] font-semibold text-foreground mb-0.5">{t.agentConfig}</p>
+                  <p className="text-[11px] text-muted-foreground/60 mb-3 leading-relaxed">{t.agentConfigDesc}</p>
+
+                  <div className="flex items-center justify-between mb-4 px-4 py-3 bg-card border border-border rounded-2xl min-w-0">
+                    <div className="min-w-0">
+                      <span className="text-xs font-medium text-foreground">{t.agentCount}</span>
+                      <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                        {draft.agentCount === 2
+                          ? locale === "ja" ? "サイド A / B のみ有効" : "Only Side A / B active"
+                          : locale === "ja" ? "サイド A / B / C すべて有効" : "All sides A / B / C active"}
+                      </p>
+                    </div>
+                    <div className="flex gap-1 rounded-full border border-border bg-background p-0.5 shrink-0 ml-3">
+                      {([2, 3] as const).map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => patchDraft({ agentCount: n })}
+                          className={`w-8 h-6 text-xs font-medium rounded-full transition-all ${
+                            draft.agentCount === n
+                              ? "bg-foreground text-background"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {isConnect && (
+                    <>
+                      {(showDupError || hasDuplicate()) && (
+                        <div className="flex items-start gap-2 mb-3 px-3.5 py-2.5 bg-destructive/8 border border-destructive/20 rounded-xl">
+                          <AlertCircleIcon size={13} className="text-destructive/70 shrink-0 mt-0.5" />
+                          <p className="text-xs text-destructive/80">{t.duplicateModelError}</p>
+                        </div>
+                      )}
+                      <div className="space-y-2.5">
+                        {sides.map(({ key, config }) => (
+                          <SideConfig
+                            key={key}
+                            sideKey={key}
+                            config={config}
+                            hasApiKey={!!apiKeyForProvider(config.provider)}
+                            otherCombos={getCombosExcluding(key)}
+                            onChange={(c) => handleSideChange(key, c)}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {isPro && (
+                    <p className="text-[11px] text-muted-foreground/60 leading-relaxed px-1">
+                      {locale === "ja"
+                        ? "Pro プランではモデルは Qrooma が自動選択します。"
+                        : "On Pro, models are automatically selected by Qrooma."}
+                    </p>
+                  )}
+                </div>
+              </div>
             </section>
           )}
-
-          {/* ── Writing Style (all plans) ────────────────────────────────── */}
-          <WritingStyleSection
-            value={draft.writingStyle}
-            onChange={(ws) => {
-              patchDraft({ writingStyle: ws });
-              // Auto-save for Free plan (no save button)
-              if (isFree) {
-                updateSettings({ writingStyle: ws });
-                setSavedAt(Date.now());
-                setTimeout(() => setSavedAt(null), 1500);
-              }
-            }}
-            isFree={isFree}
-          />
 
           {/* ── Bottom save (Connect + Pro) ─────────────────────────────── */}
           {!isFree && (

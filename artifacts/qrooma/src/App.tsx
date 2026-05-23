@@ -5,6 +5,7 @@ import { MenuIcon } from "lucide-react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { RoomsProvider } from "./context/RoomsContext";
+import { ProjectsProvider } from "./context/ProjectsContext";
 import { LocaleProvider } from "./context/LocaleContext";
 import { PlanProvider, usePlan, type Plan } from "./context/PlanContext";
 import { UserProfileProvider } from "./context/UserProfileContext";
@@ -182,7 +183,9 @@ export default function App() {
             <UserProfileProvider>
               <SettingsProvider>
                 <RoomsProvider>
-                  <Root />
+                  <ProjectsProvider>
+                    <Root />
+                  </ProjectsProvider>
                 </RoomsProvider>
               </SettingsProvider>
             </UserProfileProvider>

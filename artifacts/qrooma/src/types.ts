@@ -6,6 +6,26 @@ export type UserRole   = "user" | "admin";
 /** Primary room status */
 export type RoomStatus = "in_review" | "completed" | "archived";
 
+/** Decision type — what kind of decision is this room for? */
+export type DecisionType =
+  | "mvp_scope"
+  | "feature_priority"
+  | "lp_copy"
+  | "implementation"
+  | "pricing"
+  | "other";
+
+/** Project — groups Decision Rooms */
+export interface Project {
+  id:          string;
+  userId:      string;
+  name:        string;
+  description: string | null;
+  status:      "active" | "archived";
+  createdAt:   string;
+  updatedAt:   string;
+}
+
 export interface UserProfile {
   role:                UserRole;
   plan:                Plan;
@@ -32,6 +52,64 @@ export interface Room {
   hasFutureConsideration?: boolean;
   hasTasks?: boolean;
   hasHandoff?: boolean;
+  /** Project this room belongs to */
+  projectId?: string;
+  /** Decision type — what kind of decision */
+  decisionType?: DecisionType;
+  /** Whether to use project context (past Decision Memos) */
+  useProjectContext?: boolean;
+}
+
+/** Decision Memo JSON — structured output from final conclusion */
+export interface DecisionMemoItem {
+  item:   string;
+  reason: string;
+}
+
+export interface DecisionMemoFutureItem {
+  item:             string;
+  reason:           string;
+  revisit_condition?: string;
+}
+
+export interface DecisionMemoAxis {
+  axis:       string;
+  evaluation: string;
+  reason:     string;
+}
+
+export interface DecisionMemoNextAction {
+  task:                   string;
+  purpose:                string;
+  expected_output:        string;
+  priority:               "high" | "medium" | "low";
+  requires_human_review:  boolean;
+}
+
+export interface DecisionMemo {
+  decision:                      string;
+  background:                    string;
+  reasoning:                     string;
+  axis_evaluations:              DecisionMemoAxis[];
+  conditions_that_change_decision: string[];
+  do_now:                        DecisionMemoItem[];
+  not_now:                       DecisionMemoItem[];
+  future_consideration:          DecisionMemoFutureItem[];
+  needs_confirmation:            DecisionMemoItem[];
+  next_actions:                  DecisionMemoNextAction[];
+  referenced_decision_memos:     { room_id: string; title: string }[];
+}
+
+export interface ConclusionData {
+  summary: string;
+  keyPoints: string[];
+  generatedAt: string;
+  runId?: string;
+  runNumber?: number;
+  isProvisional?: boolean;
+  isFinal?: boolean;
+  /** Structured Decision Memo (present for final conclusions when AI returns JSON) */
+  decisionMemo?: DecisionMemo;
 }
 
 export interface Message {
@@ -79,19 +157,6 @@ export type RunStatus = "idle" | "running" | "checkpoint" | "continued" | "compl
  */
 export type ConclusionStatus = "idle" | "loading" | "provisional" | "final" | "unresolved" | "error";
 
-export interface ConclusionData {
-  summary: string;
-  keyPoints: string[];
-  generatedAt: string;
-  /** Run ID that produced this conclusion */
-  runId?: string;
-  /** Sequential run number within the room (1-based) */
-  runNumber?: number;
-  /** True = provisional (checkpoint); false/undefined = final */
-  isProvisional?: boolean;
-  /** True = human explicitly confirmed "end here" */
-  isFinal?: boolean;
-}
 
 export interface AgentSideConfig {
   side: "A" | "B" | "C";

@@ -1412,6 +1412,55 @@ router.post("/discuss", async (req, res) => {
       // Inject Prompt Mode config into conclusion context so the moderator knows the axes/goal
       if (promptConfig) conclusionContext += buildPromptModeContext(promptConfig);
 
+      // ── DECISION MEMO JSON PROMPT (final conclusion, non-promptConfig mode) ────────────────
+      // Generates a structured Decision Memo JSON for the final conclusion.
+      const DECISION_MEMO_PROMPT = `You are the MODERATOR generating the FINAL DECISION MEMO.
+The human has ended the discussion. Output a single JSON object (no markdown fences, no prose outside JSON).
+
+The JSON MUST follow this exact schema:
+{
+  "decision": "One concrete sentence describing the adopted path",
+  "background": "1-2 sentences: what the user was deciding and key constraints",
+  "reasoning": "2-3 sentences: why this path won over alternatives",
+  "axis_evaluations": [
+    { "axis": "axis name", "evaluation": "chosen|not_chosen|partial", "reason": "1 sentence" }
+  ],
+  "conditions_that_change_decision": ["If X, then Y would be better instead"],
+  "do_now": [
+    { "item": "concrete action or scope item", "reason": "why now" }
+  ],
+  "not_now": [
+    { "item": "what is explicitly excluded", "reason": "why not now" }
+  ],
+  "future_consideration": [
+    { "item": "deferred item", "reason": "why deferred", "revisit_condition": "when to reconsider" }
+  ],
+  "needs_confirmation": [
+    { "item": "open question or unclear element", "reason": "why it needs clarification" }
+  ],
+  "next_actions": [
+    {
+      "task": "concrete task",
+      "purpose": "why it matters",
+      "expected_output": "what done looks like",
+      "priority": "high|medium|low",
+      "requires_human_review": true
+    }
+  ],
+  "referenced_decision_memos": []
+}
+
+RULES:
+— Output ONLY valid JSON. No markdown, no explanations outside the JSON.
+— "decision": one sentence, the SPECIFIC adopted approach. Never vague.
+— "axis_evaluations": list 2-4 axes used in the debate. Evaluation: "chosen" (drove the decision), "not_chosen" (cut), "partial" (matters but not decisive).
+— "do_now": 1-3 items. Things explicitly in scope for immediate action.
+— "not_now": 1-3 items explicitly deferred (not abandoned, just not this cycle).
+— "future_consideration": items to revisit later with a specific condition.
+— "needs_confirmation": open questions that must be answered before action.
+— "next_actions": 2-4 concrete tasks, ordered by priority.
+— All text values respond in the SAME LANGUAGE as the discussion.`;
+
       // ── PROVISIONAL CHECKPOINT PROMPT (default after rounds) ─────────────────
       // Used whenever forceConclusion is false — the human will then decide to end or continue.
       const PROVISIONAL_PROMPT = `You are the MODERATOR generating a PROVISIONAL CHECKPOINT.
@@ -1441,16 +1490,21 @@ RULES:
       // When promptConfig is present, use Prompt Mode–specific prompts for richer structured output.
       let finalConclusionPrompt: string;
       let provisionalConclusionPrompt: string;
+      // forceConclusion (non-promptConfig) → Decision Memo JSON prompt
+      // promptConfig → Prompt Mode conclusion
+      // provisional → existing text checkpoint
       if (promptConfig) {
-        finalConclusionPrompt     = buildPromptModeConclusion(promptConfig, false);
+        finalConclusionPrompt       = buildPromptModeConclusion(promptConfig, false);
         provisionalConclusionPrompt = buildPromptModeConclusion(promptConfig, true);
       } else {
-        finalConclusionPrompt     = conclusionPromptBase;
+        finalConclusionPrompt       = DECISION_MEMO_PROMPT;
         provisionalConclusionPrompt = PROVISIONAL_PROMPT;
       }
 
+      // Decision Memo JSON mode: no presentation suffix (it would confuse JSON output)
+      const usesDecisionMemoJson = forceConclusion && !promptConfig;
       const conclusionSystemPrompt = forceConclusion
-        ? languageLock + finalConclusionPrompt + "\n" + conclusionPresentation
+        ? languageLock + finalConclusionPrompt + (usesDecisionMemoJson ? "" : "\n" + conclusionPresentation)
         : languageLock + provisionalConclusionPrompt + "\n" + conclusionPresentation;
 
       let conclusionText: string | null = null;
@@ -1474,10 +1528,26 @@ RULES:
       if (conclusionText) {
         if (forceConclusion) {
           // Final conclusion — human explicitly ended the discussion
+          // Try to parse as Decision Memo JSON if using the JSON prompt
+          let decisionMemo: object | undefined;
+          if (usesDecisionMemoJson) {
+            try {
+              // Strip any accidental markdown fences before parsing
+              const stripped = conclusionText
+                .replace(/^```(?:json)?\s*/i, "")
+                .replace(/```\s*$/, "")
+                .trim();
+              decisionMemo = JSON.parse(stripped);
+            } catch {
+              // Fallback: emit as plain text conclusion
+              decisionMemo = undefined;
+            }
+          }
           sseWrite(res, {
-            type:      "conclusion",
-            content:   conclusionText,
-            createdAt: new Date().toISOString(),
+            type:         "conclusion",
+            content:      conclusionText,
+            decisionMemo: decisionMemo ?? null,
+            createdAt:    new Date().toISOString(),
           });
         } else {
           // Provisional checkpoint — human must choose to end or continue

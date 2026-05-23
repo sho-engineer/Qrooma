@@ -3,6 +3,7 @@ import { useLocation, Link } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { useRooms } from "../context/RoomsContext";
+import { useProjects } from "../context/ProjectsContext";
 import { useLocale } from "../context/LocaleContext";
 import type { Room } from "../types";
 import {
@@ -10,6 +11,7 @@ import {
   LogOutIcon, SettingsIcon,
   PanelLeftCloseIcon, PanelLeftOpenIcon,
   MoreHorizontalIcon, Trash2Icon, ArchiveIcon, ArchiveRestoreIcon, ChevronDownIcon,
+  FolderIcon, FolderOpenIcon,
 } from "lucide-react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -158,20 +160,36 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
   const [location, setLocation] = useLocation();
   const { user, signOut } = useAuth();
   const { rooms, addRoom, updateRoom, deleteRoom } = useRooms();
-  const { t } = useLocale();
+  const { projects, addProject } = useProjects();
+  const { t, locale } = useLocale();
 
-  const [editingId,    setEditingId]    = useState<string | null>(null);
-  const [editValue,    setEditValue]    = useState("");
-  const [newRoomMode,  setNewRoomMode]  = useState(false);
-  const [newRoomName,  setNewRoomName]  = useState("");
-  const [menuOpenId,   setMenuOpenId]   = useState<string | null>(null);
-  const [archivedOpen, setArchivedOpen] = useState(false);
+  const [editingId,      setEditingId]      = useState<string | null>(null);
+  const [editValue,      setEditValue]      = useState("");
+  const [newRoomMode,    setNewRoomMode]    = useState(false);
+  const [newRoomName,    setNewRoomName]    = useState("");
+  const [menuOpenId,     setMenuOpenId]     = useState<string | null>(null);
+  const [archivedOpen,   setArchivedOpen]   = useState(false);
+  const [newProjectMode, setNewProjectMode] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
   /** Target room pending deletion — lifted here so the confirmation dialog
    *  survives the RoomContextMenu unmount (mousedown race condition fix). */
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const activeRooms   = rooms.filter((r) => !isRoomArchived(r));
   const archivedRooms = rooms.filter((r) =>  isRoomArchived(r));
+
+  // Rooms grouped by project
+  const noProjectRooms = activeRooms.filter((r) => !r.projectId);
+  const activeProjects = projects.filter((p) => p.status === "active");
+
+  function createProject() {
+    if (!newProjectName.trim()) { setNewProjectMode(false); return; }
+    const proj = addProject(newProjectName.trim());
+    setNewProjectName("");
+    setNewProjectMode(false);
+    setExpandedProjectId(proj.id);
+  }
 
   function startEdit(id: string, name: string) {
     setMenuOpenId(null);
@@ -326,9 +344,130 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
           <p className="px-3 py-3 text-xs text-muted-foreground">{t.noRooms}</p>
         )}
 
+        {/* ── Projects ─────────────────────────────────────────────────── */}
+        {activeProjects.length > 0 && (
+          <div className="mb-1">
+            <div className="flex items-center justify-between px-2 pt-1 pb-0.5">
+              <span className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+                {locale === "ja" ? "プロジェクト" : "Projects"}
+              </span>
+              <button
+                onClick={() => setNewProjectMode(true)}
+                title={locale === "ja" ? "プロジェクトを追加" : "New project"}
+                className="p-0.5 rounded text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+              >
+                <PlusIcon size={10} />
+              </button>
+            </div>
+
+            {newProjectMode && (
+              <div className="px-2 py-1.5 mb-1">
+                <input
+                  autoFocus
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") createProject();
+                    if (e.key === "Escape") { setNewProjectMode(false); setNewProjectName(""); }
+                  }}
+                  placeholder={locale === "ja" ? "プロジェクト名" : "Project name"}
+                  className="w-full px-2 py-1 text-xs bg-background border border-input rounded-lg outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+            )}
+
+            {activeProjects.map((proj) => {
+              const projRooms = activeRooms.filter((r) => r.projectId === proj.id);
+              const isExpanded = expandedProjectId === proj.id;
+              return (
+                <div key={proj.id} className="mb-0.5">
+                  <button
+                    onClick={() => setExpandedProjectId(isExpanded ? null : proj.id)}
+                    className="w-full flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg hover:bg-sidebar-accent/60 transition-colors text-left"
+                  >
+                    {isExpanded
+                      ? <FolderOpenIcon size={11} className="text-muted-foreground/60 shrink-0" />
+                      : <FolderIcon     size={11} className="text-muted-foreground/60 shrink-0" />
+                    }
+                    <span className="flex-1 truncate text-sidebar-foreground/80 font-medium text-[11px]">
+                      {proj.name}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground/40">{projRooms.length}</span>
+                    <ChevronDownIcon
+                      size={9}
+                      className={`text-muted-foreground/30 transition-transform duration-150 ${isExpanded ? "" : "-rotate-90"}`}
+                    />
+                  </button>
+                  {isExpanded && projRooms.length > 0 && (
+                    <div className="ml-3 border-l border-border/30 pl-1.5 mt-0.5 space-y-0.5">
+                      {projRooms.map((room) => {
+                        const isActive = location === `/rooms/${room.id}`;
+                        return (
+                          <Link
+                            key={room.id}
+                            href={`/rooms/${room.id}`}
+                            onClick={handleRoomClick}
+                            className={`block px-2 py-1 text-xs rounded-md transition-colors truncate ${
+                              isActive ? "bg-sidebar-accent text-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-foreground"
+                            }`}
+                          >
+                            {room.name}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {isExpanded && projRooms.length === 0 && (
+                    <p className="ml-5 text-[10px] text-muted-foreground/30 py-1">
+                      {locale === "ja" ? "ルームなし" : "No rooms"}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+            <div className="mt-1 mb-0.5 mx-2 border-t border-border/20" />
+          </div>
+        )}
+
+        {/* ── New project button (when no projects yet) ─────────────────── */}
+        {activeProjects.length === 0 && (
+          <div className="px-2 mb-1">
+            {newProjectMode ? (
+              <input
+                autoFocus
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") createProject();
+                  if (e.key === "Escape") { setNewProjectMode(false); setNewProjectName(""); }
+                }}
+                placeholder={locale === "ja" ? "プロジェクト名" : "Project name"}
+                className="w-full px-2 py-1 text-xs bg-background border border-input rounded-lg outline-none focus:ring-1 focus:ring-ring"
+              />
+            ) : (
+              <button
+                onClick={() => setNewProjectMode(true)}
+                className="w-full flex items-center gap-1.5 px-2 py-1 text-[11px] text-muted-foreground/40 hover:text-muted-foreground rounded-lg hover:bg-sidebar-accent/40 transition-colors"
+              >
+                <PlusIcon size={10} />
+                {locale === "ja" ? "プロジェクトを作成" : "New project"}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── Rooms section label (only when projects exist) ────────────── */}
+        {activeProjects.length > 0 && noProjectRooms.length > 0 && (
+          <div className="px-2 pb-0.5">
+            <span className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+              {locale === "ja" ? "ルーム" : "Rooms"}
+            </span>
+          </div>
+        )}
+
         {/* ── Active rooms ─────────────────────────────────────────────── */}
         <AnimatePresence initial={false}>
-          {activeRooms.map((room) => {
+          {(activeProjects.length > 0 ? noProjectRooms : activeRooms).map((room) => {
             const isActive  = location === `/rooms/${room.id}`;
             const hasError  = room.lastRunStatus === "error";
             const isEditing = editingId === room.id;

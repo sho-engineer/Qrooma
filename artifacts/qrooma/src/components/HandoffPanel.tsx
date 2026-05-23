@@ -3,8 +3,9 @@ import {
   ChevronDownIcon, ClipboardIcon, CheckIcon,
   FileTextIcon, ListIcon, CalendarClockIcon,
 } from "lucide-react";
-import type { ConclusionData } from "../types";
+import type { ConclusionData, DecisionMemo } from "../types";
 import { useLocale } from "../context/LocaleContext";
+import { memoToMarkdown } from "./DecisionMemoCard";
 
 // ─── Local types ──────────────────────────────────────────────────────────────
 
@@ -441,6 +442,104 @@ function FutureContent({ items, locale }: { items: FutureItem[]; locale: string 
   );
 }
 
+// ─── Decision Memo to Markdown for copy (when memo is available) ──────────────
+
+function memoToTaskListMd(memo: DecisionMemo, locale: string): string {
+  const isJa = locale === "ja";
+  const lines: string[] = [isJa ? "# タスクリスト" : "# Task List", ""];
+  (memo.next_actions ?? []).forEach((a, i) => {
+    lines.push(`${i + 1}. **${a.task}**`);
+    if (a.purpose)          lines.push(`   ${isJa ? "目的" : "Purpose"}: ${a.purpose}`);
+    if (a.expected_output)  lines.push(`   ${isJa ? "完了条件" : "Done when"}: ${a.expected_output}`);
+    const p = isJa
+      ? (a.priority === "high" ? "高" : a.priority === "medium" ? "中" : "低")
+      : a.priority.charAt(0).toUpperCase() + a.priority.slice(1);
+    lines.push(`   ${isJa ? "優先度" : "Priority"}: ${p}`);
+    lines.push("");
+  });
+  return lines.join("\n").trim();
+}
+
+function memoToGenericAIMd(memo: DecisionMemo, locale: string): string {
+  const isJa = locale === "ja";
+  if (isJa) {
+    return [
+      "# 汎用AIプロンプト", "",
+      "以下の決定情報を踏まえて、私の判断を支援してください。", "",
+      "## 決断",      memo.decision, "",
+      "## 背景",      memo.background, "",
+      "## 採用理由",  memo.reasoning, "",
+      "## 今やること",
+      ...(memo.do_now ?? []).map(i => `- ${i.item}: ${i.reason}`), "",
+      "## やらないこと",
+      ...(memo.not_now ?? []).map(i => `- ${i.item}: ${i.reason}`), "",
+      "## 次アクション",
+      ...(memo.next_actions ?? []).map((a, i) => `${i + 1}. ${a.task}`), "",
+      "## 期待アウトプット",
+      "- 具体的な実行手順",
+      "- 残論点への見解",
+      "- 優先度の高いアクションの特定",
+    ].join("\n").trim();
+  }
+  return [
+    "# Generic AI Prompt", "",
+    "Please help me based on the following decision.", "",
+    "## Decision",   memo.decision, "",
+    "## Background", memo.background, "",
+    "## Reasoning",  memo.reasoning, "",
+    "## Do Now",
+    ...(memo.do_now ?? []).map(i => `- ${i.item}: ${i.reason}`), "",
+    "## Not Now",
+    ...(memo.not_now ?? []).map(i => `- ${i.item}: ${i.reason}`), "",
+    "## Next Actions",
+    ...(memo.next_actions ?? []).map((a, i) => `${i + 1}. ${a.task}`), "",
+    "## Expected Output",
+    "- Concrete implementation steps",
+    "- Thoughts on open questions",
+    "- Identification of highest-priority actions",
+  ].join("\n").trim();
+}
+
+function memoBuildPromptMd(memo: DecisionMemo, locale: string): string {
+  const isJa = locale === "ja";
+  if (isJa) {
+    return [
+      "# 実装プロンプト", "",
+      "以下の仕様に基づいて実装してください。", "",
+      "## 実装目的",     memo.decision, "",
+      "## 背景・制約",   memo.background, "",
+      "## 採用スコープ（今やること）",
+      ...(memo.do_now ?? []).map(i => `- ${i.item}`), "",
+      "## スコープ外（今回やらないこと）",
+      ...(memo.not_now ?? []).map(i => `- ${i.item}: ${i.reason}`), "",
+      "## 追加確認が必要な項目",
+      ...(memo.needs_confirmation ?? []).map(i => `- ${i.item}`), "",
+      "## 受け入れ条件",
+      ...(memo.next_actions ?? []).map((a, i) => `${i + 1}. ${a.expected_output || a.task}`), "",
+      "## 注意点",
+      "- 各ステップを実施前に人間に確認すること",
+      "- スコープ外の変更は行わないこと",
+    ].join("\n").trim();
+  }
+  return [
+    "# Build Prompt", "",
+    "Please implement based on the following specification.", "",
+    "## Goal",          memo.decision, "",
+    "## Background",    memo.background, "",
+    "## In Scope (Do Now)",
+    ...(memo.do_now ?? []).map(i => `- ${i.item}`), "",
+    "## Out of Scope (Not Now)",
+    ...(memo.not_now ?? []).map(i => `- ${i.item}: ${i.reason}`), "",
+    "## Needs Confirmation",
+    ...(memo.needs_confirmation ?? []).map(i => `- ${i.item}`), "",
+    "## Acceptance Criteria",
+    ...(memo.next_actions ?? []).map((a, i) => `${i + 1}. ${a.expected_output || a.task}`), "",
+    "## Notes",
+    "- Confirm with the human before each major step",
+    "- Do not change anything outside the defined scope",
+  ].join("\n").trim();
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface Props {
@@ -451,10 +550,20 @@ export default function HandoffPanel({ conclusion }: Props) {
   const { t, locale } = useLocale();
   const isJa = locale === "ja";
 
+  const hasMemo = !!conclusion.decisionMemo;
+  const memo    = conclusion.decisionMemo;
+
   const tasks       = parseTasks(conclusion.summary, conclusion.keyPoints ?? []);
   const futureItems = parseFutureItems(conclusion.summary);
 
-  const allText = mdAll(conclusion, tasks, futureItems, locale);
+  // Copy texts — prefer Decision Memo when available
+  const briefText     = hasMemo && memo ? memoToMarkdown(memo, locale)           : mdBrief(conclusion, locale);
+  const taskText      = hasMemo && memo ? memoToTaskListMd(memo, locale)         : mdTasks(tasks, locale);
+  const genericAIText = hasMemo && memo ? memoToGenericAIMd(memo, locale)        : mdGenericAI(conclusion, tasks, locale);
+  const buildText     = hasMemo && memo ? memoBuildPromptMd(memo, locale)        : mdBuildPrompt(conclusion, tasks, locale);
+  const allText       = hasMemo && memo
+    ? memoToMarkdown(memo, locale)
+    : mdAll(conclusion, tasks, futureItems, locale);
 
   return (
     <div className="border-t border-border/30 mt-1">
@@ -465,47 +574,45 @@ export default function HandoffPanel({ conclusion }: Props) {
         </span>
       </div>
 
-      {/* Accordion sections */}
-      <div className="px-4 space-y-1.5 pb-3">
-        {/* Decision Brief */}
-        <Section
-          icon={<FileTextIcon size={11} className="text-muted-foreground/50 shrink-0" />}
-          title={t.handoffDecisionBrief}
-          defaultOpen
-        >
-          <DecisionBriefContent conclusion={conclusion} locale={locale} />
-        </Section>
+      {/* Accordion sections — only shown when no structured DecisionMemo */}
+      {!hasMemo && (
+        <div className="px-4 space-y-1.5 pb-3">
+          <Section
+            icon={<FileTextIcon size={11} className="text-muted-foreground/50 shrink-0" />}
+            title={t.handoffDecisionBrief}
+            defaultOpen
+          >
+            <DecisionBriefContent conclusion={conclusion} locale={locale} />
+          </Section>
 
-        {/* Task List */}
-        <Section
-          icon={<ListIcon size={11} className="text-muted-foreground/50 shrink-0" />}
-          title={t.handoffTaskList}
-          badge={t.handoffTaskCount(tasks.length)}
-        >
-          <TaskListContent tasks={tasks} locale={locale} />
-        </Section>
+          <Section
+            icon={<ListIcon size={11} className="text-muted-foreground/50 shrink-0" />}
+            title={t.handoffTaskList}
+            badge={t.handoffTaskCount(tasks.length)}
+          >
+            <TaskListContent tasks={tasks} locale={locale} />
+          </Section>
 
-        {/* Future Considerations */}
-        <Section
-          icon={<CalendarClockIcon size={11} className="text-muted-foreground/50 shrink-0" />}
-          title={t.handoffFutureConsiderations}
-          badge={t.handoffFutureCount(futureItems.length)}
-        >
-          <FutureContent items={futureItems} locale={locale} />
-        </Section>
-      </div>
+          <Section
+            icon={<CalendarClockIcon size={11} className="text-muted-foreground/50 shrink-0" />}
+            title={t.handoffFutureConsiderations}
+            badge={t.handoffFutureCount(futureItems.length)}
+          >
+            <FutureContent items={futureItems} locale={locale} />
+          </Section>
+        </div>
+      )}
 
-      {/* Copy buttons */}
+      {/* Copy buttons — 4 types */}
       <div className="px-4 pb-4 border-t border-border/20 pt-2.5">
         <p className="text-[9px] text-muted-foreground/30 uppercase tracking-widest mb-2">
           {isJa ? "コピー" : "Export"}
         </p>
         <div className="flex flex-wrap gap-1.5">
-          <CopyButton label={t.handoffCopyBrief} text={mdBrief(conclusion, locale)} />
-          <CopyButton label={t.handoffCopyTasks} text={mdTasks(tasks, locale)} />
-          <CopyButton label={t.handoffCopyAll}   text={allText} />
-          <CopyButton label={t.handoffCopyGenericAI} text={mdGenericAI(conclusion, tasks, locale)} small />
-          <CopyButton label={t.handoffCopyBuild}    text={mdBuildPrompt(conclusion, tasks, locale)} small />
+          <CopyButton label={t.handoffCopyDecisionMemo} text={briefText} />
+          <CopyButton label={t.handoffCopyTaskList2}    text={taskText} />
+          <CopyButton label={t.handoffCopyGenericAI2}   text={genericAIText} small />
+          <CopyButton label={t.handoffCopyBuildPrompt}  text={buildText} small />
         </div>
       </div>
     </div>

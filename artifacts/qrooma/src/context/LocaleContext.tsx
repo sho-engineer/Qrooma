@@ -277,6 +277,63 @@ export interface Translations {
   flagFutureConsideration: string;
   flagTasks: string;
   flagHandoff: string;
+  // Decision type
+  decisionTypeLabel: string;
+  decisionTypeMvpScope: string;
+  decisionTypeFeaturePriority: string;
+  decisionTypeLpCopy: string;
+  decisionTypeImplementation: string;
+  decisionTypePricing: string;
+  decisionTypeOther: string;
+  decisionTypeSelectPlaceholder: string;
+  // Project layer
+  projectLabel: string;
+  projectNew: string;
+  projectNamePlaceholder: string;
+  projectNoProject: string;
+  projectSelect: string;
+  projectCreate: string;
+  projectArchive: string;
+  projectArchivedLabel: string;
+  projectDeleteConfirm: string;
+  // Decision Memo card
+  decisionMemoTitle: string;
+  decisionMemoDecision: string;
+  decisionMemoBackground: string;
+  decisionMemoReasoning: string;
+  decisionMemoAxes: string;
+  decisionMemoConditions: string;
+  decisionMemoDoNow: string;
+  decisionMemoNotNow: string;
+  decisionMemoFuture: string;
+  decisionMemoNeedsConfirmation: string;
+  decisionMemoNextActions: string;
+  decisionMemoReferencedMemos: string;
+  decisionMemoCopy: string;
+  decisionMemoCopied: string;
+  decisionMemoAxisEval: (axis: string) => string;
+  decisionMemoPriority: (p: string) => string;
+  decisionMemoHumanReview: string;
+  // Handoff copy 4 types
+  handoffCopyDecisionMemo: string;
+  handoffCopyTaskList2: string;
+  handoffCopyGenericAI2: string;
+  handoffCopyBuildPrompt: string;
+  // Generation status
+  generationStatusBuilder: string;
+  generationStatusBreaker: string;
+  generationStatusOperator: string;
+  generationStatusConclusion: string;
+  // Settings sections
+  settingsSectionAccount: string;
+  settingsSectionDisplay: string;
+  settingsSectionInvite: string;
+  settingsSectionPlan: string;
+  settingsDensityLabel: string;
+  settingsDensityCompact: string;
+  settingsDensityComfortable: string;
+  // Empty state with decision type
+  emptyStateWithType: (type: string) => string;
 }
 
 const ja: Translations = {
@@ -552,6 +609,63 @@ const ja: Translations = {
   flagFutureConsideration:  "将来検討あり",
   flagTasks:                "タスクあり",
   flagHandoff:              "引き継ぎあり",
+  // Decision type
+  decisionTypeLabel:        "決断タイプ",
+  decisionTypeMvpScope:     "MVPスコープ",
+  decisionTypeFeaturePriority: "新機能優先順位",
+  decisionTypeLpCopy:       "LP訴求",
+  decisionTypeImplementation: "実装方針",
+  decisionTypePricing:      "価格プラン",
+  decisionTypeOther:        "その他",
+  decisionTypeSelectPlaceholder: "決断タイプを選択",
+  // Project layer
+  projectLabel:             "プロジェクト",
+  projectNew:               "新しいプロジェクト",
+  projectNamePlaceholder:   "例：SaaSプロダクトv1",
+  projectNoProject:         "プロジェクトなし",
+  projectSelect:            "プロジェクトを選択",
+  projectCreate:            "プロジェクトを作成",
+  projectArchive:           "アーカイブ",
+  projectArchivedLabel:     "アーカイブ済み",
+  projectDeleteConfirm:     "このプロジェクトを削除しますか？",
+  // Decision Memo card
+  decisionMemoTitle:        "Decision Memo",
+  decisionMemoDecision:     "採用した判断",
+  decisionMemoBackground:   "背景",
+  decisionMemoReasoning:    "採用理由",
+  decisionMemoAxes:         "比較軸評価",
+  decisionMemoConditions:   "判断が変わる条件",
+  decisionMemoDoNow:        "今やる",
+  decisionMemoNotNow:       "今回やらない",
+  decisionMemoFuture:       "後で検討",
+  decisionMemoNeedsConfirmation: "追加確認が必要",
+  decisionMemoNextActions:  "次アクション",
+  decisionMemoReferencedMemos: "参照した過去の判断",
+  decisionMemoCopy:         "コピー",
+  decisionMemoCopied:       "コピー済み",
+  decisionMemoAxisEval:     (axis: string) => axis,
+  decisionMemoPriority:     (p: string) => p === "high" ? "高" : p === "medium" ? "中" : "低",
+  decisionMemoHumanReview:  "要人間確認",
+  // Handoff copy 4 types
+  handoffCopyDecisionMemo:  "Decision Memo をコピー",
+  handoffCopyTaskList2:     "タスクリストをコピー",
+  handoffCopyGenericAI2:    "汎用AIプロンプトをコピー",
+  handoffCopyBuildPrompt:   "実装プロンプトをコピー",
+  // Generation status
+  generationStatusBuilder:  "Builder 提案中…",
+  generationStatusBreaker:  "Breaker 検証中…",
+  generationStatusOperator: "Operator 整理中…",
+  generationStatusConclusion: "まとめ生成中…",
+  // Settings sections
+  settingsSectionAccount:   "アカウント",
+  settingsSectionDisplay:   "表示設定",
+  settingsSectionInvite:    "招待コード",
+  settingsSectionPlan:      "プラン",
+  settingsDensityLabel:     "表示密度",
+  settingsDensityCompact:   "コンパクト",
+  settingsDensityComfortable: "標準",
+  // Empty state with decision type
+  emptyStateWithType:       (type: string) => `${type} の決断を始めましょう`,
 };
 
 const en: Translations = {
@@ -828,6 +942,63 @@ const en: Translations = {
   flagFutureConsideration:  "Future Consideration",
   flagTasks:                "Tasks",
   flagHandoff:              "Handoff",
+  // Decision type
+  decisionTypeLabel:        "Decision Type",
+  decisionTypeMvpScope:     "MVP Scope",
+  decisionTypeFeaturePriority: "Feature Priority",
+  decisionTypeLpCopy:       "LP Copy",
+  decisionTypeImplementation: "Implementation",
+  decisionTypePricing:      "Pricing Plan",
+  decisionTypeOther:        "Other",
+  decisionTypeSelectPlaceholder: "Select decision type",
+  // Project layer
+  projectLabel:             "Project",
+  projectNew:               "New Project",
+  projectNamePlaceholder:   "e.g. SaaS Product v1",
+  projectNoProject:         "No project",
+  projectSelect:            "Select project",
+  projectCreate:            "Create project",
+  projectArchive:           "Archive",
+  projectArchivedLabel:     "Archived",
+  projectDeleteConfirm:     "Delete this project?",
+  // Decision Memo card
+  decisionMemoTitle:        "Decision Memo",
+  decisionMemoDecision:     "Decision",
+  decisionMemoBackground:   "Background",
+  decisionMemoReasoning:    "Reasoning",
+  decisionMemoAxes:         "Axis Evaluations",
+  decisionMemoConditions:   "Conditions That Change the Decision",
+  decisionMemoDoNow:        "Do Now",
+  decisionMemoNotNow:       "Not Now",
+  decisionMemoFuture:       "Future Consideration",
+  decisionMemoNeedsConfirmation: "Needs Confirmation",
+  decisionMemoNextActions:  "Next Actions",
+  decisionMemoReferencedMemos: "Referenced Past Decisions",
+  decisionMemoCopy:         "Copy",
+  decisionMemoCopied:       "Copied",
+  decisionMemoAxisEval:     (axis: string) => axis,
+  decisionMemoPriority:     (p: string) => p === "high" ? "High" : p === "medium" ? "Medium" : "Low",
+  decisionMemoHumanReview:  "Needs human review",
+  // Handoff copy 4 types
+  handoffCopyDecisionMemo:  "Copy Decision Memo",
+  handoffCopyTaskList2:     "Copy Task List",
+  handoffCopyGenericAI2:    "Copy Generic AI Prompt",
+  handoffCopyBuildPrompt:   "Copy Build Prompt",
+  // Generation status
+  generationStatusBuilder:  "Builder proposing…",
+  generationStatusBreaker:  "Breaker reviewing…",
+  generationStatusOperator: "Operator structuring…",
+  generationStatusConclusion: "Generating conclusion…",
+  // Settings sections
+  settingsSectionAccount:   "Account",
+  settingsSectionDisplay:   "Display",
+  settingsSectionInvite:    "Invite Code",
+  settingsSectionPlan:      "Plan",
+  settingsDensityLabel:     "Display density",
+  settingsDensityCompact:   "Compact",
+  settingsDensityComfortable: "Comfortable",
+  // Empty state with decision type
+  emptyStateWithType:       (type: string) => `Start a ${type} decision`,
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };
