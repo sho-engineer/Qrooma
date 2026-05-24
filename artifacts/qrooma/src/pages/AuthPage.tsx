@@ -1,44 +1,31 @@
-import { useState, type FormEvent } from "react";
-import { Link, useLocation } from "wouter";
+import { useState } from "react";
+import { Link } from "wouter";
 import { useAuth } from "../context/AuthContext";
 import { useLocale, type Locale } from "../context/LocaleContext";
 import { ArrowLeftIcon } from "lucide-react";
+import { GoogleIcon } from "../components/GoogleIcon";
+import { IS_CONNECTED } from "../services/client";
 
-interface Props {
-  initialMode?: "login" | "signup";
-}
+export default function AuthPage() {
+  const [error, setError]           = useState("");
+  const [isSubmitting, setSubmitting] = useState(false);
+  const { signInWithGoogle } = useAuth();
+  const { locale, setLocale } = useLocale();
 
-export default function AuthPage({ initialMode = "login" }: Props) {
-  const [mode, setMode] = useState<"login" | "signup">(initialMode);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, signUp } = useAuth();
-  const { t, locale, setLocale } = useLocale();
-  const [, navigate] = useLocation();
+  const isJa = locale === "ja";
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function handleGoogle() {
     setError("");
-    setIsSubmitting(true);
+    setSubmitting(true);
     try {
-      if (mode === "login") {
-        await signIn(email, password);
-      } else {
-        if (!name.trim()) {
-          setError(locale === "ja" ? "名前を入力してください。" : "Name is required.");
-          setIsSubmitting(false);
-          return;
-        }
-        await signUp(email, password, name);
-      }
-      navigate("/rooms");
+      await signInWithGoogle();
     } catch {
-      setError(locale === "ja" ? "エラーが発生しました。再度お試しください。" : "Something went wrong. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+      setError(
+        isJa
+          ? "ログインに失敗しました。時間を置いてもう一度お試しください。"
+          : "Login failed. Please try again later."
+      );
+      setSubmitting(false);
     }
   }
 
@@ -46,6 +33,7 @@ export default function AuthPage({ initialMode = "login" }: Props) {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
 
+        {/* Top bar */}
         <div className="flex items-center justify-between mb-6">
           <Link href="/">
             <button className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
@@ -70,115 +58,59 @@ export default function AuthPage({ initialMode = "login" }: Props) {
           </div>
         </div>
 
+        {/* Heading */}
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Adjudo</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            {isJa ? "ログイン" : "Sign in"}
+          </h1>
           <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-            {locale === "ja"
-              ? "ひとりの創業者のための AI Decision Room"
-              : "An AI Decision Room for solo founders"}
+            {isJa
+              ? "AI Decision Roomで、曖昧なテーマを整理し、実行できる判断に変えましょう。"
+              : "Structure your decisions and turn ambiguity into action."}
           </p>
         </div>
 
-        <div className="mb-5 px-4 py-3 bg-muted/60 border border-border rounded-xl">
-          <p className="text-xs font-medium text-foreground mb-0.5">{t.demoModeTitle}</p>
-          <p className="text-xs text-muted-foreground leading-relaxed">{t.demoModeDesc}</p>
+        {/* Card */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
+
+          {/* Supabase not configured warning (dev only) */}
+          {!IS_CONNECTED && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+              <p className="text-xs font-semibold text-amber-800 mb-0.5">
+                {isJa ? "Supabase 未設定" : "Supabase not configured"}
+              </p>
+              <p className="text-xs text-amber-700 leading-relaxed">
+                {isJa
+                  ? "VITE_SUPABASE_URL と VITE_SUPABASE_ANON_KEY を設定してください。"
+                  : "Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable login."}
+              </p>
+            </div>
+          )}
+
+          {/* Google login button */}
+          <button
+            type="button"
+            onClick={handleGoogle}
+            disabled={isSubmitting || !IS_CONNECTED}
+            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-ring transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <GoogleIcon size={18} />
+            {isSubmitting
+              ? (isJa ? "処理中…" : "Please wait…")
+              : (isJa ? "Googleでログイン" : "Continue with Google")}
+          </button>
+
+          {/* Error message */}
+          {error && (
+            <p className="text-sm text-destructive text-center leading-relaxed">{error}</p>
+          )}
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex gap-1.5 mb-6 p-1 bg-muted rounded-xl">
-            <button
-              type="button"
-              onClick={() => { setMode("login"); setError(""); }}
-              className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                mode === "login"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t.loginTab}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMode("signup"); setError(""); }}
-              className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                mode === "signup"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t.signupTab}
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === "signup" && (
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="name">
-                  {t.name}
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={locale === "ja" ? "お名前" : "Your name"}
-                  required={mode === "signup"}
-                  className="w-full px-3 py-2.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring transition-shadow placeholder:text-muted-foreground"
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="email">
-                {t.email}
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="w-full px-3 py-2.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring transition-shadow placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="password">
-                {t.password}
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                minLength={6}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring transition-shadow placeholder:text-muted-foreground"
-              />
-            </div>
-
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 mt-1"
-            >
-              {isSubmitting
-                ? (locale === "ja" ? "処理中…" : "Please wait…")
-                : mode === "login" ? t.loginBtn : t.signupBtn}
-            </button>
-          </form>
-        </div>
-
+        {/* Footer note */}
         <p className="mt-5 text-xs text-center text-muted-foreground/60 leading-relaxed px-2">
-          {locale === "ja"
-            ? "APIキーはこのプロトタイプではブラウザに保存されます。本実装ではサーバーサイドで暗号化されクライアントに送信されません。"
-            : "API keys are stored in your browser for this prototype. Final spec: encrypted server-side storage — keys never exposed to the client."}
+          {isJa
+            ? "ログインすることで、利用規約およびプライバシーポリシーに同意したことになります。"
+            : "By signing in, you agree to our Terms of Service and Privacy Policy."}
         </p>
       </div>
     </div>

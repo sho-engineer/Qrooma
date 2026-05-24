@@ -1,31 +1,27 @@
 /**
  * ─── Supabase Client ──────────────────────────────────────────────────────────
  *
- * SUPABASE CONNECTION POINT
- * ─────────────────────────
- * 1. Install: pnpm add @supabase/supabase-js
- * 2. Set env vars (Replit Secrets or .env):
- *      VITE_SUPABASE_URL=https://<project>.supabase.co
- *      VITE_SUPABASE_ANON_KEY=<your-anon-key>
- * 3. Replace this file with:
+ * Env vars required (Replit Secrets):
+ *   VITE_SUPABASE_URL      = https://<project>.supabase.co
+ *   VITE_SUPABASE_ANON_KEY = <your-anon-key>
  *
- *   import { createClient } from "@supabase/supabase-js"
- *   export const supabase = createClient(
- *     import.meta.env.VITE_SUPABASE_URL,
- *     import.meta.env.VITE_SUPABASE_ANON_KEY
- *   )
- *
- * Current mode: MOCK (localStorage-backed, no network calls)
+ * If env vars are absent the client is null and auth will show a
+ * "not configured" error — no mock fallback in production.
  */
 
-export const SUPABASE_URL     = import.meta.env.VITE_SUPABASE_URL     ?? "";
-export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-/** True when Supabase env vars are set — used to switch between mock and real */
-export const IS_CONNECTED = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+const url = import.meta.env.VITE_SUPABASE_URL  as string | undefined;
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+export const IS_CONNECTED = !!(url && key);
+
+export const supabase: SupabaseClient | null = IS_CONNECTED
+  ? createClient(url!, key!)
+  : null;
 
 if (IS_CONNECTED) {
-  console.info("[Qrooma] Supabase connected:", SUPABASE_URL);
+  console.info("[Adjudo] Supabase connected:", url);
 } else {
-  console.info("[Qrooma] Running in MOCK mode (no Supabase env vars)");
+  console.warn("[Adjudo] Supabase env vars missing — auth unavailable.");
 }

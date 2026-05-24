@@ -53,6 +53,8 @@ function GuestGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+const IS_DEV = import.meta.env.DEV;
+
 // ─── Dev Plan Switcher (floating) ────────────────────────────────────────────
 function DevPlanSwitcher() {
   const { plan, setPlan } = usePlan();
@@ -150,12 +152,12 @@ function Router() {
 
       <Route path="/login">
         <GuestGuard>
-          <AuthPage initialMode="login" />
+          <AuthPage />
         </GuestGuard>
       </Route>
       <Route path="/signup">
         <GuestGuard>
-          <AuthPage initialMode="signup" />
+          <AuthPage />
         </GuestGuard>
       </Route>
 
@@ -183,7 +185,7 @@ function Root() {
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <Router />
       </WouterRouter>
-      <DevPlanSwitcher />
+      {IS_DEV && <DevPlanSwitcher />}
     </>
   );
 }

@@ -1,10 +1,16 @@
 /**
- * Auth Context (localStorage mock — swap signIn/signUp for Supabase Auth)
+ * Auth Context — Supabase Auth (Google OAuth + email/password)
  *
- * Updated: stable UUIDs per email, role fetched from API on sign-in.
+ * Production connection points:
+ *   signInWithGoogle  → supabase.auth.signInWithOAuth({ provider: 'google' })
+ *   signIn            → supabase.auth.signInWithPassword()
+ *   signUp            → supabase.auth.signUp()
+ *   signOut           → supabase.auth.signOut()
+ *   onAuthStateChange → supabase.auth.onAuthStateChange()
  */
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { supabase } from "../services/client";
 
 export interface User {
   id:    string;
@@ -14,33 +20,22 @@ export interface User {
 }
 
 interface AuthContextValue {
-  user:      User | null;
-  isLoading: boolean;
-  isAdmin:   boolean;
-  signIn:    (email: string, password: string) => Promise<void>;
-  signUp:    (email: string, password: string, name: string) => Promise<void>;
-  signOut:   () => void;
+  user:            User | null;
+  isLoading:       boolean;
+  isAdmin:         boolean;
+  signInWithGoogle: () => Promise<void>;
+  signIn:          (email: string, password: string) => Promise<void>;
+  signUp:          (email: string, password: string, name: string) => Promise<void>;
+  signOut:         () => Promise<void>;
 }
 
-const AuthContext  = createContext<AuthContextValue | null>(null);
-const STORAGE_KEY  = "qrooma_user";
-const UUID_MAP_KEY = "qrooma_uuid_map";
-
-function getOrCreateUuid(email: string): string {
-  const raw  = localStorage.getItem(UUID_MAP_KEY);
-  const map: Record<string, string> = raw ? JSON.parse(raw) : {};
-  if (!map[email]) {
-    map[email] = crypto.randomUUID();
-    localStorage.setItem(UUID_MAP_KEY, JSON.stringify(map));
-  }
-  return map[email];
-}
+const AuthContext = createContext<AuthContextValue | null>(null);
 
 async function upsertUserInDb(u: { id: string; email: string; name: string }): Promise<"user" | "admin"> {
   try {
-    const res  = await fetch("/api/users/upsert", {
+    const res = await fetch("/api/users/upsert", {
       method:  "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-user-id": u.id },
       body:    JSON.stringify(u),
     });
     if (!res.ok) return "user";
@@ -51,54 +46,84 @@ async function upsertUserInDb(u: { id: string; email: string; name: string }): P
   }
 }
 
+function extractName(meta: Record<string, unknown> | undefined, email: string): string {
+  const full = meta?.full_name ?? meta?.name;
+  return typeof full === "string" && full.trim() ? full.trim() : email.split("@")[0];
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser]         = useState<User | null>(null);
+  const [user, setUser]       = useState<User | null>(null);
   const [isLoading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const u = JSON.parse(stored) as User;
-        setUser(u);
-        upsertUserInDb(u).then((role) => {
-          if (role !== u.role) {
-            const updated = { ...u, role };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-            setUser(updated);
-          }
-        });
-      } catch { localStorage.removeItem(STORAGE_KEY); }
+    if (!supabase) {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const sb   = session.user;
+        const email = sb.email ?? "";
+        const name  = extractName(sb.user_metadata, email);
+        const role  = await upsertUserInDb({ id: sb.id, email, name });
+        setUser({ id: sb.id, email, name, role });
+      }
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const sb   = session.user;
+        const email = sb.email ?? "";
+        const name  = extractName(sb.user_metadata, email);
+        const role  = await upsertUserInDb({ id: sb.id, email, name });
+        setUser({ id: sb.id, email, name, role });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  async function signIn(email: string, _password: string): Promise<void> {
-    await new Promise((r) => setTimeout(r, 500));
-    const id   = getOrCreateUuid(email);
-    const name = email.split("@")[0];
-    const role = await upsertUserInDb({ id, email, name });
-    const u: User = { id, email, name, role };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-    setUser(u);
+  async function signInWithGoogle(): Promise<void> {
+    if (!supabase) throw new Error("Supabase not configured");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) throw error;
   }
 
-  async function signUp(email: string, _password: string, name: string): Promise<void> {
-    await new Promise((r) => setTimeout(r, 500));
-    const id   = getOrCreateUuid(email);
-    const role = await upsertUserInDb({ id, email, name });
-    const u: User = { id, email, name, role };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-    setUser(u);
+  async function signIn(email: string, password: string): Promise<void> {
+    if (!supabase) throw new Error("Supabase not configured");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
   }
 
-  function signOut(): void {
-    localStorage.removeItem(STORAGE_KEY);
+  async function signUp(email: string, password: string, _name: string): Promise<void> {
+    if (!supabase) throw new Error("Supabase not configured");
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+  }
+
+  async function signOut(): Promise<void> {
+    if (supabase) await supabase.auth.signOut();
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAdmin: user?.role === "admin", signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{
+      user,
+      isLoading,
+      isAdmin: user?.role === "admin",
+      signInWithGoogle,
+      signIn,
+      signUp,
+      signOut,
+    }}>
       {children}
     </AuthContext.Provider>
   );

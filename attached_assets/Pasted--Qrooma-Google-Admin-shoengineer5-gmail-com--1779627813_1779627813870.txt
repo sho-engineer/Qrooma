@@ -1,0 +1,348 @@
+追加要件です。
+Qroomaの認証まわりを本番公開前提に整理し、Googleログインを実装してください。
+あわせて、Adminユーザーを shoengineer5@gmail.com に設定してください。
+
+==================================================
+1. 目的
+==================================================
+
+以下を実装してください。
+
+- テスト用に緩くなっているログイン設定を修正する
+- 未ログインユーザーがアプリ本体に入れないようにする
+- Googleログインを実装する
+- Googleログインボタンには正しいGoogleロゴを使用する
+- shoengineer5@gmail.com をAdminユーザーとして設定する
+- AdminユーザーはFree制限にかからないようにする
+- 既存のProject / Decision Room / Feedback / Free制限 / 招待コード機能を壊さない
+
+==================================================
+2. テスト用ログインの緩い設定を修正
+==================================================
+
+現在、開発・テスト用に以下のような処理が残っている場合は、本番UIでは無効化してください。
+
+確認対象：
+- 未ログインでもアプリ画面に入れる
+- localStorageだけでログイン済み扱いにしている
+- mock userを常に返している
+- devUser / testUser を自動セットしている
+- auth checkをスキップしている
+- protected routeが実質的に保護されていない
+- Supabase sessionがなくても固定user_idで動く
+- Admin判定が誰でもtrueになる
+
+対応方針：
+- 未ログインの場合は /login にリダイレクト
+- /app /projects /rooms /settings /admin はログイン必須
+- LP、利用規約、プライバシーポリシー、ログインページは未ログインでも表示可能
+- 開発用bypassが必要な場合は環境変数で制御する
+- productionではdev auth / mock login / bypass loginを必ず無効にする
+
+例：
+- ENABLE_DEV_AUTH=true の時だけ開発用ログインを許可
+- production環境では常にfalse扱い
+- UI上にdev loginボタンを表示しない
+
+==================================================
+3. Protected Routesを整理
+==================================================
+
+以下のページはログイン必須にしてください。
+
+- /app
+- /projects
+- /rooms
+- /settings
+- /admin
+
+未ログイン時：
+- /login にリダイレクト
+- redirectTo を保持し、ログイン後に元ページへ戻れるようにする
+
+Adminページ：
+- ログイン済みだけでなくAdmin権限が必要
+- Adminでない場合はアクセス拒否表示、または通常画面へリダイレクト
+- Admin判定はフロントだけでなく、server action / API 側でも確認する
+
+==================================================
+4. Googleログインを実装
+==================================================
+
+ログイン画面にGoogleログインを追加してください。
+
+ボタン文言：
+Googleでログイン
+
+仕様：
+- Supabase Authを使っている場合は supabase.auth.signInWithOAuth({ provider: 'google' }) を使う
+- OAuth callback後、アプリ本体に戻す
+- redirectTo がある場合は元ページへ戻す
+- redirectTo がない場合は /projects に遷移
+- Googleログイン後、profilesテーブルにユーザー情報がなければ作成する
+- 既存ユーザーの場合は既存profileを利用する
+- 既存のメールログインがある場合は壊さない
+
+保存するユーザー情報：
+- user_id
+- email
+- display_name nullable
+- avatar_url nullable
+- provider: google
+- role default 'user'
+- plan default 'free'
+- accessType default 'normal'
+- isUnlimitedUser default false
+- dailyRunLimit default 5
+- monthlyRunLimit default 100
+- created_at
+- updated_at
+
+既存profilesテーブルがある場合：
+- 既存schemaを優先
+- 足りないカラムがあればmigrationで追加
+- 既存データを壊さない
+
+==================================================
+5. Googleログインボタンのロゴ
+==================================================
+
+Googleログインボタンには、正しいGoogleロゴを使用してください。
+
+要件：
+- Googleの公式スタイルに近いマルチカラーの「G」ロゴを使用する
+- 単なる黒いG、汎用アイコン、絵文字、FontAwesomeの簡易アイコンだけで代用しない
+- ボタン内でロゴが潰れないようにする
+- ロゴサイズは18px〜20px程度
+- ボタンは白背景、薄いグレー枠、黒または濃いグレー文字を基本にする
+- ダークモードがある場合も視認性を確保する
+- hover / focus / disabled 状態も用意する
+
+表示例：
+[ Google Gロゴ ] Googleでログイン
+
+実装方法：
+- 公式のGoogle “G” ロゴに近いSVGをコンポーネント化して使う
+- 既存のUIライブラリに公式に近いGoogleロゴコンポーネントがある場合はそれを使ってよい
+- ただし見た目が公式ロゴと明らかに違う場合は使わない
+
+注意：
+- Google Client Secretをフロントに置かない
+- ロゴ画像を外部URL直読み込みにして表示崩れする実装は避ける
+- 可能ならローカルSVGまたはコンポーネントとして管理する
+
+==================================================
+6. Adminメールアドレスを設定
+==================================================
+
+初期Adminユーザーのメールアドレスを以下に設定してください。
+
+Admin email:
+shoengineer5@gmail.com
+
+仕様：
+- このメールアドレスでログインしたユーザーはAdmin権限を持つ
+- profilesテーブルがある場合、該当emailのprofileを role = 'admin' にする
+- profileがまだ存在しない場合は、Googleログイン後または初回profile作成時にAdminとして作成する
+- Admin判定はフロントだけでなく、server action / API 側でも確認する
+- /admin はAdminユーザーのみアクセス可能にする
+
+推奨実装：
+- 環境変数 ADMIN_EMAILS を使えるようにする
+- 例：ADMIN_EMAILS=shoengineer5@gmail.com
+- 複数指定できるようにする場合はカンマ区切り
+- ハードコードする場合でも、後で環境変数に移せる形にする
+
+Admin判定例：
+- session.user.email が ADMIN_EMAILS に含まれている場合、admin扱い
+- profiles.role === 'admin' の場合もadmin扱い
+- 初回ログイン時にADMIN_EMAILSに含まれるemailならprofiles.roleをadminにupsertする
+
+==================================================
+7. Adminユーザーのprofile設定
+==================================================
+
+既に shoengineer5@gmail.com のprofileが存在する場合：
+- role を admin に更新する
+- accessType は special にする
+- isUnlimitedUser は true にする
+- dailyRunLimit / monthlyRunLimit は実質無制限、または十分大きな数にする
+
+profileが存在しない場合：
+初回ログイン時に以下で作成する。
+
+profile初期値：
+- email: shoengineer5@gmail.com
+- role: admin
+- plan: free
+- accessType: special
+- isUnlimitedUser: true
+- dailyRunLimit: 999999
+- monthlyRunLimit: 999999
+
+一般ユーザーの初期値：
+- role: user
+- plan: free
+- accessType: normal
+- isUnlimitedUser: false
+- dailyRunLimit: 5
+- monthlyRunLimit: 100
+
+==================================================
+8. Supabase / Google Cloud側の必要設定をREADMEに明記
+==================================================
+
+コード実装だけでなく、必要な外部設定もREADMEまたはコメントに明記してください。
+
+Supabase側：
+- Authentication > Providers > Google を有効化
+- Google Client ID を設定
+- Google Client Secret を設定
+- Site URL を設定
+- Redirect URLs を設定
+
+Google Cloud Console側：
+- OAuth Client IDを作成
+- Authorized JavaScript originsを設定
+- Authorized redirect URIsを設定
+
+Redirect URI例：
+- https://xxxxx.supabase.co/auth/v1/callback
+- 本番ドメイン用URL
+- Replit preview用URLが必要な場合は追加
+
+環境変数：
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY はサーバー側のみ
+- ADMIN_EMAILS=shoengineer5@gmail.com
+
+==================================================
+9. ログアウトを整理
+==================================================
+
+Settings / Account にログアウトボタンを置いてください。
+
+ログアウト仕様：
+- supabase.auth.signOut() を実行
+- sessionをクリア
+- /login に遷移
+- ログアウト後にブラウザバックでapp画面に戻れないようにする
+- 必要ならsession再確認で/loginへ戻す
+
+==================================================
+10. RLS / user_idの安全性確認
+==================================================
+
+Supabaseを使っている場合、以下を確認してください。
+
+- Projectsは自分のuser_idのものだけ取得できる
+- Roomsは自分のuser_id / project_idに紐づくものだけ取得できる
+- Messagesは自分のRoomに紐づくものだけ取得できる
+- Feedbackの投稿者情報は必要以上に公開しない
+- Admin集計はAdminだけ取得できる
+
+重要：
+- フロント側のuser_id指定だけを信用しない
+- server action / API側でもsession userを確認する
+- 他人のproject_id / room_idを直接URLに入れても見られないようにする
+
+==================================================
+11. UI文言
+==================================================
+
+日本語UIを優先してください。
+
+ログイン画面：
+
+タイトル：
+ログイン
+
+説明：
+AI Decision Roomで、曖昧なテーマを整理し、実行できる判断に変えましょう。
+
+ボタン：
+Googleでログイン
+
+エラー文言：
+ログインに失敗しました。
+時間を置いてもう一度お試しください。
+
+未ログインで保護ページにアクセスした場合：
+ログインが必要です。
+続行するにはログインしてください。
+
+==================================================
+12. 初版では入れない
+==================================================
+
+以下は初版では入れないでください。
+
+- Appleログイン
+- GitHubログイン
+- SSO / SAML
+- チーム招待
+- 組織アカウント
+- 2FA
+- 高度なセッション管理UI
+- 課金連携
+
+==================================================
+13. 完了条件
+==================================================
+
+以下を確認してください。
+
+- 未ログイン状態で /app /projects /rooms /settings /admin に入れない
+- 未ログイン時は /login にリダイレクトされる
+- Googleでログインできる
+- Googleログインボタンに正しいGoogle Gロゴが表示されている
+- Googleログイン後にprofileが作成される
+- 既存ユーザーは既存profileを利用する
+- shoengineer5@gmail.com でログインするとAdmin権限になる
+- shoengineer5@gmail.com はFree制限にかからない
+- 一般ユーザーはAdmin画面に入れない
+- Admin判定がフロントだけでなくサーバー側でも行われている
+- ログイン後にProject一覧へ遷移する
+- ログアウトできる
+- ログアウト後に保護ページへ戻れない
+- 他人のProject / RoomをURL直打ちで見られない
+- productionではdev auth / mock login / bypass loginが無効
+- raw auth errorをユーザーに表示しない
+- 既存のFree制限、招待コード、Project、Decision Room、Feedback機能が壊れていない
+
+==================================================
+14. 実装方針
+==================================================
+
+まず既存の認証実装を確認してください。
+
+確認するもの：
+- Supabase client
+- auth helper
+- middleware
+- login page
+- profile作成処理
+- route protection
+- admin判定
+- RLS policy
+- dev / test auth の有無
+- Google OAuth callback処理の有無
+
+その上で、最小変更で安全に修正してください。
+
+実装順：
+1. 既存auth構造の確認
+2. dev / mock / bypass loginの無効化
+3. protected route整理
+4. Google OAuth実装
+5. Googleログインボタンと正しいロゴの実装
+6. profile upsert実装
+7. Admin email判定の追加
+8. logout整理
+9. admin guard整理
+10. RLS / API側user check確認
+11. UI文言整理
+12. 動作確認
+
+セキュリティに関わるため、ログインを緩くする方向の修正はしないでください。
