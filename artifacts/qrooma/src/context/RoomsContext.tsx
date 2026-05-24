@@ -3,10 +3,17 @@ import type { Room } from "../types";
 import { roomsService } from "../services/roomsService";
 import { useAuth } from "./AuthContext";
 
+export interface RoomCreateOpts {
+  projectId?:        string;
+  decisionType?:     Room["decisionType"];
+  roomMode?:         "structured-debate" | "free-talk";
+  useProjectContext?: boolean;
+}
+
 interface RoomsContextValue {
   rooms:       Room[];
   isLoading:   boolean;
-  addRoom:     (name: string) => Room;
+  addRoom:     (name: string, opts?: RoomCreateOpts) => Room;
   updateRoom:  (id: string, patch: Partial<Room>) => void;
   archiveRoom: (id: string) => void;
   restoreRoom: (id: string) => void;
@@ -41,7 +48,7 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
     refresh();
   }, [refresh]);
 
-  function addRoom(name: string): Room {
+  function addRoom(name: string, opts?: RoomCreateOpts): Room {
     const room: Room = {
       id:        `room-${Date.now()}`,
       name:      name.trim(),
@@ -50,6 +57,10 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
       hasFutureConsideration: false,
       hasTasks:               false,
       hasHandoff:             false,
+      ...(opts?.projectId        != null && { projectId:         opts.projectId }),
+      ...(opts?.decisionType     != null && { decisionType:      opts.decisionType }),
+      ...(opts?.roomMode         != null && { roomMode:          opts.roomMode }),
+      ...(opts?.useProjectContext != null && { useProjectContext: opts.useProjectContext }),
     };
     setRooms((prev) => [room, ...prev]);
     roomsService.create(user?.id ?? "demo", name).catch(console.error);

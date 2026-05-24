@@ -58,6 +58,8 @@ export interface Room {
   decisionType?: DecisionType;
   /** Whether to use project context (past Decision Memos) */
   useProjectContext?: boolean;
+  /** Per-room mode override — "structured-debate" | "free-talk" */
+  roomMode?: "structured-debate" | "free-talk";
 }
 
 /** Decision Memo JSON — structured output from final conclusion */

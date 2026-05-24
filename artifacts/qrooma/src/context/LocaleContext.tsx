@@ -334,6 +334,17 @@ export interface Translations {
   settingsDensityComfortable: string;
   // Empty state with decision type
   emptyStateWithType: (type: string) => string;
+  // Room creation modal
+  roomModeTitle: string;
+  roomModeConsult: string;
+  roomModeConsultDesc: string;
+  roomModeDecide: string;
+  roomModeDecideDesc: string;
+  tabTitleGenerating: string;
+  tabTitleDone: string;
+  useProjectContextLabel: string;
+  useProjectContextDesc: string;
+  newRoomDecisionTypeLabel: string;
 }
 
 const ja: Translations = {
@@ -666,6 +677,17 @@ const ja: Translations = {
   settingsDensityComfortable: "標準",
   // Empty state with decision type
   emptyStateWithType:       (type: string) => `${type} の決断を始めましょう`,
+  // Room creation modal
+  roomModeTitle:            "どう始めますか？",
+  roomModeConsult:          "軽く相談する",
+  roomModeConsultDesc:      "まだ考えがまとまっていないテーマを、壁打ちしながら整理します。",
+  roomModeDecide:           "意思決定する",
+  roomModeDecideDesc:       "比較・反証・判断理由を整理し、Decision Memoまで作成します。",
+  tabTitleGenerating:       "生成中",
+  tabTitleDone:             "完了",
+  useProjectContextLabel:   "同じProject内の過去Decision Memoを参照する",
+  useProjectContextDesc:    "同一Project内の過去の判断（最大5件）をAIのコンテキストとして渡します。",
+  newRoomDecisionTypeLabel: "何を決めますか？（任意）",
 };
 
 const en: Translations = {
@@ -999,6 +1021,17 @@ const en: Translations = {
   settingsDensityComfortable: "Comfortable",
   // Empty state with decision type
   emptyStateWithType:       (type: string) => `Start a ${type} decision`,
+  // Room creation modal
+  roomModeTitle:            "How do you want to start?",
+  roomModeConsult:          "Light brainstorm",
+  roomModeConsultDesc:      "Organize a fuzzy topic through back-and-forth conversation.",
+  roomModeDecide:           "Make a decision",
+  roomModeDecideDesc:       "Compare options, surface objections, and produce a Decision Memo.",
+  tabTitleGenerating:       "Generating",
+  tabTitleDone:             "Done",
+  useProjectContextLabel:   "Reference past Decision Memos in this project",
+  useProjectContextDesc:    "Up to 5 past decisions from the same project will be added to the AI's context.",
+  newRoomDecisionTypeLabel: "What are you deciding? (optional)",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };

@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useRooms } from "../context/RoomsContext";
 import { useLocale } from "../context/LocaleContext";
-import type { Room } from "../types";
+import type { DecisionType, Room } from "../types";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -360,18 +360,39 @@ function ArchivedRoomCard({ room, onRestore, onDelete }: ArchivedRoomCardProps) 
 
 type Tab = "active" | "archived";
 
+const DECISION_TYPES: { value: DecisionType; labelJa: string; labelEn: string }[] = [
+  { value: "mvp_scope",         labelJa: "MVPスコープ",     labelEn: "MVP Scope" },
+  { value: "feature_priority",  labelJa: "新機能優先順位",   labelEn: "Feature Priority" },
+  { value: "lp_copy",           labelJa: "LP / 訴求",        labelEn: "LP / Messaging" },
+  { value: "implementation",    labelJa: "実装方針",          labelEn: "Implementation" },
+  { value: "pricing",           labelJa: "価格 / プラン",     labelEn: "Pricing / Plan" },
+  { value: "other",             labelJa: "その他",            labelEn: "Other" },
+];
+
 export default function RoomsPage() {
   const { rooms, isLoading, addRoom, archiveRoom, restoreRoom, deleteRoom } = useRooms();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [, navigate] = useLocation();
-  const [tab,      setTab]      = useState<Tab>("active");
-  const [showForm, setShowForm] = useState(false);
-  const [newName,  setNewName]  = useState("");
+  const [tab,                setTab]               = useState<Tab>("active");
+  const [showForm,           setShowForm]           = useState(false);
+  const [newName,            setNewName]            = useState("");
+  const [selectedMode,       setSelectedMode]       = useState<"structured-debate" | "free-talk">("structured-debate");
+  const [selectedDecisionType, setSelectedDecisionType] = useState<DecisionType | undefined>(undefined);
+
+  function resetForm() {
+    setNewName("");
+    setSelectedMode("structured-debate");
+    setSelectedDecisionType(undefined);
+    setShowForm(false);
+  }
 
   function createRoom() {
     if (!newName.trim()) return;
-    const room = addRoom(newName.trim());
-    setNewName(""); setShowForm(false);
+    const room = addRoom(newName.trim(), {
+      roomMode:     selectedMode,
+      decisionType: selectedDecisionType,
+    });
+    resetForm();
     navigate(`/rooms/${room.id}`);
   }
 
@@ -422,22 +443,83 @@ export default function RoomsPage() {
 
         {/* ── Create form ─────────────────────────────────────────────────── */}
         {showForm && tab === "active" && (
-          <div className="mb-4 p-4 bg-card border border-border rounded-2xl">
-            <label className="block text-xs font-medium text-foreground mb-2">
-              {t.roomNamePlaceholder}
-            </label>
-            <input
-              autoFocus
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") createRoom();
-                if (e.key === "Escape") { setShowForm(false); setNewName(""); }
-              }}
-              placeholder={t.roomNamePlaceholder}
-              className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring mb-3 placeholder:text-muted-foreground"
-            />
-            <div className="flex gap-2">
+          <div className="mb-4 p-4 bg-card border border-border rounded-2xl space-y-4">
+            {/* Room name */}
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1.5">
+                {t.roomNamePlaceholder}
+              </label>
+              <input
+                autoFocus
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newName.trim()) createRoom();
+                  if (e.key === "Escape") resetForm();
+                }}
+                placeholder={t.roomNamePlaceholder}
+                className="w-full px-3 py-2 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+              />
+            </div>
+
+            {/* Mode selector */}
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1.5">
+                {t.roomModeTitle}
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {(["structured-debate", "free-talk"] as const).map((mode) => {
+                  const isSelected = selectedMode === mode;
+                  const label = mode === "structured-debate" ? t.roomModeDecide : t.roomModeConsult;
+                  const desc  = mode === "structured-debate" ? t.roomModeDecideDesc : t.roomModeConsultDesc;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setSelectedMode(mode)}
+                      className={`text-left px-3 py-2.5 rounded-xl border transition-all text-xs ${
+                        isSelected
+                          ? "border-foreground bg-foreground/5 text-foreground"
+                          : "border-border text-muted-foreground hover:border-foreground/40"
+                      }`}
+                    >
+                      <span className="block font-medium mb-0.5">{label}</span>
+                      <span className="block text-[11px] leading-relaxed opacity-70">{desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Decision type */}
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1.5">
+                {t.newRoomDecisionTypeLabel}
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {DECISION_TYPES.map((dt) => {
+                  const isSelected = selectedDecisionType === dt.value;
+                  const label = locale === "ja" ? dt.labelJa : dt.labelEn;
+                  return (
+                    <button
+                      key={dt.value}
+                      type="button"
+                      onClick={() => setSelectedDecisionType(isSelected ? undefined : dt.value)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
+                        isSelected
+                          ? "bg-foreground text-background border-foreground"
+                          : "bg-background text-muted-foreground border-border hover:border-foreground/40"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-1">
               <button
                 onClick={createRoom}
                 disabled={!newName.trim()}
@@ -446,7 +528,7 @@ export default function RoomsPage() {
                 {t.create}
               </button>
               <button
-                onClick={() => { setShowForm(false); setNewName(""); }}
+                onClick={resetForm}
                 className="px-4 py-1.5 text-sm text-muted-foreground border border-border rounded-xl hover:bg-accent transition-colors"
               >
                 {t.cancel}

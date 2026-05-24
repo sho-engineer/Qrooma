@@ -85,7 +85,7 @@ function groupByRun(messages: Message[]): RunGroup[] {
 export default function RoomDetailPage() {
   const { id: roomId } = useParams<{ id: string }>();
   const { settings } = useSettings();
-  const { getRoomById, updateRoom } = useRooms();
+  const { rooms, getRoomById, updateRoom } = useRooms();
   const { t, locale } = useLocale();
   const { plan } = usePlan();
   const { profile } = useUserProfile();
@@ -167,11 +167,13 @@ export default function RoomDetailPage() {
     return sideCodes.map((s) => t.roleLabel(s, settings.defaultMode));
   }, [isFree, agentCount, t, settings.defaultMode]);
 
+  const effectiveMode = room?.roomMode ?? settings.defaultMode;
+
   const MODE_LABELS: Record<string, string> = {
     "structured-debate": t.structuredDebate,
     "free-talk":         t.freeTalk,
   };
-  const modeLabel = MODE_LABELS[settings.defaultMode] ?? settings.defaultMode;
+  const modeLabel = MODE_LABELS[effectiveMode] ?? effectiveMode;
 
   const groupedMessages = groupByRun(messages);
   const hasMessages = messages.length > 0;
@@ -210,6 +212,20 @@ export default function RoomDetailPage() {
     return () => { cancelRun.current?.(); };
   }, []);
 
+  // ─── Tab title ──────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const base = "Qrooma";
+    if (isRunActive) {
+      document.title = `${t.tabTitleGenerating} · ${base}`;
+    } else if (runStatus === "completed") {
+      document.title = `${t.tabTitleDone} · ${base}`;
+    } else {
+      document.title = `${roomName} · ${base}`;
+    }
+    return () => { document.title = base; };
+  }, [isRunActive, runStatus, roomName, t]);
+
   // ─── Scroll ─────────────────────────────────────────────────────────────────
 
   function isNearBottom(): boolean {
@@ -227,6 +243,31 @@ export default function RoomDetailPage() {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  // ─── Project context: past Decision Memos from the same project ──────────────
+
+  const projectContext = useMemo(() => {
+    if (!room?.projectId || room.useProjectContext === false) return "";
+    const siblingRooms = rooms.filter(
+      (r) => r.projectId === room.projectId && r.id !== roomId && !r.archived,
+    );
+    const memos: string[] = [];
+    for (const sibling of siblingRooms) {
+      const concs = messagesService.getConclusions(sibling.id);
+      const withMemo = concs.filter((c) => c.decisionMemo);
+      if (withMemo.length === 0) continue;
+      const memo = withMemo[0]!.decisionMemo!;
+      const lines: string[] = [`### ${sibling.name}`];
+      if (memo.decision)    lines.push(`決定事項: ${memo.decision}`);
+      if (memo.do_now?.length)  lines.push(`今やる: ${memo.do_now.map(i => i.item).join(", ")}`);
+      if (memo.not_now?.length) lines.push(`今回やらない: ${memo.not_now.map(i => i.item).join(", ")}`);
+      if (memo.future_consideration?.length) lines.push(`後で検討: ${memo.future_consideration.map(i => i.item).join(", ")}`);
+      if (memo.next_actions?.length) lines.push(`次アクション: ${memo.next_actions.map(a => a.task).join(", ")}`);
+      memos.push(lines.join("\n"));
+      if (memos.length >= 5) break;
+    }
+    return memos.join("\n\n");
+  }, [room?.projectId, room?.useProjectContext, rooms, roomId]);
 
   // ─── Actions ─────────────────────────────────────────────────────────────────
 
@@ -291,7 +332,7 @@ export default function RoomDetailPage() {
         roomId,
         runId,
         userMessage,
-        mode:       settings.defaultMode,
+        mode:       effectiveMode,
         agentConfig,
         apiKeys: isFree ? {} : {
           openai: settings.openaiApiKey || undefined,
@@ -304,8 +345,9 @@ export default function RoomDetailPage() {
             agentId: m.agentId,
             content: m.content,
           })),
-        writingStyle: settings.writingStyle,
-        promptConfig: config ?? undefined,
+        writingStyle:  settings.writingStyle,
+        promptConfig:  config ?? undefined,
+        projectContext: projectContext || undefined,
       };
 
       const cancel = runsService.realRun(
@@ -370,7 +412,7 @@ export default function RoomDetailPage() {
       const payload: RunPayload = {
         roomId,
         userId:     "demo",
-        mode:       settings.defaultMode,
+        mode:       effectiveMode,
         agentCount,
       };
       const cancel = runsService.simulateRun(runId, payload, onMessage, onStatus);
@@ -480,7 +522,7 @@ export default function RoomDetailPage() {
       roomId,
       runId,
       userMessage:      lastUserMsg.content,
-      mode:             settings.defaultMode,
+      mode:             effectiveMode,
       agentConfig,
       apiKeys: isFree ? {} : {
         openai: settings.openaiApiKey || undefined,
@@ -491,6 +533,7 @@ export default function RoomDetailPage() {
         .map((m) => ({ role: m.role, agentId: m.agentId, content: m.content })),
       writingStyle:    settings.writingStyle,
       forceConclusion: true,
+      projectContext:  projectContext || undefined,
     };
 
     const cancel = runsService.realRun(
@@ -588,7 +631,7 @@ export default function RoomDetailPage() {
       roomId,
       runId,
       userMessage:      lastUserMsg.content,
-      mode:             settings.defaultMode,
+      mode:             effectiveMode,
       agentConfig,
       apiKeys: isFree ? {} : {
         openai: settings.openaiApiKey || undefined,
@@ -602,6 +645,7 @@ export default function RoomDetailPage() {
       previousProvisional,
       continuationDirection:  direction || undefined,
       promptConfig:           promptConfig ?? undefined,
+      projectContext:         projectContext || undefined,
     };
 
     function onMsg(msg: Message) {
@@ -1053,14 +1097,14 @@ function ThinkingIndicator({
 
         <span className="text-xs text-muted-foreground">
           {isConclusion || isSummary
-            ? t.finishingUp
-            : remaining === agentCount
-              ? t.agentsResponding
-              : remaining > 1
-                ? t.agentAndMoreResponding(nextAgentLabel)
-                : remaining === 1
-                  ? t.agentResponding(nextAgentLabel)
-                  : t.finishingUp}
+            ? t.generationStatusConclusion
+            : nextAgent?.id === "builder"
+              ? t.generationStatusBuilder
+              : nextAgent?.id === "breaker"
+                ? t.generationStatusBreaker
+                : nextAgent?.id === "operator"
+                  ? t.generationStatusOperator
+                  : t.agentsResponding}
         </span>
       </div>
     </div>

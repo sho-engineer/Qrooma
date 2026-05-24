@@ -1163,6 +1163,7 @@ router.post("/discuss", async (req, res) => {
     previousProvisional = "",
     continuationDirection = "",
     promptConfig = null,
+    projectContext = "",
   } = req.body as {
     roomId: string;
     runId: string;
@@ -1182,6 +1183,8 @@ router.post("/discuss", async (req, res) => {
     continuationDirection?: string;
     /** Prompt Mode config — enforces comparison-based debate logic */
     promptConfig?: PromptConfig | null;
+    /** Past Decision Memos from the same project — injected as reference context */
+    projectContext?: string;
   };
 
   const apiKeys = {
@@ -1318,6 +1321,11 @@ router.post("/discuss", async (req, res) => {
         const decomposed = decomposeQuery(userMessage);
         let contextMsg = `User question: ${userMessage}`;
         if (decomposed) contextMsg += `\n\n[INPUT ANALYSIS — elements to address]\n${decomposed}`;
+
+        // Inject past Decision Memos from same project (if provided)
+        if (projectContext?.trim()) {
+          contextMsg += `\n\n${"═".repeat(40)}\nPROJECT CONTEXT — Past Decision Memos:\n${projectContext.trim()}\n${"═".repeat(40)}\n→ These are decisions already made in this project. Build on them, avoid contradicting settled choices unless explicitly necessary, and reference them where relevant.`;
+        }
 
         // Inject Prompt Mode configuration block — overrides normal debate behaviour
         if (promptConfig) contextMsg += buildPromptModeContext(promptConfig);

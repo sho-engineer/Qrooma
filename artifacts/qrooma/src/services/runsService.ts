@@ -112,6 +112,8 @@ export interface RealRunParams {
   continuationDirection?: string;
   /** Prompt Mode config — when set, agents must compare multiple candidates against explicit axes */
   promptConfig?: PromptConfig;
+  /** Project context — past Decision Memos from the same project, injected into AI system prompt */
+  projectContext?: string;
 }
 
 export interface RoundStartEvent {
