@@ -1,0 +1,444 @@
+You are updating the existing Qrooma landing page in the current codebase.
+
+Your task is to revise the current LP so that it matches the latest product positioning AND significantly improves the visual design quality.
+
+This is NOT a full redesign into a flashy marketing site.
+The goal is:
+- sharper positioning
+- cleaner hierarchy
+- stronger typography
+- more premium monochrome design
+- more founder-oriented feel
+
+---
+
+# Product positioning to reflect
+
+Qrooma is NOT just a “multi-AI debate tool.”
+Qrooma is an **AI Decision Room** for **solo founders** and **product-minded builders**.
+
+It helps users:
+- clarify messy thinking
+- compare options
+- pressure-test assumptions
+- structure decisions
+- decide what to do now vs later
+- turn decisions into a one-page memo
+- hand off the result into execution tools
+
+The core value is:
+**turn messy thinking into clear decisions and next actions**
+
+Qrooma should be positioned as:
+- not another chatbot
+- not a PM tool
+- not a meeting summary tool
+- not a general AI workspace
+
+Instead, Qrooma is:
+**the layer between thinking and execution**
+or
+**an AI Decision Room for founders who need to compare, pressure-test, and move forward**
+
+---
+
+# Primary target
+
+The LP should target:
+
+- Solo founders
+- Indie builders
+- Product-minded builders
+- People building products or businesses alone or in very small teams
+
+Do NOT write for enterprise teams, large organizations, or committee-style decision making.
+
+---
+
+# Main problem to communicate
+
+The main pain point is:
+
+- their thinking gets messy
+- using only one AI often creates a narrow loop between “me + one AI”
+- they explore options but still fail to decide clearly
+- they struggle to convert discussion into action
+- decisions do not get structured in a reusable way
+- handoff to tools like ChatGPT, Claude, Manus, Replit, Claude Code, Cursor remains vague
+
+This LP should communicate that Qrooma improves the **quality of decision-making**, not just the quantity of ideas.
+
+---
+
+# Positioning / differentiation
+
+The LP must clearly distinguish Qrooma from:
+
+- ChatGPT / Claude / Gemini → general thinking tools
+- Manus / Replit / Claude Code / Cursor → execution / build tools
+- Notion / Linear / Jira / GitHub Issues → documentation / task / tracking tools
+
+Qrooma sits **before execution** and **between ideation and execution**.
+
+It should feel like:
+- compare
+- pressure-test
+- decide
+- structure
+- hand off
+
+Avoid presenting Qrooma as:
+- “a platform where AIs talk to each other” as the main pitch
+- “AI team room” as the primary message
+- a feature-first product
+- a general brainstorming toy
+
+---
+
+# Market priority
+
+This LP is for the **US market first**.
+
+Therefore:
+- write in natural US English
+- use founder/builder language
+- keep the tone practical, sharp, clear
+- avoid overly polite or overly explanatory phrasing
+- avoid buzzwords like:
+  - revolutionary
+  - next-generation
+  - synergy
+  - transformative AI ecosystem
+  - intelligent collaboration platform
+
+Tone should feel:
+- founder-first
+- practical
+- clear
+- slightly sharp
+- execution-oriented
+
+---
+
+# Messaging direction
+
+Use this as the center:
+
+## Hero direction
+Qrooma helps solo founders turn messy thinking into clear decisions and next actions.
+
+## Problem direction
+ChatGPT can help you think.
+Claude can help you review.
+Manus / Replit / Cursor can help you build.
+But your decisions still get stuck between exploration and execution.
+
+## Role of Qrooma
+Qrooma helps founders:
+- compare options
+- pressure-test assumptions
+- decide what to do now
+- generate a decision memo
+- turn that into handoff-ready output
+
+---
+
+# What to emphasize on the LP
+
+Prioritize these in order:
+
+1. Compare and pressure-test decisions
+2. Decide what to do now / not now / later / needs more info
+3. Get a one-page decision memo
+4. Turn the output into next actions and handoff prompts
+5. Keep decisions organized at the project level
+
+Do NOT over-emphasize:
+- model provider names
+- multi-model setup
+- technical architecture
+- structured debate / free talk as front-and-center concepts
+- BYOK as the primary value proposition
+
+---
+
+# Product capabilities to reflect conceptually
+
+These are the ideas the LP should reflect as user value:
+
+- Decision Types
+  - MVP scope
+  - feature priority
+  - LP / messaging
+  - implementation direction
+  - pricing / plan
+  - others
+
+- AI roles
+  - Builder
+  - Breaker
+  - Operator
+
+- Scope classification
+  - Do now
+  - Not now
+  - Consider later
+  - Need more info
+
+- One-page Decision Memo
+  - decision
+  - background
+  - reasoning
+  - comparison criteria
+  - what would change the decision
+  - do now / not now / later / need more info
+  - next actions
+  - referenced past decisions
+
+- Handoff outputs
+  - Decision Memo
+  - Task List
+  - Generic AI Prompt
+  - Build Prompt
+
+- Project-based organization
+  - projects contain multiple decision rooms
+  - users can refer back to prior decision memos in the same project
+
+Do NOT dump these as a dense feature list.
+Translate them into user value.
+
+---
+
+# CTA direction
+
+Primary CTA:
+- Start free
+
+Possible secondary CTA:
+- Create your first Decision Room
+
+The LP should support a free signup flow.
+Do not make pricing or BYOK the main CTA.
+
+---
+
+# BYOK / pricing guidance
+
+Do NOT place BYOK near the hero as a major selling point.
+
+BYOK should be treated as secondary information:
+- lower section
+- FAQ
+- or subtle product detail
+
+Recommended posture:
+- Start free
+- BYOK supported
+- hosted plans can come later
+
+---
+
+# LP structure to implement
+
+Update the existing LP into something close to this structure:
+
+1. Hero
+   - clear founder-facing positioning
+   - strong headline
+   - concise subheadline
+   - Start free CTA
+
+2. Problem
+   - messy thinking
+   - one-AI blind spot
+   - exploration without decisions
+   - unclear handoff into action
+
+3. How Qrooma works
+   - compare ideas
+   - challenge assumptions
+   - structure the decision
+   - hand off execution
+
+4. What you get
+   - one-page decision memo
+   - scope classification
+   - next actions
+   - handoff-ready output
+
+5. Why it is different
+   - not another chatbot
+   - not a PM tool
+   - not a meeting summarizer
+   - a decision layer before execution
+
+6. Use cases
+   - MVP scope
+   - feature priority
+   - pricing decisions
+   - implementation direction
+   - LP / messaging decisions
+
+7. Optional lower section
+   - project memory / project-based continuity
+   - BYOK support
+   - FAQ
+
+8. Final CTA
+   - Start free
+   - create your first decision room
+
+---
+
+# Visual design direction
+
+This is extremely important.
+
+The design should feel:
+- monochrome
+- typography-led
+- clean
+- sharp
+- premium
+- minimal
+- editorial SaaS
+- built for founders
+
+It should NOT feel:
+- colorful
+- playful
+- generic blue SaaS
+- heavy with cards and icons
+- overdesigned
+- startup-template-ish
+
+## Color palette
+Use a monochrome palette only:
+- background: #FFFFFF
+- primary text: #111111
+- secondary text: #525252
+- border: #E7E7E7
+- muted background: #F7F7F5
+- button background: #111111
+- button text: #FFFFFF
+
+Avoid blue accents, gradients, colorful icons, glassmorphism, or decorative illustrations.
+
+## Typography
+Typography should carry the visual identity.
+
+Use 2 fonts maximum.
+
+Recommended:
+- Heading font: Inter Tight or Manrope
+- Body font: Inter
+
+If using Next.js fonts, use a reliable implementation.
+
+## Typography hierarchy
+Use strong size contrast.
+
+Recommended sizing:
+- Hero title: 72–84px desktop / 42–48px mobile
+- Hero subtitle: 20–24px desktop / 17–18px mobile
+- Section titles: 36–44px desktop / 28–32px mobile
+- Body text: 18px desktop / 16px mobile
+- Small text: 13–14px
+- Button text: 15–16px
+
+## Typography behavior
+- Headlines should feel tight, confident, and slightly compressed
+- Body text should feel spacious and readable
+- Keep line lengths controlled
+- Avoid dense paragraphs
+- Use whitespace generously
+- Use section labels / eyebrow text carefully and minimally
+
+## Layout feel
+- generous whitespace
+- strong visual rhythm
+- fewer but stronger sections
+- clean alignment
+- controlled content width
+- high readability
+- simple but premium buttons
+- subtle borders instead of decorative effects
+- minimal icon usage, ideally reduce icon dependence
+
+The page should feel like a strong modern US founder tool, not a generic template.
+
+---
+
+# Specific writing direction
+
+Please write copy that reflects these themes:
+
+- “AI can help you think, but that does not mean you have decided.”
+- “Most founder decisions get stuck between idea exploration and execution.”
+- “Qrooma helps you compare, challenge, decide, and move.”
+- “Turn messy thinking into a decision memo and next actions.”
+- “Use ChatGPT and Claude to think, Manus or Replit to build — Qrooma structures the decision in between.”
+
+You do NOT have to use these exact lines, but the LP should reflect these ideas.
+
+---
+
+# Things to avoid
+
+Avoid these mistakes:
+
+- making “multiple AIs debate” the hero message
+- explaining too much technical detail too early
+- showing enterprise/team collaboration messaging
+- focusing on admin features, permission systems, or comments
+- positioning Qrooma as a meeting or workshop tool
+- sounding academic or abstract
+- sounding like a generic AI wrapper product
+- adding too many colorful UI elements
+- relying on icons instead of typography and spacing
+
+---
+
+# Design / implementation guidance
+
+Please update the existing LP in the current codebase.
+
+Requirements:
+- preserve the current stack and conventions
+- keep the design clean and conversion-focused
+- do not overdesign
+- keep layout readable and fast to scan
+- use a US SaaS founder-tool style
+- make copy concise
+- avoid long paragraphs
+- prioritize strong section hierarchy
+- improve typography, spacing, and composition significantly
+
+You may restructure sections as needed.
+You may rewrite the current LP entirely into English if needed.
+You may remove sections that reinforce the old positioning.
+You may create stronger section headings and CTA copy.
+You may simplify or remove excessive icon/card patterns if they weaken the visual quality.
+
+---
+
+# Deliverables
+
+Please do the following:
+
+1. First, briefly summarize the LP update strategy in bullet form
+2. Then update the LP implementation directly
+3. Keep the messaging aligned with the positioning above
+4. After updating, explain:
+   - what changed
+   - which old messages were removed
+   - how the new LP better fits the target user
+   - how the design quality was improved
+   - which files were updated
+
+If there are multiple plausible copy directions, choose the one that best fits:
+**solo founder + decision quality + handoff to execution**
+
+The visual design should especially reflect:
+**black-and-white, typography-first, premium minimalism**

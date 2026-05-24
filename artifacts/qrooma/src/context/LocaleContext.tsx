@@ -142,6 +142,37 @@ export interface Translations {
   landingByokItem4: string;
   landingFooterCta: string;
   landingNav: string;
+  // Landing page v2 — new sections
+  landingEyebrow: string;
+  landingHeroLine1: string;
+  landingHeroLine2: string;
+  landingSubcopyV2: string;
+  landingProblemEyebrow: string;
+  landingProblemTitle: string;
+  landingProblemItem1Title: string;
+  landingProblemItem1Body: string;
+  landingProblemItem2Title: string;
+  landingProblemItem2Body: string;
+  landingProblemItem3Title: string;
+  landingProblemItem3Body: string;
+  landingHowV2Title: string;
+  landingHowV2Step1Title: string;
+  landingHowV2Step1Body: string;
+  landingHowV2Step2Title: string;
+  landingHowV2Step2Body: string;
+  landingHowV2Step3Title: string;
+  landingHowV2Step3Body: string;
+  landingHowV2Step4Title: string;
+  landingHowV2Step4Body: string;
+  landingMemoEyebrow: string;
+  landingMemoTitle: string;
+  landingMemoSub: string;
+  landingPositioningTitle: string;
+  landingPositioningSub: string;
+  landingUseCasesTitle: string;
+  landingUseCasesSub: string;
+  landingFooterCtaV2: string;
+  landingFooterSub: string;
   // Pricing section
   pricingTitle: string;
   pricingSub: string;
@@ -489,6 +520,37 @@ const ja: Translations = {
   landingByokItem4: "Qrooma の月額プランのみで利用可能",
   landingFooterCta: "今すぐ Qrooma をはじめる",
   landingNav: "Qrooma について",
+  // Landing page v2 — new sections (JA)
+  landingEyebrow: "AI Decision Room",
+  landingHeroLine1: "曖昧な思考を、",
+  landingHeroLine2: "明確な判断に変える。",
+  landingSubcopyV2: "ひとりで事業をつくる人のために。選択肢を比較し、前提を崩し、決める。判断を一枚のメモにまとめ、実行ツールに渡せる形にします。",
+  landingProblemEyebrow: "問題",
+  landingProblemTitle: "AIは考える助けをしてくれる。\nでも「考えた」は「決めた」ではない。",
+  landingProblemItem1Title: "ひとつのAIでは視野が狭い",
+  landingProblemItem1Body: "ひとつのAIとの往復になりがち。アイデアは出るが、反証や比較がなく、判断の質が上がらない。",
+  landingProblemItem2Title: "探索しても着地しない",
+  landingProblemItem2Body: "選択肢を並べても、「結局どれにするか」が決まらない。議論がそのまま終わる。",
+  landingProblemItem3Title: "実行ツールへの引き渡しが曖昧",
+  landingProblemItem3Body: "ChatGPT や Claude に何を伝えればいいかわからない。決めたことが構造化されていないから。",
+  landingHowV2Title: "比較、検証、決定、引き渡し。",
+  landingHowV2Step1Title: "比較する",
+  landingHowV2Step1Body: "Builder が複数の選択肢とメリット・デメリット・向いている条件を整理します。",
+  landingHowV2Step2Title: "前提を崩す",
+  landingHowV2Step2Body: "Breaker が仮定の弱点、隠れた依存関係、失敗シナリオを明らかにします。",
+  landingHowV2Step3Title: "判断を構造化する",
+  landingHowV2Step3Body: "Operator が結論を整理。今やる / 今やらない / 後で検討 / 要検証 に分類します。",
+  landingHowV2Step4Title: "実行に渡す",
+  landingHowV2Step4Body: "Decision Memo、タスクリスト、AIへのプロンプトをそのまま使える形で出力します。",
+  landingMemoEyebrow: "アウトプット",
+  landingMemoTitle: "判断が、一枚のメモになる。",
+  landingMemoSub: "ChatGPT、Claude、Manus、Replit、Cursor に渡せる構造化されたアウトプット。",
+  landingPositioningTitle: "思考と実行の間にある層。",
+  landingPositioningSub: "Qrooma は汎用AIでも、PMツールでも、議事録ツールでもありません。判断を構造化する専用の層です。",
+  landingUseCasesTitle: "プロダクトを前進させる判断のために。",
+  landingUseCasesSub: "MVPスコープ、機能優先度、料金設計、LP訴求、実装方針、ツール選定。判断が必要なあらゆる場面で。",
+  landingFooterCtaV2: "最初の Decision Room を作る。",
+  landingFooterSub: "APIキー不要ですぐ使えます。",
   // Pricing section
   pricingTitle: "料金プラン",
   pricingSub: "まずは無料ではじめられます。Pro / Connect は近日公開予定。",
@@ -833,6 +895,37 @@ const en: Translations = {
   landingByokItem4: "Qrooma charges a flat monthly subscription only",
   landingFooterCta: "Start using Qrooma for free",
   landingNav: "About Qrooma",
+  // Landing page v2 — new sections (EN)
+  landingEyebrow: "AI Decision Room",
+  landingHeroLine1: "Turn messy thinking",
+  landingHeroLine2: "into clear decisions.",
+  landingSubcopyV2: "Built for solo founders and product-minded builders. Compare options, pressure-test assumptions, decide what to do now — and hand off a structured memo to your execution tools.",
+  landingProblemEyebrow: "The problem",
+  landingProblemTitle: "AI can help you think.\nThat doesn't mean you've decided.",
+  landingProblemItem1Title: "The one-AI blind spot",
+  landingProblemItem1Body: "Using one AI creates a narrow loop — you generate ideas, but without real pressure-testing or comparison, the decision quality stays low.",
+  landingProblemItem2Title: "Exploration without landing",
+  landingProblemItem2Body: "You explore options, map trade-offs, and still can't answer: what are we actually doing? The discussion ends without a clear verdict.",
+  landingProblemItem3Title: "Handoff stays vague",
+  landingProblemItem3Body: "When it's time to build, you can't tell ChatGPT or Replit what was decided — because the decision was never structured.",
+  landingHowV2Title: "Compare. Challenge. Decide. Hand off.",
+  landingHowV2Step1Title: "Compare",
+  landingHowV2Step1Body: "Builder maps multiple options — pros, cons, and fit conditions — so you can see the real trade-offs side by side.",
+  landingHowV2Step2Title: "Challenge",
+  landingHowV2Step2Body: "Breaker stress-tests every assumption — surfacing shaky conditions, hidden dependencies, and failure scenarios.",
+  landingHowV2Step3Title: "Decide",
+  landingHowV2Step3Body: "Operator structures the outcome. Every item is classified: Do now / Not now / Consider later / Need more info.",
+  landingHowV2Step4Title: "Hand off",
+  landingHowV2Step4Body: "Get a one-page Decision Memo, a task list, and handoff-ready prompts to paste into your build tools.",
+  landingMemoEyebrow: "Output",
+  landingMemoTitle: "Every decision becomes a memo.",
+  landingMemoSub: "Structured output ready to hand to ChatGPT, Claude, Manus, Replit, or Cursor.",
+  landingPositioningTitle: "The layer between thinking and execution.",
+  landingPositioningSub: "Qrooma isn't another chatbot, a PM tool, or a meeting summarizer. It's the decision layer that sits before you build.",
+  landingUseCasesTitle: "Built for the decisions that move products forward.",
+  landingUseCasesSub: "MVP scope, feature priority, pricing, LP messaging, implementation direction, build vs. buy — any decision that needs structure.",
+  landingFooterCtaV2: "Create your first Decision Room.",
+  landingFooterSub: "Free to start. No API keys required.",
   // Pricing section
   pricingTitle: "Pricing",
   pricingSub: "Start free with no API keys. Pro and Connect coming soon.",

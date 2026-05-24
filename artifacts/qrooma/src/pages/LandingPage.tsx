@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { Link } from "wouter";
 import { useLocale, type Locale } from "../context/LocaleContext";
 import { useAuth } from "../context/AuthContext";
-import { ArrowRightIcon, CheckIcon } from "lucide-react";
+import { ArrowRightIcon } from "lucide-react";
 
 // ─── useFadeSection — scroll-triggered fade-up ────────────────────────────────
 function useFadeSection() {
@@ -13,12 +13,9 @@ function useFadeSection() {
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          obs.disconnect();
-        }
+        if (entry.isIntersecting) { setVisible(true); obs.disconnect(); }
       },
-      { threshold: 0.05, rootMargin: "0px 0px -32px 0px" }
+      { threshold: 0.04, rootMargin: "0px 0px -24px 0px" }
     );
     obs.observe(el);
     return () => obs.disconnect();
@@ -26,9 +23,9 @@ function useFadeSection() {
   return {
     ref,
     style: {
-      transition: "opacity 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.5s cubic-bezier(0.16,1,0.3,1)",
-      opacity: visible ? 1 : 0,
-      transform: visible ? "translateY(0)" : "translateY(10px)",
+      transition: "opacity 0.55s cubic-bezier(0.16,1,0.3,1), transform 0.55s cubic-bezier(0.16,1,0.3,1)",
+      opacity:   visible ? 1 : 0,
+      transform: visible ? "translateY(0)" : "translateY(14px)",
     } as React.CSSProperties,
   };
 }
@@ -37,15 +34,15 @@ function useFadeSection() {
 function LocaleToggle() {
   const { locale, setLocale } = useLocale();
   return (
-    <div className="flex gap-1 rounded-full border border-border bg-card/70 p-1 backdrop-blur">
+    <div className="flex gap-0.5 rounded-full border border-border bg-card p-0.5">
       {(["ja", "en"] as Locale[]).map((l) => (
         <button
           key={l}
           onClick={() => setLocale(l)}
-          className={`px-3 py-1.5 text-xs rounded-full transition-all duration-200 active:scale-[0.95] ${
+          className={`px-3 py-1 text-xs rounded-full font-medium transition-all duration-150 active:scale-[0.95] ${
             locale === l
               ? "bg-foreground text-background"
-              : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           {l === "ja" ? "日本語" : "EN"}
@@ -55,214 +52,204 @@ function LocaleToggle() {
   );
 }
 
-// ─── SectionTitle ─────────────────────────────────────────────────────────────
-function SectionTitle({ children }: { children: React.ReactNode }) {
+// ─── Buttons ──────────────────────────────────────────────────────────────────
+function PrimaryBtn({ children, large }: { children: React.ReactNode; large?: boolean }) {
   return (
-    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+    <button
+      className={`inline-flex items-center gap-2 bg-foreground text-background font-medium rounded-full
+        whitespace-nowrap hover:opacity-85 active:scale-[0.97] transition-all duration-150
+        ${large ? "px-7 py-3 text-[15px]" : "px-5 py-2.5 text-sm"}`}
+    >
       {children}
-    </h2>
+    </button>
   );
 }
 
-// ─── ProductPreview ───────────────────────────────────────────────────────────
-const AGENT_COLORS = ["#10a37f", "#d97706", "#4285f4"] as const;
-
-function ProductPreview() {
-  const { t } = useLocale();
-
-  const previewMessages = [
-    { role: t.previewRole1, color: AGENT_COLORS[0], text: t.previewMsg1 },
-    { role: t.previewRole2, color: AGENT_COLORS[1], text: t.previewMsg2 },
-    { role: t.previewRole3, color: AGENT_COLORS[2], text: t.previewMsg3 },
-  ];
-
-  const previewRooms = [
-    { name: t.previewRoomActive, active: true },
-    { name: t.previewRoom2,      active: false },
-    { name: t.previewRoom3,      active: false },
-  ];
-
+function GhostBtn({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-[28px] border border-border bg-card/90 shadow-[0_12px_48px_rgba(0,0,0,0.06)] overflow-hidden">
-      {/* Window chrome */}
-      <div className="border-b border-border/80 px-5 py-3 flex items-center gap-2 bg-card">
-        <div className="w-2.5 h-2.5 rounded-full bg-foreground/15" />
-        <div className="w-2.5 h-2.5 rounded-full bg-foreground/10" />
-        <div className="w-2.5 h-2.5 rounded-full bg-foreground/10" />
-        <span className="ml-3 text-xs text-muted-foreground/60 font-medium">Qrooma</span>
-      </div>
-
-      <div className="grid md:grid-cols-[200px_1fr]" style={{ minHeight: 380 }}>
-        {/* Sidebar */}
-        <div className="hidden md:flex flex-col border-r border-border bg-sidebar">
-          <div className="px-3 pt-3 pb-1">
-            <p className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest px-2 py-1">
-              {t.previewRooms}
-            </p>
-          </div>
-          <nav className="flex-1 px-1.5 space-y-0.5">
-            {previewRooms.map((room) => (
-              <div
-                key={room.name}
-                className={`px-2.5 py-1.5 rounded-lg text-xs truncate transition-colors duration-150 ${
-                  room.active
-                    ? "bg-sidebar-accent text-foreground font-medium"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {room.name}
-              </div>
-            ))}
-          </nav>
-        </div>
-
-        {/* Main pane */}
-        <div className="flex flex-col min-h-0 overflow-hidden">
-          {/* Room header */}
-          <div className="border-b border-border px-4 py-2.5 flex items-center gap-3 bg-card/60 min-w-0">
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold text-foreground truncate">{t.previewRoomActive}</p>
-              <p className="text-[10px] text-muted-foreground/60 mt-0.5">{t.previewMeta}</p>
-            </div>
-            <span className="shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
-              {t.structuredDebate}
-            </span>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 px-4 py-4 space-y-3 bg-background/40 overflow-hidden">
-            {previewMessages.map((msg) => (
-              <div key={msg.role} className="flex gap-2.5 max-w-[92%]">
-                <div className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-card border border-border flex items-center justify-center">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: msg.color }} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-medium text-muted-foreground mb-1">{msg.role}</p>
-                  <div className="bg-card border border-border/60 rounded-xl px-3 py-2">
-                    <p className="text-[11px] text-foreground leading-relaxed">{msg.text}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Conclusion */}
-          <div className="border-t border-border bg-card/80 px-4 py-3 overflow-hidden">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-muted-foreground/40 text-sm leading-none shrink-0">◈</span>
-              <span className="text-xs font-semibold text-foreground">{t.conclusion}</span>
-            </div>
-            <p className="text-[11px] text-foreground/70 leading-relaxed pl-4">
-              {t.previewConclusionText}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <button className="inline-flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-muted-foreground border border-border rounded-full bg-transparent whitespace-nowrap hover:text-foreground hover:border-foreground/30 active:scale-[0.97] transition-all duration-150">
+      {children}
+    </button>
   );
 }
 
-// ─── PricingSection ───────────────────────────────────────────────────────────
-function PricingSection() {
-  const { t } = useLocale();
-
-  const comingSoonPlans = [
-    {
-      name: "Connect",
-      desc: t.planConnectDesc,
-      features: [t.planConnectFeature1, t.planConnectFeature2, t.planConnectFeature3, t.planConnectFeature4],
-    },
-    {
-      name: "Pro",
-      desc: t.planProDesc,
-      features: [t.planProFeature1, t.planProFeature2, t.planProFeature3, t.planProFeature4],
-    },
-  ];
-
+// ─── Decision Memo Preview Card ───────────────────────────────────────────────
+function DecisionMemoPreview({ locale }: { locale: Locale }) {
+  const isJa = locale === "ja";
   return (
-    <div className="grid sm:grid-cols-[1fr_1fr] lg:grid-cols-[1.4fr_1fr_1fr] gap-3 items-start">
-      {/* Free — featured */}
-      <div className="rounded-[20px] border border-foreground/12 bg-card p-6 flex flex-col shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-[11px] font-semibold tracking-widest uppercase text-foreground">Free</span>
-          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#10a37f] text-white leading-none">MVP</span>
+    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
+      {/* Header */}
+      <div className="border-b border-border px-5 py-3.5 flex items-center justify-between bg-card">
+        <div className="flex items-center gap-2.5">
+          <div className="flex gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-foreground/10" />
+            <div className="w-2.5 h-2.5 rounded-full bg-foreground/8" />
+            <div className="w-2.5 h-2.5 rounded-full bg-foreground/8" />
+          </div>
+          <span className="text-[11px] font-medium text-muted-foreground/50 ml-1">Qrooma</span>
         </div>
-        <div className="flex items-baseline gap-1 mb-1">
-          <span className="text-3xl font-bold tracking-tight text-foreground">$0</span>
+        <span className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground/40">
+          {isJa ? "Decision Memo" : "Decision Memo"}
+        </span>
+      </div>
+
+      <div className="p-5 space-y-4">
+        {/* Topic */}
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 mb-1">
+            {isJa ? "テーマ" : "Topic"}
+          </p>
+          <p className="text-sm font-semibold text-foreground leading-snug">
+            {isJa ? "MVPにどの機能を入れるか" : "Which features go into the MVP?"}
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed mb-5">{t.planFreeDesc}</p>
-        <ul className="space-y-2 mb-6 flex-1">
-          {[t.planFreeFeature1, t.planFreeFeature2, t.planFreeFeature3, t.planFreeFeature4].map((f, i) => (
-            <li key={i} className="flex items-start gap-2">
-              <CheckIcon size={11} className="shrink-0 mt-[3px] text-foreground/50" />
-              <span className="text-xs leading-relaxed text-foreground/80">{f}</span>
-            </li>
+
+        {/* Decision */}
+        <div className="border border-foreground/10 rounded-xl px-4 py-3 bg-background">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 mb-1.5">
+            {isJa ? "判断" : "Decision"}
+          </p>
+          <p className="text-[13px] text-foreground leading-relaxed font-medium">
+            {isJa
+              ? "認証フローとコアループのみ実装。チーム機能は v1 対象外。"
+              : "Ship auth + core loop only. No team features in v1."}
+          </p>
+        </div>
+
+        {/* Scope classification */}
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            {
+              label:   isJa ? "今やる" : "Do now",
+              symbol:  "✓",
+              dark:    true,
+              items:   isJa
+                ? ["認証フロー", "コアループ", "分析イベント"]
+                : ["Auth flow", "Core loop", "Analytics events"],
+            },
+            {
+              label:   isJa ? "今やらない" : "Not now",
+              symbol:  "✗",
+              dark:    false,
+              items:   isJa
+                ? ["チームワークスペース", "高度なフィルター", "カスタムテーマ"]
+                : ["Team workspaces", "Advanced filters", "Custom themes"],
+            },
+            {
+              label:   isJa ? "後で検討" : "Consider later",
+              symbol:  "○",
+              dark:    false,
+              items:   isJa
+                ? ["AI提案機能", "APIアクセス"]
+                : ["AI suggestions", "API access"],
+            },
+            {
+              label:   isJa ? "要検証" : "Need more info",
+              symbol:  "?",
+              dark:    false,
+              items:   isJa
+                ? ["料金モデルの検証"]
+                : ["Pricing model validation"],
+            },
+          ].map((box) => (
+            <div
+              key={box.label}
+              className={`rounded-xl p-3 border ${
+                box.dark
+                  ? "bg-foreground text-background border-transparent"
+                  : "bg-background border-border"
+              }`}
+            >
+              <p className={`text-[9px] font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1 ${box.dark ? "text-background/60" : "text-muted-foreground/60"}`}>
+                <span className="text-[10px]">{box.symbol}</span> {box.label}
+              </p>
+              <ul className="space-y-0.5">
+                {box.items.map((item) => (
+                  <li key={item} className={`text-[11px] leading-relaxed ${box.dark ? "text-background/90" : "text-foreground/80"}`}>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
-        <Link href="/signup">
-          <button className="w-full py-2 text-sm font-medium rounded-full bg-foreground text-background hover:opacity-85 active:scale-[0.97] transition-all duration-150">
-            {t.planFreeCta}
-          </button>
-        </Link>
-        <div className="mt-3 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40">
-          <span className="text-amber-500 text-[10px] leading-none">⚠</span>
-          <p className="text-[10px] text-amber-700 dark:text-amber-400 text-center">{t.pricingFreeLimit}</p>
         </div>
-      </div>
 
-      {/* Connect + Pro — coming soon */}
-      {comingSoonPlans.map((plan) => (
-        <div
-          key={plan.name}
-          className="rounded-[20px] border border-border bg-background/60 p-6 flex flex-col opacity-60"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[11px] font-semibold tracking-widest uppercase text-muted-foreground/70">{plan.name}</span>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-border text-muted-foreground leading-none">
-              Coming Soon
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground leading-relaxed mb-5">{plan.desc}</p>
-          <ul className="space-y-2 mb-6 flex-1">
-            {plan.features.map((f, i) => (
-              <li key={i} className="flex items-start gap-2">
-                <CheckIcon size={11} className="shrink-0 mt-[3px] text-muted-foreground/30" />
-                <span className="text-xs leading-relaxed text-muted-foreground/60">{f}</span>
+        {/* Next actions */}
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 mb-2">
+            {isJa ? "次アクション" : "Next actions"}
+          </p>
+          <ul className="space-y-1">
+            {(isJa
+              ? ["設計を auth flow から開始", "コアループのユーザーテストを計画", "チーム機能を v2 バックログに追加"]
+              : ["Start design with auth flow", "Plan user test for core loop", "Add team features to v2 backlog"]
+            ).map((action, i) => (
+              <li key={i} className="flex items-start gap-2 text-[12px] text-foreground/70">
+                <span className="shrink-0 mt-px w-4 h-4 rounded-full border border-border flex items-center justify-center text-[9px] font-bold text-muted-foreground/50">
+                  {i + 1}
+                </span>
+                {action}
               </li>
             ))}
           </ul>
-          <button
-            disabled
-            className="w-full py-2 text-sm font-medium rounded-full border border-border bg-transparent text-muted-foreground/40 cursor-not-allowed"
-          >
-            Coming soon
-          </button>
         </div>
-      ))}
+      </div>
     </div>
   );
 }
 
-// ─── Primary CTA button ───────────────────────────────────────────────────────
-function PrimaryBtn({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <button
-      className={`inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-foreground text-background rounded-full
-        whitespace-nowrap hover:opacity-85 active:scale-[0.97] transition-all duration-150 ${className}`}
-    >
-      {children}
-    </button>
-  );
-}
+// ─── Positioning grid ─────────────────────────────────────────────────────────
+function PositioningGrid({ locale }: { locale: Locale }) {
+  const isJa = locale === "ja";
+  const rows = [
+    {
+      category: isJa ? "思考 / 壁打ち" : "Thinking",
+      tools:    "ChatGPT, Claude, Gemini",
+      role:     isJa ? "アイデア生成" : "Generate ideas",
+      here:     false,
+    },
+    {
+      category: isJa ? "判断 / 構造化" : "Deciding",
+      tools:    "Qrooma",
+      role:     isJa ? "比較・検証・構造化" : "Compare, pressure-test, structure",
+      here:     true,
+    },
+    {
+      category: isJa ? "実行 / 構築" : "Building",
+      tools:    "Manus, Replit, Cursor, Claude Code",
+      role:     isJa ? "実装・構築" : "Implement and build",
+      here:     false,
+    },
+  ];
 
-function SecondaryBtn({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <button
-      className={`inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-foreground border border-border
-        rounded-full bg-card/70 whitespace-nowrap hover:bg-accent active:scale-[0.97] transition-all duration-150 ${className}`}
-    >
-      {children}
-    </button>
+    <div className="overflow-hidden rounded-2xl border border-border">
+      {rows.map((row, i) => (
+        <div
+          key={row.category}
+          className={`grid grid-cols-[auto_1fr_1fr] sm:grid-cols-[160px_1fr_1fr] items-center gap-4 px-5 py-4 ${
+            row.here
+              ? "bg-foreground text-background"
+              : i === 0 ? "bg-card" : "bg-card border-t border-border"
+          } ${i > 0 && !row.here ? "border-t border-border" : ""}`}
+        >
+          <p className={`text-[11px] font-semibold uppercase tracking-widest ${row.here ? "text-background/70" : "text-muted-foreground/60"}`}>
+            {row.category}
+          </p>
+          <p className={`text-[12px] font-medium leading-snug ${row.here ? "text-background" : "text-foreground/70"}`}>
+            {row.tools}
+            {row.here && (
+              <span className="ml-2 text-[10px] font-bold uppercase tracking-widest opacity-50">
+                ← {isJa ? "あなたはここ" : "you are here"}
+              </span>
+            )}
+          </p>
+          <p className={`text-[12px] leading-snug ${row.here ? "text-background/80" : "text-muted-foreground"}`}>
+            {row.role}
+          </p>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -271,49 +258,43 @@ export default function LandingPage() {
   const { t, locale } = useLocale();
   const { user } = useAuth();
 
-  const cards = [
-    { title: t.landingCard1Title, body: t.landingCard1Body },
-    { title: t.landingCard2Title, body: t.landingCard2Body },
-    { title: t.landingCard3Title, body: t.landingCard3Body },
+  const secProblem   = useFadeSection();
+  const secHow       = useFadeSection();
+  const secMemo      = useFadeSection();
+  const secWhy       = useFadeSection();
+  const secUseCases  = useFadeSection();
+  const secPricing   = useFadeSection();
+  const secFooter    = useFadeSection();
+
+  const isJa = locale === "ja";
+
+  const howSteps = [
+    { n: "01", title: t.landingHowV2Step1Title, body: t.landingHowV2Step1Body },
+    { n: "02", title: t.landingHowV2Step2Title, body: t.landingHowV2Step2Body },
+    { n: "03", title: t.landingHowV2Step3Title, body: t.landingHowV2Step3Body },
+    { n: "04", title: t.landingHowV2Step4Title, body: t.landingHowV2Step4Body },
   ];
 
-  const steps = [t.landingHowStep1, t.landingHowStep2, t.landingHowStep3, t.landingHowStep4];
-  const stepLabels = [t.landingHowStep1Label, t.landingHowStep2Label, t.landingHowStep3Label, t.landingHowStep4Label];
+  const useCases = isJa
+    ? ["MVP スコープ", "機能優先度", "料金・プラン", "LP 訴求", "実装方針", "Build vs. Buy"]
+    : ["MVP scope", "Feature priority", "Pricing & plans", "LP messaging", "Implementation direction", "Build vs. buy"];
 
-  // Scroll-triggered sections
-  const secCards    = useFadeSection();
-  const secHow      = useFadeSection();
-  const secModes    = useFadeSection();
-  const secPricing  = useFadeSection();
-  const secFooter   = useFadeSection();
+  const freeFeatures = isJa
+    ? ["Builder / Breaker / Operator の3役割", "Decision Memo 出力", "スコープ分類（今やる / 今やらない / 後で検討 / 要検証）", "1日3回まで · APIキー不要"]
+    : ["Builder / Breaker / Operator roles", "Decision Memo output", "Scope classification (Do now / Not now / Later / Need more info)", "3 discussions/day · No API keys"];
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* Ambient gradient blobs */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        {/* Top-center: soft indigo glow */}
-        <div className="absolute left-1/2 top-[-80px] h-[400px] w-[500px] -translate-x-1/2 rounded-full opacity-30 blur-3xl"
-          style={{ background: "radial-gradient(ellipse, #818cf8 0%, transparent 70%)" }} />
-        {/* Right: sky-blue accent */}
-        <div className="absolute right-[-4%] top-[10%] h-[280px] w-[280px] rounded-full opacity-20 blur-3xl"
-          style={{ background: "radial-gradient(ellipse, #38bdf8 0%, transparent 70%)" }} />
-        {/* Left: violet accent */}
-        <div className="absolute left-[-2%] top-[30%] h-[240px] w-[240px] rounded-full opacity-15 blur-3xl"
-          style={{ background: "radial-gradient(ellipse, #a78bfa 0%, transparent 70%)" }} />
-        {/* Bottom: subtle warm tone */}
-        <div className="absolute left-[30%] bottom-[20%] h-[200px] w-[300px] rounded-full opacity-10 blur-3xl"
-          style={{ background: "radial-gradient(ellipse, #6ee7b7 0%, transparent 70%)" }} />
-      </div>
 
-      {/* Nav */}
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 h-14 flex items-center justify-between gap-4">
+      {/* ── Nav ────────────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-xl">
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between gap-4">
           <Link href="/">
-            <button className="text-sm font-semibold tracking-tight text-foreground transition-opacity duration-150 hover:opacity-70">
+            <button className="text-[15px] font-bold tracking-tight text-foreground hover:opacity-70 transition-opacity duration-150">
               Qrooma
             </button>
           </Link>
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <LocaleToggle />
             {user ? (
               <Link href="/rooms">
@@ -322,7 +303,7 @@ export default function LandingPage() {
             ) : (
               <>
                 <Link href="/login">
-                  <button className="whitespace-nowrap hidden sm:inline-block px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground active:scale-[0.97] transition-all duration-150">
+                  <button className="hidden sm:inline-block px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
                     {t.loginBtn}
                   </button>
                 </Link>
@@ -335,173 +316,284 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="max-w-6xl mx-auto px-5 sm:px-6 pt-20 sm:pt-28 pb-16 sm:pb-24">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="animate-fade-up inline-flex items-center rounded-full border border-border bg-card/80 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur mb-7 tracking-wide uppercase">
-            Multi-role AI · Decision Brief · Task List
-          </div>
-
-          <h1 className="animate-fade-up anim-d1 text-5xl sm:text-6xl md:text-[4.25rem] font-bold tracking-tight leading-[1.06] text-foreground whitespace-pre-line mb-5">
-            {t.landingHero}
-          </h1>
-
-          <p className="animate-fade-up anim-d2 max-w-xl mx-auto text-base sm:text-lg text-muted-foreground leading-8 mb-8">
-            {t.landingSubcopy}
+      {/* ── Hero ───────────────────────────────────────────────────────────── */}
+      <section className="max-w-5xl mx-auto px-5 sm:px-8 pt-24 sm:pt-32 pb-20 sm:pb-28">
+        <div className="max-w-3xl">
+          {/* Eyebrow */}
+          <p className="animate-fade-up text-[11px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/60 mb-6">
+            {t.landingEyebrow}
           </p>
 
-          <div className="animate-fade-up anim-d3 flex items-center justify-center gap-3 flex-wrap mb-12">
+          {/* Headline */}
+          <h1 className="animate-fade-up anim-d1 font-black tracking-[-0.03em] leading-[1.02] text-foreground mb-6"
+            style={{ fontSize: "clamp(2.6rem, 6.5vw, 4.5rem)" }}
+          >
+            <span className="block">{t.landingHeroLine1}</span>
+            <span className="block">{t.landingHeroLine2}</span>
+          </h1>
+
+          {/* Sub */}
+          <p className="animate-fade-up anim-d2 text-[17px] sm:text-lg text-muted-foreground leading-[1.75] max-w-xl mb-10">
+            {t.landingSubcopyV2}
+          </p>
+
+          {/* CTAs */}
+          <div className="animate-fade-up anim-d3 flex items-center gap-3 flex-wrap">
             {user ? (
               <Link href="/rooms">
-                <PrimaryBtn>{t.landingGoToApp} <ArrowRightIcon size={13} /></PrimaryBtn>
+                <PrimaryBtn large>{t.landingGoToApp} <ArrowRightIcon size={14} /></PrimaryBtn>
               </Link>
             ) : (
               <>
                 <Link href="/signup">
-                  <PrimaryBtn>{t.landingGetStarted} <ArrowRightIcon size={13} /></PrimaryBtn>
+                  <PrimaryBtn large>{t.landingGetStarted} <ArrowRightIcon size={14} /></PrimaryBtn>
                 </Link>
                 <Link href="/login">
-                  <SecondaryBtn>{t.loginBtn}</SecondaryBtn>
+                  <GhostBtn>{t.loginBtn}</GhostBtn>
                 </Link>
               </>
             )}
           </div>
         </div>
+      </section>
 
-        {/* Product preview */}
-        <div className="animate-fade-up anim-d4 max-w-4xl mx-auto">
-          <ProductPreview />
-          <p className="mt-3 text-center text-xs text-muted-foreground/50">
-            {locale === "ja" ? "意思決定と実行の接続レイヤー" : "The layer between decision and execution"}
+      {/* ── Problem ────────────────────────────────────────────────────────── */}
+      <section
+        ref={secProblem.ref as React.RefObject<HTMLElement>}
+        style={secProblem.style}
+        className="border-y border-border bg-[#F7F7F5]"
+      >
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/50 mb-5">
+            {t.landingProblemEyebrow}
           </p>
-        </div>
-      </section>
+          <h2
+            className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-12 sm:mb-14 whitespace-pre-line"
+            style={{ fontSize: "clamp(1.65rem, 3.8vw, 2.5rem)" }}
+          >
+            {t.landingProblemTitle}
+          </h2>
 
-      {/* Appeal cards */}
-      <section
-        ref={secCards.ref as React.RefObject<HTMLElement>}
-        style={secCards.style}
-        className="max-w-6xl mx-auto px-5 sm:px-6 pb-20 sm:pb-24"
-      >
-        <div className="grid sm:grid-cols-3 gap-3">
-          {cards.map((card, i) => (
-            <div
-              key={i}
-              className="rounded-[20px] border border-border bg-card p-6 cursor-default
-                transition-all duration-200
-                hover:-translate-y-1 hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] hover:border-foreground/10"
-            >
-              <p className="text-sm font-semibold text-foreground leading-snug mb-2">{card.title}</p>
-              <p className="text-sm text-muted-foreground leading-7">{card.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section
-        ref={secHow.ref as React.RefObject<HTMLElement>}
-        style={secHow.style}
-        className="border-t border-border/60 bg-card/50"
-      >
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-14 sm:py-18">
-          <div className="max-w-2xl mb-8">
-            <SectionTitle>{t.landingHowTitle}</SectionTitle>
-          </div>
-          <div className="max-w-lg divide-y divide-border/50">
-            {steps.map((step, i) => (
-              <div key={i} className="flex items-start gap-5 py-4">
-                <span className="shrink-0 text-sm font-bold text-foreground/20 w-4 text-right select-none mt-px">
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{step}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{stepLabels[i]}</p>
-                </div>
+          <div className="grid sm:grid-cols-3 gap-px bg-border rounded-2xl overflow-hidden">
+            {[
+              { title: t.landingProblemItem1Title, body: t.landingProblemItem1Body },
+              { title: t.landingProblemItem2Title, body: t.landingProblemItem2Body },
+              { title: t.landingProblemItem3Title, body: t.landingProblemItem3Body },
+            ].map((item, i) => (
+              <div key={i} className="bg-[#F7F7F5] p-6 sm:p-7">
+                <p className="text-[13px] font-bold text-foreground mb-2 leading-snug">{item.title}</p>
+                <p className="text-[14px] text-muted-foreground leading-relaxed">{item.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Roles */}
+      {/* ── How it works ───────────────────────────────────────────────────── */}
       <section
-        ref={secModes.ref as React.RefObject<HTMLElement>}
-        style={secModes.style}
-        className="max-w-6xl mx-auto px-5 sm:px-6 py-16 sm:py-20"
+        ref={secHow.ref as React.RefObject<HTMLElement>}
+        style={secHow.style}
+        className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-24"
       >
-        <div className="max-w-2xl mb-10">
-          <SectionTitle>{t.landingModesTitle}</SectionTitle>
-        </div>
-        <div className="grid sm:grid-cols-3 gap-3">
-          {[
-            {
-              color: "#10a37f",
-              label: "Builder",
-              descJa: "候補となる選択肢を複数提案し、メリット・デメリット・向いている条件・向いていない条件を整理します。",
-              descEn: "Generates multiple candidate options and maps out pros, cons, and fit conditions for each.",
-            },
-            {
-              color: "#d97706",
-              label: "Breaker",
-              descJa: "崩れる条件・前提依存・失敗シナリオを明らかにします。反証と検証で判断の信頼性を高めます。",
-              descEn: "Challenges each option — surfacing shaky assumptions, hidden dependencies, and failure scenarios.",
-            },
-            {
-              color: "#4285f4",
-              label: "Operator",
-              descJa: "採用・棄却・残論点・次アクション・将来検討を整理し、Decision Brief と Task List として出力します。",
-              descEn: "Structures outcomes into adoption decisions, open questions, next actions, and a Future Considerations list.",
-            },
-          ].map((role) => (
-            <div key={role.label} className="rounded-[20px] border border-border bg-card p-6 transition-all duration-200 hover:border-foreground/15 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: role.color }} />
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">{role.label}</p>
+        <h2
+          className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-12 sm:mb-16"
+          style={{ fontSize: "clamp(1.65rem, 3.8vw, 2.5rem)" }}
+        >
+          {t.landingHowV2Title}
+        </h2>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-2xl overflow-hidden">
+          {howSteps.map((step) => (
+            <div key={step.n} className="bg-background p-6 sm:p-7 flex flex-col gap-4">
+              <span className="text-[11px] font-bold tracking-[0.12em] text-muted-foreground/40 uppercase">
+                {step.n}
+              </span>
+              <div>
+                <p className="text-[15px] font-bold text-foreground mb-2 leading-snug">{step.title}</p>
+                <p className="text-[13px] text-muted-foreground leading-relaxed">{step.body}</p>
               </div>
-              <p className="text-sm text-foreground leading-7">{locale === "ja" ? role.descJa : role.descEn}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Pricing */}
+      {/* ── Decision Memo showcase ──────────────────────────────────────────── */}
       <section
-        ref={secPricing.ref as React.RefObject<HTMLElement>}
-        style={secPricing.style}
-        className="border-t border-border/60 bg-card/50"
+        ref={secMemo.ref as React.RefObject<HTMLElement>}
+        style={secMemo.style}
+        className="border-t border-border bg-[#F7F7F5]"
       >
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-16 sm:py-20">
-          <div className="max-w-2xl mb-10">
-            <SectionTitle>{t.pricingTitle}</SectionTitle>
-            <p className="mt-3 text-sm text-muted-foreground leading-7">{t.pricingSub}</p>
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
+          <div className="grid lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-16 items-start">
+            {/* Left: text */}
+            <div className="lg:pt-4">
+              <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/50 mb-5">
+                {t.landingMemoEyebrow}
+              </p>
+              <h2
+                className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-5"
+                style={{ fontSize: "clamp(1.65rem, 3.4vw, 2.3rem)" }}
+              >
+                {t.landingMemoTitle}
+              </h2>
+              <p className="text-[15px] text-muted-foreground leading-relaxed mb-8">
+                {t.landingMemoSub}
+              </p>
+
+              {/* Output types */}
+              <div className="space-y-2">
+                {(isJa
+                  ? [
+                      ["Decision Memo",    "判断・背景・根拠・分類・次アクション"],
+                      ["Task List",        "すぐに実行できるタスク一覧"],
+                      ["Generic Prompt",   "汎用AIへのプロンプト"],
+                      ["Build Prompt",     "実行ツール向けの構造化プロンプト"],
+                    ]
+                  : [
+                      ["Decision Memo",   "Decision, background, reasoning, scope classification, next actions"],
+                      ["Task List",       "Immediately actionable task list"],
+                      ["Generic Prompt",  "Prompt ready for any AI tool"],
+                      ["Build Prompt",    "Structured prompt for execution tools"],
+                    ]
+                ).map(([label, desc]) => (
+                  <div key={label} className="flex items-start gap-3 py-2 border-b border-border/50 last:border-0">
+                    <span className="shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full bg-foreground/40 mt-[7px]" />
+                    <div>
+                      <span className="text-[13px] font-semibold text-foreground">{label}</span>
+                      <span className="text-[12px] text-muted-foreground ml-2">{desc}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: preview card */}
+            <DecisionMemoPreview locale={locale} />
           </div>
-          <PricingSection />
         </div>
       </section>
 
-      {/* Footer CTA */}
+      {/* ── Positioning ────────────────────────────────────────────────────── */}
+      <section
+        ref={secWhy.ref as React.RefObject<HTMLElement>}
+        style={secWhy.style}
+        className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-24"
+      >
+        <h2
+          className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-4"
+          style={{ fontSize: "clamp(1.65rem, 3.8vw, 2.5rem)" }}
+        >
+          {t.landingPositioningTitle}
+        </h2>
+        <p className="text-[15px] text-muted-foreground leading-relaxed mb-10 max-w-xl">
+          {t.landingPositioningSub}
+        </p>
+        <PositioningGrid locale={locale} />
+      </section>
+
+      {/* ── Use cases ──────────────────────────────────────────────────────── */}
+      <section
+        ref={secUseCases.ref as React.RefObject<HTMLElement>}
+        style={secUseCases.style}
+        className="border-t border-border bg-[#F7F7F5]"
+      >
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+          <h2
+            className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-3"
+            style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)" }}
+          >
+            {t.landingUseCasesTitle}
+          </h2>
+          <p className="text-[14px] text-muted-foreground leading-relaxed mb-8 max-w-lg">
+            {t.landingUseCasesSub}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {useCases.map((uc) => (
+              <span
+                key={uc}
+                className="px-4 py-2 rounded-full border border-border bg-background text-[13px] font-medium text-foreground/80"
+              >
+                {uc}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Pricing note ───────────────────────────────────────────────────── */}
+      <section
+        ref={secPricing.ref as React.RefObject<HTMLElement>}
+        style={secPricing.style}
+        className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-20"
+      >
+        <div className="grid sm:grid-cols-[1fr_auto] gap-8 items-start">
+          {/* Free plan */}
+          <div className="max-w-sm">
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-3xl font-black tracking-tight text-foreground">$0</span>
+              <span className="text-sm text-muted-foreground">{isJa ? "/ 無料ではじめる" : "/ Start free"}</span>
+            </div>
+            <p className="text-[14px] text-muted-foreground mb-5 leading-relaxed">
+              {t.planFreeDesc}
+            </p>
+            <ul className="space-y-2.5 mb-6">
+              {freeFeatures.map((f) => (
+                <li key={f} className="flex items-start gap-2.5 text-[13px] text-foreground/80">
+                  <span className="shrink-0 mt-0.5 text-foreground/40 text-xs font-bold">✓</span>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Link href="/signup">
+              <PrimaryBtn>{t.planFreeCta} <ArrowRightIcon size={13} /></PrimaryBtn>
+            </Link>
+          </div>
+
+          {/* BYOK note */}
+          <div className="sm:max-w-[260px] rounded-2xl border border-border bg-card p-5">
+            <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-muted-foreground/50 mb-3">
+              BYOK
+            </p>
+            <p className="text-[13px] text-foreground/80 leading-relaxed">
+              {isJa
+                ? "自分の OpenAI / Anthropic / Google APIキーで動かせます。Connectプランにより近日提供予定。"
+                : "Bring your own OpenAI, Anthropic, or Google API keys. Available with the Connect plan — coming soon."}
+            </p>
+            <p className="mt-2 text-[12px] text-muted-foreground/60">
+              {isJa ? "現在は Free で試せます" : "Try free in the meantime"}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer CTA ─────────────────────────────────────────────────────── */}
       <section
         ref={secFooter.ref as React.RefObject<HTMLElement>}
         style={secFooter.style}
-        className="border-t border-border/60"
+        className="border-t border-border"
       >
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-20 sm:py-24 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-7">
-            {t.landingFooterCta}
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-20 sm:py-28">
+          <h2
+            className="font-black tracking-[-0.03em] leading-[1.05] text-foreground mb-4 max-w-lg"
+            style={{ fontSize: "clamp(2rem, 5vw, 3.25rem)" }}
+          >
+            {t.landingFooterCtaV2}
           </h2>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
+          <p className="text-[15px] text-muted-foreground mb-8">
+            {t.landingFooterSub}
+          </p>
+          <div className="flex items-center gap-3 flex-wrap">
             {user ? (
               <Link href="/rooms">
-                <PrimaryBtn>{t.landingGoToApp} <ArrowRightIcon size={13} /></PrimaryBtn>
+                <PrimaryBtn large>{t.landingGoToApp} <ArrowRightIcon size={14} /></PrimaryBtn>
               </Link>
             ) : (
               <>
                 <Link href="/signup">
-                  <PrimaryBtn>{t.landingGetStarted} <ArrowRightIcon size={13} /></PrimaryBtn>
+                  <PrimaryBtn large>{t.landingGetStarted} <ArrowRightIcon size={14} /></PrimaryBtn>
                 </Link>
                 <Link href="/login">
-                  <SecondaryBtn>{t.loginBtn}</SecondaryBtn>
+                  <GhostBtn>{t.loginBtn}</GhostBtn>
                 </Link>
               </>
             )}
@@ -509,11 +601,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border/60 bg-card/40">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 h-12 flex items-center justify-between text-[11px] text-muted-foreground/50">
-          <span>© 2025 Qrooma</span>
-          <span className="hidden sm:inline">Multi-role AI · Decision Brief · Task List</span>
+      {/* ── Footer ─────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-border bg-card/40">
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 h-12 flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground/50 font-medium">© 2025 Qrooma</span>
+          <span className="text-[11px] text-muted-foreground/40 hidden sm:inline">
+            {isJa ? "思考と実行の間にある層" : "The layer between thinking and execution"}
+          </span>
         </div>
       </footer>
     </div>
