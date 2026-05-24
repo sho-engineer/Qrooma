@@ -5,7 +5,7 @@ import { ArrowRightIcon } from "lucide-react";
 import logoA from "@assets/36F012D4-0DE3-4A75-A486-1607B0602A6C_1779613152980.png";
 import logoB from "@assets/80261625-23D3-40DD-95D0-9D7E4A01D73D_1779613152980.png";
 
-// ─── useFadeSection — scroll-triggered fade-up ────────────────────────────────
+// ─── useFadeSection ───────────────────────────────────────────────────────────
 function useFadeSection() {
   const ref = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
@@ -52,8 +52,8 @@ function GhostBtn({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── Decision Memo Preview Card ───────────────────────────────────────────────
-function DecisionMemoPreview() {
+// ─── Decision Memo Preview (Japanese) ─────────────────────────────────────────
+function DecisionMemoPreviewJp() {
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
       {/* Window chrome */}
@@ -75,20 +75,20 @@ function DecisionMemoPreview() {
         {/* Topic */}
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 mb-1">
-            Topic
+            テーマ
           </p>
           <p className="text-sm font-semibold text-foreground leading-snug">
-            Which features go into the MVP?
+            MVPにどの機能を入れるか
           </p>
         </div>
 
         {/* Decision */}
         <div className="border border-foreground/10 rounded-xl px-4 py-3 bg-background">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 mb-1.5">
-            Decision
+            判断
           </p>
           <p className="text-[13px] text-foreground leading-relaxed font-medium">
-            Ship auth + core loop only. No team features in v1.
+            認証フローとコアループのみ実装。チーム機能は v1 対象外。
           </p>
         </div>
 
@@ -96,28 +96,28 @@ function DecisionMemoPreview() {
         <div className="grid grid-cols-2 gap-2">
           {[
             {
-              label:  "Do now",
+              label:  "今やる",
               symbol: "✓",
               dark:   true,
-              items:  ["Auth flow", "Core loop", "Analytics events"],
+              items:  ["認証フロー", "コアループ", "分析イベント"],
             },
             {
-              label:  "Not now",
+              label:  "今やらない",
               symbol: "✗",
               dark:   false,
-              items:  ["Team workspaces", "Advanced filters", "Custom themes"],
+              items:  ["チームワークスペース", "高度なフィルター", "カスタムテーマ"],
             },
             {
-              label:  "Consider later",
+              label:  "後で検討",
               symbol: "○",
               dark:   false,
-              items:  ["AI suggestions", "API access"],
+              items:  ["AI提案機能", "APIアクセス"],
             },
             {
-              label:  "Need more info",
+              label:  "要検証",
               symbol: "?",
               dark:   false,
-              items:  ["Pricing model validation"],
+              items:  ["料金モデルの検証"],
             },
           ].map((box) => (
             <div
@@ -145,13 +145,13 @@ function DecisionMemoPreview() {
         {/* Next actions */}
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 mb-2">
-            Next actions
+            次アクション
           </p>
           <ul className="space-y-1">
             {[
-              "Start design with auth flow",
-              "Plan user test for core loop",
-              "Add team features to v2 backlog",
+              "設計を auth flow から開始",
+              "コアループのユーザーテストを計画",
+              "チーム機能を v2 バックログに追加",
             ].map((action, i) => (
               <li key={i} className="flex items-start gap-2 text-[12px] text-foreground/70">
                 <span className="shrink-0 mt-px w-4 h-4 rounded-full border border-border flex items-center justify-center text-[9px] font-bold text-muted-foreground/50">
@@ -167,25 +167,25 @@ function DecisionMemoPreview() {
   );
 }
 
-// ─── Positioning grid ─────────────────────────────────────────────────────────
-function PositioningGrid() {
+// ─── Positioning grid (Japanese) ──────────────────────────────────────────────
+function PositioningGridJp() {
   const rows = [
     {
-      category: "Thinking",
+      category: "思考 / 壁打ち",
       tools:    "ChatGPT, Claude, Gemini",
-      role:     "Generate ideas",
+      role:     "アイデア生成",
       here:     false,
     },
     {
-      category: "Deciding",
+      category: "判断 / 構造化",
       tools:    "Clario",
-      role:     "Compare, pressure-test, structure",
+      role:     "比較・検証・構造化",
       here:     true,
     },
     {
-      category: "Building",
+      category: "実行 / 構築",
       tools:    "Manus, Replit, Cursor, Claude Code",
-      role:     "Implement and build",
+      role:     "実装・構築",
       here:     false,
     },
   ];
@@ -208,7 +208,7 @@ function PositioningGrid() {
             {row.tools}
             {row.here && (
               <span className="ml-2 text-[10px] font-bold uppercase tracking-widest opacity-50">
-                ← you are here
+                ← あなたはここ
               </span>
             )}
           </p>
@@ -221,8 +221,8 @@ function PositioningGrid() {
   );
 }
 
-// ─── Main Landing Page (English) ──────────────────────────────────────────────
-export default function LandingPage() {
+// ─── Japanese Landing Page (/jp) ──────────────────────────────────────────────
+export default function LandingJpPage() {
   const { user } = useAuth();
 
   const secProblem   = useFadeSection();
@@ -236,40 +236,40 @@ export default function LandingPage() {
   const howSteps = [
     {
       n: "01",
-      title: "Compare options",
-      body:  "Surface multiple choices with pros, cons, and fit conditions — so every decision has a real foundation.",
+      title: "選択肢を並べる",
+      body:  "複数の判断軸で選択肢を比較する。片方の視点に偏らず、論点を整理する。",
     },
     {
       n: "02",
-      title: "Challenge assumptions",
-      body:  "AI roles pressure-test your reasoning, surface blind spots, and break down beliefs you didn't know you were holding.",
+      title: "前提を崩す",
+      body:  "AIが仮定・反証・盲点の指摘を行い、思い込みを壊す。決断の質を上げる。",
     },
     {
       n: "03",
-      title: "Structure the decision",
-      body:  "Classify what to do now, not now, later, or investigate further — with reasoning and background attached.",
+      title: "判断を構造化する",
+      body:  "今やること・やらないこと・後で考えることを分類。判断に根拠と背景を付ける。",
     },
     {
       n: "04",
-      title: "Hand off to execution",
-      body:  "Export a Decision Memo or Build Prompt ready for ChatGPT, Manus, Replit, Cursor, or Claude Code.",
+      title: "実行に渡す",
+      body:  "Decision Memoとして出力。ChatGPT、Manus、Replit、Cursor、Claude Codeに渡せる形にまとまる。",
     },
   ];
 
   const useCases = [
-    "MVP scope",
-    "Feature priority",
-    "Pricing & plans",
-    "LP messaging",
-    "Implementation direction",
-    "Build vs. buy",
+    "MVP スコープ",
+    "機能優先度",
+    "料金・プラン設計",
+    "LP 訴求の方向性",
+    "実装方針",
+    "Build vs. Buy",
   ];
 
   const freeFeatures = [
-    "Builder / Breaker / Operator AI roles",
-    "Decision Memo output",
-    "Scope classification (Do now / Not now / Later / Need more info)",
-    "3 discussions/day · No API keys required",
+    "Builder / Breaker / Operator の3役割",
+    "Decision Memo 出力",
+    "スコープ分類（今やる / 今やらない / 後で検討 / 要検証）",
+    "1日3回まで · APIキー不要",
   ];
 
   return (
@@ -278,28 +278,28 @@ export default function LandingPage() {
       {/* ── Nav ─────────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between gap-4">
-          <Link href="/">
+          <Link href="/jp">
             <img src={logoA} alt="Clario" className="h-7 w-auto hover:opacity-70 transition-opacity duration-150" />
           </Link>
           <div className="flex items-center gap-2 shrink-0">
-            <Link href="/jp">
+            <Link href="/">
               <button className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-full border border-border/60 hover:border-border transition-all duration-150">
-                日本語
+                EN
               </button>
             </Link>
             {user ? (
               <Link href="/rooms">
-                <PrimaryBtn>Open app</PrimaryBtn>
+                <PrimaryBtn>アプリを開く</PrimaryBtn>
               </Link>
             ) : (
               <>
                 <Link href="/login">
                   <button className="hidden sm:inline-block px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
-                    Log in
+                    ログイン
                   </button>
                 </Link>
                 <Link href="/signup">
-                  <PrimaryBtn>Start free</PrimaryBtn>
+                  <PrimaryBtn>無料で始める</PrimaryBtn>
                 </Link>
               </>
             )}
@@ -315,29 +315,29 @@ export default function LandingPage() {
           </p>
 
           <h1
-            className="animate-fade-up anim-d1 font-black tracking-[-0.03em] leading-[1.02] text-foreground mb-6"
+            className="animate-fade-up anim-d1 font-black tracking-[-0.03em] leading-[1.08] text-foreground mb-6"
             style={{ fontSize: "clamp(2.6rem, 6.5vw, 4.5rem)" }}
           >
-            <span className="block">Turn messy thinking</span>
-            <span className="block">into clear decisions.</span>
+            <span className="block">散らかった思考を、</span>
+            <span className="block">明確な判断に変える。</span>
           </h1>
 
-          <p className="animate-fade-up anim-d2 text-[17px] sm:text-lg text-muted-foreground leading-[1.75] max-w-xl mb-10">
-            Built for solo founders and product-minded builders. Compare options, pressure-test assumptions, decide what to do now — and hand off a structured memo to your execution tools.
+          <p className="animate-fade-up anim-d2 text-[17px] sm:text-lg text-muted-foreground leading-[1.8] max-w-xl mb-10">
+            ひとりで事業をつくる人のための AI Decision Room。選択肢を比較し、前提を崩し、判断する。ChatGPT、Manus、Replit、Cursorに渡せる形でまとめます。
           </p>
 
           <div className="animate-fade-up anim-d3 flex items-center gap-3 flex-wrap">
             {user ? (
               <Link href="/rooms">
-                <PrimaryBtn large>Open app <ArrowRightIcon size={14} /></PrimaryBtn>
+                <PrimaryBtn large>アプリを開く <ArrowRightIcon size={14} /></PrimaryBtn>
               </Link>
             ) : (
               <>
                 <Link href="/signup">
-                  <PrimaryBtn large>Start free <ArrowRightIcon size={14} /></PrimaryBtn>
+                  <PrimaryBtn large>無料で始める <ArrowRightIcon size={14} /></PrimaryBtn>
                 </Link>
                 <Link href="/login">
-                  <GhostBtn>Log in</GhostBtn>
+                  <GhostBtn>ログイン</GhostBtn>
                 </Link>
               </>
             )}
@@ -353,28 +353,28 @@ export default function LandingPage() {
       >
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
           <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/50 mb-5">
-            The problem
+            よくある問題
           </p>
           <h2
-            className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-12 sm:mb-14"
+            className="font-black tracking-[-0.025em] leading-[1.2] text-foreground mb-12 sm:mb-14"
             style={{ fontSize: "clamp(1.65rem, 3.8vw, 2.5rem)" }}
           >
-            AI can help you think.<br />That doesn't mean you've decided.
+            AIは考えるのを助けてくれる。<br />でも、それは「決めた」ことにならない。
           </h2>
 
           <div className="grid sm:grid-cols-3 gap-px bg-border rounded-2xl overflow-hidden">
             {[
               {
-                title: "The one-AI loop",
-                body:  "Going back and forth with a single AI narrows your perspective. Ideas emerge, but without comparison or pressure-testing, decision quality stalls.",
+                title: "ひとつのAIとのループ",
+                body:  "ChatGPTやClaudeと往復しているうちに、視野が狭くなる。アイデアは出るが、比較や反証がなく、判断の質が上がらない。",
               },
               {
-                title: "Exploration without landing",
-                body:  "You list the options. You still don't know which one to pick. The discussion ends without a clear decision.",
+                title: "探索しても着地できない",
+                body:  "選択肢を並べても「どれにするか」が決まらない。議論が止まったまま、先に進めない。",
               },
               {
-                title: "Vague handoff to execution",
-                body:  "You know what you want to build, but can't tell ChatGPT or Cursor exactly what to do. The decision wasn't structured.",
+                title: "実行への引き渡しが曖昧",
+                body:  "ChatGPTやCursorに何を渡せばいいかわからない。判断が構造化されていないから。",
               },
             ].map((item, i) => (
               <div key={i} className="bg-[#F7F7F5] p-6 sm:p-7">
@@ -396,7 +396,7 @@ export default function LandingPage() {
           className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-12 sm:mb-16"
           style={{ fontSize: "clamp(1.65rem, 3.8vw, 2.5rem)" }}
         >
-          Compare. Challenge. Decide. Hand off.
+          比較して、崩して、決めて、渡す。
         </h2>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-2xl overflow-hidden">
@@ -425,24 +425,24 @@ export default function LandingPage() {
             {/* Left: text */}
             <div className="lg:pt-4">
               <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/50 mb-5">
-                Output
+                アウトプット
               </p>
               <h2
-                className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-5"
+                className="font-black tracking-[-0.025em] leading-[1.2] text-foreground mb-5"
                 style={{ fontSize: "clamp(1.65rem, 3.4vw, 2.3rem)" }}
               >
-                Every decision becomes a memo.
+                判断が、一枚のメモになる。
               </h2>
               <p className="text-[15px] text-muted-foreground leading-relaxed mb-8">
-                Structured output ready to hand off to ChatGPT, Claude, Manus, Replit, or Cursor.
+                ChatGPT、Claude、Manus、Replit、Cursorに渡せる、構造化されたアウトプット。
               </p>
 
               <div className="space-y-2">
                 {[
-                  ["Decision Memo",   "Decision, background, reasoning, scope classification, next actions"],
-                  ["Task List",       "Immediately actionable task list"],
-                  ["Generic Prompt",  "Prompt ready for any AI tool"],
-                  ["Build Prompt",    "Structured prompt for execution tools"],
+                  ["Decision Memo",   "判断・背景・根拠・スコープ分類・次アクション"],
+                  ["Task List",       "すぐに実行できるタスク一覧"],
+                  ["Generic Prompt",  "汎用AIへのプロンプト"],
+                  ["Build Prompt",    "実行ツール向けの構造化プロンプト"],
                 ].map(([label, desc]) => (
                   <div key={label} className="flex items-start gap-3 py-2 border-b border-border/50 last:border-0">
                     <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-foreground/40 mt-[7px]" />
@@ -456,7 +456,7 @@ export default function LandingPage() {
             </div>
 
             {/* Right: preview card */}
-            <DecisionMemoPreview />
+            <DecisionMemoPreviewJp />
           </div>
         </div>
       </section>
@@ -468,15 +468,15 @@ export default function LandingPage() {
         className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-24"
       >
         <h2
-          className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-4"
+          className="font-black tracking-[-0.025em] leading-[1.2] text-foreground mb-4"
           style={{ fontSize: "clamp(1.65rem, 3.8vw, 2.5rem)" }}
         >
-          The layer between thinking and execution.
+          思考と実行のあいだにある層。
         </h2>
         <p className="text-[15px] text-muted-foreground leading-relaxed mb-10 max-w-xl">
-          Clario isn't another chatbot, a PM tool, or a meeting summarizer. It's the decision layer that sits before you build.
+          Clarioはチャットボットでも、PMツールでも、議事録ツールでもない。判断を構造化する専用の層。
         </p>
-        <PositioningGrid />
+        <PositioningGridJp />
       </section>
 
       {/* ── Use cases ───────────────────────────────────────────────────────── */}
@@ -487,13 +487,13 @@ export default function LandingPage() {
       >
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
           <h2
-            className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-3"
+            className="font-black tracking-[-0.025em] leading-[1.2] text-foreground mb-3"
             style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)" }}
           >
-            Built for the decisions that move products forward.
+            プロダクトを動かす、あらゆる判断に。
           </h2>
           <p className="text-[14px] text-muted-foreground leading-relaxed mb-8 max-w-lg">
-            MVP scope, feature priority, pricing, LP messaging, implementation direction, build vs. buy — any decision that needs structure.
+            MVP スコープ、機能優先度、価格設計、LP訴求、実装方針、Build vs. Buy — 構造が必要なすべての判断に。
           </p>
           <div className="flex flex-wrap gap-2">
             {useCases.map((uc) => (
@@ -519,10 +519,10 @@ export default function LandingPage() {
           <div className="max-w-sm">
             <div className="flex items-baseline gap-2 mb-1">
               <span className="text-3xl font-black tracking-tight text-foreground">$0</span>
-              <span className="text-sm text-muted-foreground">/ Start free</span>
+              <span className="text-sm text-muted-foreground">/ 無料ではじめる</span>
             </div>
             <p className="text-[14px] text-muted-foreground mb-5 leading-relaxed">
-              Try it now without any API keys. Full Decision Room experience, no setup required.
+              APIキー不要で今すぐ試せます。フルのDecision Room体験を、セットアップなしで。
             </p>
             <ul className="space-y-2.5 mb-6">
               {freeFeatures.map((f) => (
@@ -533,7 +533,7 @@ export default function LandingPage() {
               ))}
             </ul>
             <Link href="/signup">
-              <PrimaryBtn>Get started free <ArrowRightIcon size={13} /></PrimaryBtn>
+              <PrimaryBtn>無料で始める <ArrowRightIcon size={13} /></PrimaryBtn>
             </Link>
           </div>
 
@@ -543,10 +543,10 @@ export default function LandingPage() {
               BYOK
             </p>
             <p className="text-[13px] text-foreground/80 leading-relaxed">
-              Bring your own OpenAI, Anthropic, or Google API keys. Available with the Connect plan — coming soon.
+              自分の OpenAI / Anthropic / Google APIキーで動かせます。Connectプランにより近日提供予定。
             </p>
             <p className="mt-2 text-[12px] text-muted-foreground/60">
-              Try free in the meantime
+              現在は Free で試せます
             </p>
           </div>
         </div>
@@ -560,26 +560,26 @@ export default function LandingPage() {
       >
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-20 sm:py-28">
           <h2
-            className="font-black tracking-[-0.03em] leading-[1.05] text-foreground mb-4 max-w-lg"
+            className="font-black tracking-[-0.03em] leading-[1.15] text-foreground mb-4 max-w-lg"
             style={{ fontSize: "clamp(2rem, 5vw, 3.25rem)" }}
           >
-            Create your first Decision Room.
+            最初のDecision Roomを作ろう。
           </h2>
           <p className="text-[15px] text-muted-foreground mb-8">
-            Free to start. No API keys required.
+            無料で始められます。APIキー不要。
           </p>
           <div className="flex items-center gap-3 flex-wrap">
             {user ? (
               <Link href="/rooms">
-                <PrimaryBtn large>Open app <ArrowRightIcon size={14} /></PrimaryBtn>
+                <PrimaryBtn large>アプリを開く <ArrowRightIcon size={14} /></PrimaryBtn>
               </Link>
             ) : (
               <>
                 <Link href="/signup">
-                  <PrimaryBtn large>Start free <ArrowRightIcon size={14} /></PrimaryBtn>
+                  <PrimaryBtn large>無料で始める <ArrowRightIcon size={14} /></PrimaryBtn>
                 </Link>
                 <Link href="/login">
-                  <GhostBtn>Log in</GhostBtn>
+                  <GhostBtn>ログイン</GhostBtn>
                 </Link>
               </>
             )}
@@ -596,11 +596,11 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-4">
             <span className="text-[11px] text-muted-foreground/40 hidden sm:inline">
-              The layer between thinking and execution
+              思考と実行のあいだにある層
             </span>
-            <Link href="/jp">
+            <Link href="/">
               <span className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground transition-colors cursor-pointer">
-                日本語
+                EN
               </span>
             </Link>
           </div>

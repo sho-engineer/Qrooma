@@ -10,6 +10,7 @@ import { LocaleProvider } from "./context/LocaleContext";
 import { PlanProvider, usePlan, type Plan } from "./context/PlanContext";
 import { UserProfileProvider } from "./context/UserProfileContext";
 import LandingPage from "./pages/LandingPage";
+import LandingJpPage from "./pages/LandingJpPage";
 import AuthPage from "./pages/AuthPage";
 import RoomsPage from "./pages/RoomsPage";
 import RoomDetailPage from "./pages/RoomDetailPage";
@@ -141,6 +142,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
+      <Route path="/jp" component={LandingJpPage} />
 
       <Route path="/login">
         <GuestGuard>
