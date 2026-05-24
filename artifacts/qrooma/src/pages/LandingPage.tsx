@@ -86,7 +86,7 @@ function DecisionMemoPreview({ locale }: { locale: Locale }) {
             <div className="w-2.5 h-2.5 rounded-full bg-foreground/8" />
             <div className="w-2.5 h-2.5 rounded-full bg-foreground/8" />
           </div>
-          <span className="text-[11px] font-medium text-muted-foreground/50 ml-1">Qrooma</span>
+          <span className="text-[11px] font-medium text-muted-foreground/50 ml-1">Clario</span>
         </div>
         <span className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground/40">
           {isJa ? "Decision Memo" : "Decision Memo"}
@@ -210,7 +210,7 @@ function PositioningGrid({ locale }: { locale: Locale }) {
     },
     {
       category: isJa ? "判断 / 構造化" : "Deciding",
-      tools:    "Qrooma",
+      tools:    "Clario",
       role:     isJa ? "比較・検証・構造化" : "Compare, pressure-test, structure",
       here:     true,
     },
@@ -291,7 +291,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between gap-4">
           <Link href="/">
             <button className="text-[15px] font-bold tracking-tight text-foreground hover:opacity-70 transition-opacity duration-150">
-              Qrooma
+              Clario
             </button>
           </Link>
           <div className="flex items-center gap-2 shrink-0">
@@ -604,7 +604,7 @@ export default function LandingPage() {
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer className="border-t border-border bg-card/40">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 h-12 flex items-center justify-between">
-          <span className="text-[11px] text-muted-foreground/50 font-medium">© 2025 Qrooma</span>
+          <span className="text-[11px] text-muted-foreground/50 font-medium">© 2025 Clario</span>
           <span className="text-[11px] text-muted-foreground/40 hidden sm:inline">
             {isJa ? "思考と実行の間にある層" : "The layer between thinking and execution"}
           </span>

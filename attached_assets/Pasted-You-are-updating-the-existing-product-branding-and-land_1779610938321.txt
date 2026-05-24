@@ -1,0 +1,433 @@
+You are updating the existing product branding and landing page in the current codebase.
+
+Your task is to rename the service branding from **Qrooma** to **Clario** and update the landing page and user-facing product copy so that the product is positioned correctly for the US market.
+
+This is NOT a blind find-and-replace task.
+Please make careful, context-aware updates.
+
+---
+
+# Main objective
+
+Rename the product branding from:
+
+- Qrooma
+
+to:
+
+- Clario
+
+And update the LP and visible product messaging so the product is positioned as:
+
+**Clario — an AI Decision Room for solo founders and product-minded builders**
+
+---
+
+# Product positioning to reflect
+
+Clario is NOT just a “multi-AI debate tool.”
+Clario is an **AI Decision Room** for **solo founders** and **product-minded builders**.
+
+It helps users:
+- clarify messy thinking
+- compare options
+- pressure-test assumptions
+- structure decisions
+- decide what to do now vs later
+- turn decisions into a one-page memo
+- hand off the result into execution tools
+
+Core value:
+**turn messy thinking into clear decisions and next actions**
+
+Clario should be positioned as:
+- not another chatbot
+- not a PM tool
+- not a meeting summary tool
+- not a general AI workspace
+
+Instead, Clario is:
+- the layer between thinking and execution
+- an AI Decision Room for founders who need to compare, pressure-test, and move forward
+
+---
+
+# Primary target
+
+The landing page should target:
+
+- Solo founders
+- Indie builders
+- Product-minded builders
+- People building products or businesses alone or in very small teams
+
+Do NOT write for enterprise teams, large organizations, or committee-style decision making.
+
+---
+
+# Main problem to communicate
+
+The key pain points are:
+
+- thinking gets messy
+- using only one AI often creates a narrow loop between “me + one AI”
+- people explore options but still fail to decide clearly
+- discussion does not convert into action
+- decisions are not structured in a reusable way
+- handoff to tools like ChatGPT, Claude, Manus, Replit, Claude Code, Cursor remains vague
+
+The page should communicate that Clario improves the **quality of decision-making**, not just the quantity of ideas.
+
+---
+
+# Positioning / differentiation
+
+The LP must clearly distinguish Clario from:
+
+- ChatGPT / Claude / Gemini → general thinking tools
+- Manus / Replit / Claude Code / Cursor → execution / build tools
+- Notion / Linear / Jira / GitHub Issues → documentation / task / tracking tools
+
+Clario sits:
+- before execution
+- between ideation and execution
+
+Clario helps users:
+- compare
+- pressure-test
+- decide
+- structure
+- hand off
+
+Avoid presenting Clario as:
+- “a platform where AIs talk to each other” as the main pitch
+- a feature-first multi-AI product
+- a brainstorming toy
+- a team meeting/workshop platform
+
+---
+
+# Messaging direction
+
+Use this direction as the center:
+
+## Hero direction
+Clario helps solo founders turn messy thinking into clear decisions and next actions.
+
+## Problem direction
+ChatGPT can help you think.
+Claude can help you review.
+Manus / Replit / Cursor can help you build.
+But your decisions still get stuck between exploration and execution.
+
+## Role of Clario
+Clario helps founders:
+- compare options
+- pressure-test assumptions
+- decide what to do now
+- generate a decision memo
+- turn that into handoff-ready output
+
+---
+
+# What to emphasize on the LP
+
+Prioritize these in order:
+
+1. Compare and pressure-test decisions
+2. Decide what to do now / not now / later / needs more info
+3. Get a one-page decision memo
+4. Turn the output into next actions and handoff prompts
+5. Keep decisions organized at the project level
+
+Do NOT over-emphasize:
+- model provider names
+- multi-model setup
+- technical architecture
+- structured debate / free talk as front-and-center concepts
+- BYOK as the main value proposition
+
+---
+
+# Product capabilities to reflect conceptually
+
+The LP should reflect these capabilities as user value, not as a dense feature list:
+
+- Decision Types
+  - MVP scope
+  - feature priority
+  - LP / messaging
+  - implementation direction
+  - pricing / plan
+  - others
+
+- AI roles
+  - Builder
+  - Breaker
+  - Operator
+
+- Scope classification
+  - Do now
+  - Not now
+  - Consider later
+  - Need more info
+
+- One-page Decision Memo
+  - decision
+  - background
+  - reasoning
+  - comparison criteria
+  - what would change the decision
+  - do now / not now / later / need more info
+  - next actions
+  - referenced past decisions
+
+- Handoff outputs
+  - Decision Memo
+  - Task List
+  - Generic AI Prompt
+  - Build Prompt
+
+- Project-based organization
+  - projects contain multiple decision rooms
+  - users can refer back to prior decision memos in the same project
+
+---
+
+# CTA direction
+
+Primary CTA:
+- Start free
+
+Possible secondary CTA:
+- Create your first Decision Room
+
+The LP should support a free signup flow.
+Do not make pricing or BYOK the main CTA.
+
+---
+
+# BYOK / pricing guidance
+
+Do NOT place BYOK near the hero as a major selling point.
+
+BYOK should be treated as secondary information:
+- lower section
+- FAQ
+- subtle product detail
+
+Recommended posture:
+- Start free
+- BYOK supported
+- hosted plans can come later
+
+---
+
+# Visual design direction
+
+This is very important.
+
+The design should feel:
+- monochrome
+- typography-led
+- clean
+- sharp
+- premium
+- minimal
+- editorial SaaS
+- built for founders
+
+It should NOT feel:
+- colorful
+- playful
+- generic blue SaaS
+- heavy with cards and icons
+- startup-template-ish
+- overdesigned
+
+## Color palette
+Use a monochrome palette only:
+- background: #FFFFFF
+- primary text: #111111
+- secondary text: #525252
+- border: #E7E7E7
+- muted background: #F7F7F5
+- button background: #111111
+- button text: #FFFFFF
+
+Avoid blue accents, gradients, colorful icons, glassmorphism, or decorative illustrations.
+
+## Typography
+Typography should carry the visual identity.
+
+Use 2 fonts maximum.
+
+Recommended:
+- Heading font: Inter Tight or Manrope
+- Body font: Inter
+
+## Typography hierarchy
+Use strong size contrast.
+
+Recommended sizing:
+- Hero title: 72–84px desktop / 42–48px mobile
+- Hero subtitle: 20–24px desktop / 17–18px mobile
+- Section titles: 36–44px desktop / 28–32px mobile
+- Body text: 18px desktop / 16px mobile
+- Small text: 13–14px
+- Button text: 15–16px
+
+## Layout feel
+- generous whitespace
+- strong visual rhythm
+- fewer but stronger sections
+- clean alignment
+- controlled content width
+- minimal icon usage
+- simple but premium buttons
+- subtle borders instead of decorative effects
+
+---
+
+# Safe rename rules
+
+This is extremely important.
+
+## Update these
+Please update **user-facing and branding-facing** references from Qrooma to Clario, including where appropriate:
+- landing page visible brand name
+- metadata title and description
+- page headings
+- CTA wording where needed
+- footer brand text
+- README product name and product description
+- visible auth / dashboard / settings labels if they contain the product name
+- any clearly user-facing marketing copy
+
+## Do NOT blindly rename these
+Do NOT rename internal technical identifiers unless clearly safe and necessary:
+- database table names
+- migration file names
+- environment variable names
+- Supabase schema names
+- API route contracts
+- stable internal IDs
+- package imports that would break the app
+- technical constants that may be relied upon elsewhere
+
+If internal references to Qrooma exist, only rename them when:
+1. it is clearly safe, and
+2. it will not break the app
+
+If uncertain, keep the internal identifier and document it in the summary.
+
+## package.json
+If the package name is currently qrooma, you may either:
+- leave it unchanged for safety, and explain why
+or
+- update it only if clearly safe
+
+Prefer safety over completeness.
+
+---
+
+# LP structure to implement
+
+Update the current LP into something close to this structure:
+
+1. Hero
+   - clear founder-facing positioning
+   - strong headline
+   - concise subheadline
+   - Start free CTA
+
+2. Problem
+   - messy thinking
+   - one-AI blind spot
+   - exploration without decisions
+   - unclear handoff into action
+
+3. How Clario works
+   - compare ideas
+   - challenge assumptions
+   - structure the decision
+   - hand off execution
+
+4. What you get
+   - one-page decision memo
+   - scope classification
+   - next actions
+   - handoff-ready output
+
+5. Why it is different
+   - not another chatbot
+   - not a PM tool
+   - not a meeting summarizer
+   - a decision layer before execution
+
+6. Use cases
+   - MVP scope
+   - feature priority
+   - pricing decisions
+   - implementation direction
+   - LP / messaging decisions
+
+7. Optional lower section
+   - project memory / project-based continuity
+   - BYOK support
+   - FAQ
+
+8. Final CTA
+   - Start free
+   - create your first decision room
+
+---
+
+# Specific writing direction
+
+Reflect these ideas:
+
+- AI can help you think, but that does not mean you have decided.
+- Most founder decisions get stuck between idea exploration and execution.
+- Clario helps you compare, challenge, decide, and move.
+- Turn messy thinking into a decision memo and next actions.
+- Use ChatGPT and Claude to think, Manus or Replit to build — Clario structures the decision in between.
+
+Do NOT make “multiple AIs debate” the hero message.
+
+---
+
+# Implementation requirements
+
+Please update the existing codebase.
+
+Requirements:
+- preserve the current stack and conventions
+- do not overdesign
+- improve typography, spacing, composition, and visual hierarchy
+- make the LP feel more premium and more founder-oriented
+- keep the page easy to scan
+- rewrite the current Japanese LP into strong US English where appropriate
+- remove or reduce sections that reinforce the old “AI team room” positioning
+- improve the design quality through typography and spacing, not visual clutter
+
+---
+
+# Deliverables
+
+Please do the following:
+
+1. First, summarize the planned update strategy in bullet points
+2. Then make the actual code changes
+3. Update the LP and branding carefully
+4. After the update, explain:
+   - what changed
+   - where Qrooma was changed to Clario
+   - which old messages were removed
+   - how the new LP better fits the target user
+   - how the design quality was improved
+   - which files were updated
+   - which internal references were intentionally left unchanged for safety
+
+If there are multiple reasonable copy directions, choose the one that best fits:
+**solo founder + decision quality + handoff to execution**

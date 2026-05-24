@@ -830,8 +830,8 @@ export default function SettingsPage() {
                   {isPro && (
                     <p className="text-[11px] text-muted-foreground/60 leading-relaxed px-1">
                       {locale === "ja"
-                        ? "Pro プランではモデルは Qrooma が自動選択します。"
-                        : "On Pro, models are automatically selected by Qrooma."}
+                        ? "Pro プランではモデルは Clario が自動選択します。"
+                        : "On Pro, models are automatically selected by Clario."}
                     </p>
                   )}
                 </div>
