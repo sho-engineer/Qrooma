@@ -127,7 +127,7 @@ function AppShell() {
           >
             <MenuIcon size={20} />
           </button>
-          <span className="text-sm font-semibold text-foreground">Adjudo</span>
+          <img src="/brand/adjudo-wordmark.png" alt="Adjudo" className="h-5 w-auto dark:invert" />
         </div>
 
         <Switch>

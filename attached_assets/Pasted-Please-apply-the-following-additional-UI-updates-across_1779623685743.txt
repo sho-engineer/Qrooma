@@ -1,0 +1,166 @@
+Please apply the following additional UI updates across the app-side screens for Adjudo.
+
+This is an additional refinement request.
+Please update the app UI so it feels visually consistent with the Adjudo brand.
+
+---
+
+# Main requests
+
+1. Add the Adjudo logo to these app-side screens as well
+2. Replace blue icon colors with black
+3. Keep the overall UI monochrome and consistent with the landing page
+
+---
+
+# Screens to update
+
+Please apply these updates to the following app screens / areas as well:
+
+- Main chat / room screen
+- Left sidebar / drawer menu
+- Prompt Mode panel / screen
+- Any in-app header where “Adjudo” is currently shown as plain text
+- Any small brand mark or title area where the logo should appear instead
+- Any app-side panel headers that should feel branded
+
+---
+
+# 1. Replace app-side text title with Adjudo logo
+
+Where the app currently shows:
+- “Adjudo” as plain text in the top header
+- or other simple text-only brand display
+
+Please replace or enhance it with the Adjudo wordmark logo.
+
+Use the Adjudo wordmark asset, for example:
+- /public/brand/adjudo-wordmark.png
+
+Expected behavior:
+- The app header should show the Adjudo logo instead of only plain text
+- If space is tight on mobile, it is okay to use:
+  - symbol-only logo + Adjudo text
+  - or a smaller wordmark
+- Keep the hamburger/menu icon if needed
+- The logo should be visually clear, clean, and balanced
+- Do not distort or stretch the logo
+
+Apply this to:
+- main app top bar
+- drawer/sidebar brand area
+- auth/app headers where branding appears
+
+---
+
+# 2. Sidebar / drawer brand area
+
+In the sidebar / drawer menu:
+- the current small icon/placeholder in the top-left should be replaced with the Adjudo logo or symbol
+- remove any broken / placeholder / generic icon feeling
+- make the top-left of the drawer feel properly branded
+
+Recommended:
+- use the Adjudo symbol-only logo for compact drawer branding
+- or use a small version of the wordmark if it fits cleanly
+
+The drawer should feel like part of the same brand system as the landing page.
+
+---
+
+# 3. Replace blue icon color with black
+
+There are still blue icons and blue accents in the app UI.
+Please replace them with Adjudo brand black.
+
+Examples include:
+- icons in Prompt Mode
+- blue settings-like icons
+- active state icons
+- accent icons
+- any remaining blue strokes or fills
+
+Use:
+- primary icon color: #111111
+- secondary muted icon color: neutral gray if needed
+
+Do NOT use blue as a brand accent anymore.
+
+This applies especially to:
+- Prompt Mode icon
+- small utility icons
+- accent icons in app panels
+- active language / selection icon colors if any remain
+- any remaining blue highlights
+
+---
+
+# 4. Visual direction
+
+Keep the app aligned with the Adjudo design system:
+
+- monochrome
+- black and white
+- premium minimal
+- clean SaaS
+- founder-oriented
+- sharp but calm
+- no colorful accents
+
+Avoid:
+- blue accents
+- placeholder-looking icons
+- inconsistent branding between LP and app
+- mixed visual language
+
+---
+
+# 5. Specific UI expectations
+
+## Main app header
+- show Adjudo logo instead of only text
+- keep layout compact and mobile-friendly
+- logo should feel like the app’s real brand identity
+
+## Sidebar / drawer
+- add logo/symbol at the top
+- make it feel like a proper branded navigation area
+- use black icons, not blue
+
+## Prompt Mode
+- the icon currently using blue should become black
+- keep the panel clean and consistent
+- if the screen header can benefit from logo consistency, align it with the app header system
+
+## Other in-app icons
+- audit the app for leftover blue accent icons
+- replace them with black or neutral monochrome tones
+
+---
+
+# 6. Implementation guidance
+
+Please:
+1. Inspect the current app-side components for brand/title/header/icon usage
+2. Update shared header / brand components if possible
+3. Reuse the same logo asset consistently
+4. Replace leftover blue icon styles with black
+5. Keep spacing and hierarchy clean on mobile
+
+If there is already a reusable header component, update it there first and propagate safely.
+
+---
+
+# Deliverables
+
+After implementation, please explain:
+
+1. Which screens were updated
+2. Where the Adjudo logo was added
+3. Whether you used wordmark or symbol-only logo in each place
+4. Which blue icons / accents were replaced with black
+5. Which components/files were updated
+6. How to manually verify the updated branding on:
+   - main app screen
+   - sidebar / drawer
+   - Prompt Mode screen

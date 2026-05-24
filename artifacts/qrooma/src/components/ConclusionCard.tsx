@@ -101,12 +101,12 @@ const FINAL_SECTION_META = {
   adopted:  { icon: "✓", color: "text-emerald-700 dark:text-emerald-400", bg: "border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20" },
   rejected: { icon: "✗", color: "text-rose-600 dark:text-rose-400",       bg: "border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-950/20" },
   open:     { icon: "?", color: "text-amber-600 dark:text-amber-400",      bg: "border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20" },
-  next:     { icon: "→", color: "text-blue-600 dark:text-blue-400",        bg: "border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20" },
+  next:     { icon: "→", color: "text-foreground/60",                       bg: "border-border bg-muted/30" },
 };
 
 const PROVISIONAL_SECTION_META = {
   leading:   { icon: "✦", color: "text-violet-600 dark:text-violet-400",  bg: "border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20" },
-  reasoning: { icon: "→", color: "text-blue-600 dark:text-blue-400",      bg: "border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20" },
+  reasoning: { icon: "→", color: "text-foreground/60",                     bg: "border-border bg-muted/30" },
   open:      { icon: "?", color: "text-amber-600 dark:text-amber-400",    bg: "border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20" },
   clarify:   { icon: "↻", color: "text-indigo-600 dark:text-indigo-400",  bg: "border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/20" },
   changed:   { icon: "↕", color: "text-slate-500 dark:text-slate-400",    bg: "border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/20" },
@@ -196,8 +196,8 @@ function ConclusionUnresolvedState({
         )}
         {onProvisional && (
           <button onClick={onProvisional} className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-card transition-colors text-left">
-            <div className="shrink-0 w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-950/60 flex items-center justify-center">
-              <PlayIcon size={10} className="text-blue-600 dark:text-blue-400" />
+            <div className="shrink-0 w-6 h-6 rounded-lg bg-muted flex items-center justify-center">
+              <PlayIcon size={10} className="text-foreground/60" />
             </div>
             <div>
               <p className="text-xs font-semibold text-foreground">{t.conclusionProvisional}</p>
@@ -628,7 +628,7 @@ export default function ConclusionCard({
             <span className={`text-[11px] font-normal ${
               isError ? "text-rose-500/70"
               : isUnresolved ? "text-amber-500/70"
-              : isLoading ? "text-blue-500/70"
+              : isLoading ? "text-muted-foreground/50"
               : isProvisional ? "text-violet-500/70"
               : "text-muted-foreground/50"
             }`}>

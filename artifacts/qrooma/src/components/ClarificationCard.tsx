@@ -27,7 +27,7 @@ export default function ClarificationCard({ questions, assumptions, onAnswer, on
     <div className="mx-3 sm:mx-4 mb-2 rounded-2xl border border-border/60 bg-card overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border/30">
-        <HelpCircleIcon size={14} className="text-blue-500 shrink-0" />
+        <HelpCircleIcon size={14} className="text-foreground/50 shrink-0" />
         <p className="text-sm font-semibold text-foreground">
           {locale === "ja" ? "議論を始める前に、少しだけ確認したいことがあります" : "Before we start, I'd like to confirm a few things"}
         </p>
@@ -37,7 +37,7 @@ export default function ClarificationCard({ questions, assumptions, onAnswer, on
       <div className="px-4 py-3 space-y-2">
         {questions.map((q, i) => (
           <div key={i} className="flex items-start gap-2">
-            <span className="shrink-0 mt-1 w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-950/60 flex items-center justify-center text-[9px] font-bold text-blue-600 dark:text-blue-400">
+            <span className="shrink-0 mt-1 w-4 h-4 rounded-full bg-muted flex items-center justify-center text-[9px] font-bold text-foreground/60">
               {i + 1}
             </span>
             <p className="text-sm text-foreground/80 leading-relaxed">{q}</p>

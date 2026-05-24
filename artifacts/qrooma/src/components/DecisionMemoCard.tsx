@@ -333,9 +333,9 @@ export default function DecisionMemoCard({ memo, generatedAt }: Props) {
         <ScopeSection
           icon={<HelpCircleIcon size={10} />}
           title={t.decisionMemoNeedsConfirmation}
-          colorClass="text-blue-600 dark:text-blue-400"
-          bgClass="bg-blue-50/50 dark:bg-blue-950/20"
-          borderClass="border-blue-200 dark:border-blue-800"
+          colorClass="text-foreground/60"
+          bgClass="bg-muted/30"
+          borderClass="border-border"
           items={memo.needs_confirmation ?? []}
         />
       </div>

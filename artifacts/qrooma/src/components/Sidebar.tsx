@@ -480,7 +480,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
               status === "in_review" ? t.roomStatusInReview  : t.roomStatusArchived;
             const statusColor =
               status === "completed" ? "text-emerald-600 dark:text-emerald-400" :
-              status === "in_review" ? "text-blue-500/70 dark:text-blue-400/70" :
+              status === "in_review" ? "text-muted-foreground/50" :
               "text-muted-foreground/50";
 
             // Auxiliary flags (only for completed)

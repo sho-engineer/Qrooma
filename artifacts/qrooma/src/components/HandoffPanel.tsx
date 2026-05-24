@@ -351,7 +351,7 @@ function DecisionBriefContent({ conclusion, locale }: { conclusion: ConclusionDa
     { label: isJa ? "採用案" : "Adopted",        content: sect(summary, "adopted"),  color: "text-emerald-600 dark:text-emerald-400" },
     { label: isJa ? "棄却案" : "Rejected",        content: sect(summary, "rejected"), color: "text-rose-600 dark:text-rose-400"    },
     { label: isJa ? "残論点" : "Open Questions",  content: sect(summary, "open"),     color: "text-amber-600 dark:text-amber-400"  },
-    { label: isJa ? "次アクション" : "Next Actions", content: sect(summary, "next"),  color: "text-blue-600 dark:text-blue-400"    },
+    { label: isJa ? "次アクション" : "Next Actions", content: sect(summary, "next"),  color: "text-foreground/70"    },
     { label: isJa ? "将来検討" : "Future",        content: sect(summary, "future"),   color: "text-violet-600 dark:text-violet-400" },
   ].filter(e => e.content);
 
@@ -397,7 +397,7 @@ function TaskListContent({ tasks, locale }: { tasks: TaskItem[]; locale: string 
                   {pc.label[isJa ? "ja" : "en"]}
                 </span>
                 {task.needsHumanReview && (
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-semibold">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-foreground/60 font-semibold">
                     {isJa ? "人間確認" : "Human review"}
                   </span>
                 )}
