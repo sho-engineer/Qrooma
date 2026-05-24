@@ -1,0 +1,62 @@
+Please refine the current LP design based on the latest visual feedback.
+
+Overall direction is good, but the page still needs improvement in the following ways:
+
+1. The Clario logo in the header feels too small.
+- Increase the visible size of the main wordmark/logo significantly on mobile.
+- The logo should feel more confident and more premium.
+- The header should not let the CTA overpower the brand.
+
+2. The hero section is strong and should remain close to the current direction.
+- Keep the monochrome editorial SaaS feel.
+- Keep the bold typography.
+- Only make subtle refinements to spacing and hierarchy.
+
+3. The Problem section feels a little too plain.
+- It is clean, but slightly too minimal and generic.
+- Add a bit more visual hierarchy and editorial structure.
+- Make each problem block feel more distinct.
+- You may improve this using:
+  - better spacing contrast
+  - slightly stronger headings
+  - more refined divider treatment
+  - subtle numbering or small labels
+- Do NOT make it colorful or overly decorative.
+
+4. The “How it works” section is good, but still slightly too plain.
+- Keep the step-based structure.
+- Make the 01 / 02 / 03 / 04 progression feel more intentional and visually stronger.
+- Improve rhythm and hierarchy.
+- If appropriate, add a subtle mini output preview near the later steps, especially around “Hand off to execution,” so users can imagine the result more clearly.
+- Examples of small preview items:
+  - Decision Memo
+  - Task List
+  - Build Prompt
+- Keep this minimal and elegant.
+
+5. Maintain the overall design philosophy:
+- monochrome
+- typography-first
+- premium minimalism
+- founder-oriented
+- editorial SaaS feel
+
+6. Do NOT add:
+- bright colors
+- gradients
+- playful illustrations
+- too many icons
+- flashy visual effects
+
+7. The goal is:
+- stronger brand presence
+- slightly richer visual density
+- better section contrast
+- more refined mobile polish
+
+Please update the LP with these refinements while preserving the current overall direction.
+After updating, explain:
+- what changed
+- how the header/logo was improved
+- how the Problem section was made less plain
+- how the How-it-works section was made more visually compelling

@@ -279,7 +279,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between gap-4">
           <Link href="/">
-            <img src={logoA} alt="Clario" className="h-7 w-auto hover:opacity-70 transition-opacity duration-150" />
+            <img src={logoA} alt="Clario" className="h-8 sm:h-9 w-auto hover:opacity-70 transition-opacity duration-150" />
           </Link>
           <div className="flex items-center gap-2 shrink-0">
             <Link href="/jp">
@@ -362,7 +362,7 @@ export default function LandingPage() {
             AI can help you think.<br />That doesn't mean you've decided.
           </h2>
 
-          <div className="grid sm:grid-cols-3 gap-px bg-border rounded-2xl overflow-hidden">
+          <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border border border-border rounded-2xl overflow-hidden">
             {[
               {
                 title: "The one-AI loop",
@@ -377,9 +377,14 @@ export default function LandingPage() {
                 body:  "You know what you want to build, but can't tell ChatGPT or Cursor exactly what to do. The decision wasn't structured.",
               },
             ].map((item, i) => (
-              <div key={i} className="bg-[#F7F7F5] p-6 sm:p-7">
-                <p className="text-[13px] font-bold text-foreground mb-2 leading-snug">{item.title}</p>
-                <p className="text-[14px] text-muted-foreground leading-relaxed">{item.body}</p>
+              <div key={i} className="bg-[#F7F7F5] p-7 sm:p-8 flex flex-col gap-5">
+                <span className="text-[11px] font-bold tracking-[0.18em] text-foreground/20 uppercase select-none">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div>
+                  <p className="text-[15px] font-bold text-foreground mb-2.5 leading-snug">{item.title}</p>
+                  <p className="text-[14px] text-muted-foreground leading-relaxed">{item.body}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -399,16 +404,25 @@ export default function LandingPage() {
           Compare. Challenge. Decide. Hand off.
         </h2>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-2xl overflow-hidden">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border border border-border rounded-2xl overflow-hidden">
           {howSteps.map((step) => (
-            <div key={step.n} className="bg-background p-6 sm:p-7 flex flex-col gap-4">
-              <span className="text-[11px] font-bold tracking-[0.12em] text-muted-foreground/40 uppercase">
-                {step.n}
-              </span>
+            <div key={step.n} className="bg-background p-7 sm:p-8 flex flex-col justify-between gap-6 min-h-[220px]">
               <div>
+                <span className="block text-[42px] font-black leading-none tracking-tight text-foreground/[0.07] mb-5 select-none">
+                  {step.n}
+                </span>
                 <p className="text-[15px] font-bold text-foreground mb-2 leading-snug">{step.title}</p>
                 <p className="text-[13px] text-muted-foreground leading-relaxed">{step.body}</p>
               </div>
+              {step.n === "04" && (
+                <div className="flex flex-wrap gap-1.5">
+                  {["Decision Memo", "Task List", "Build Prompt"].map((label) => (
+                    <span key={label} className="px-2.5 py-1 text-[10px] font-semibold tracking-wide border border-border rounded-md text-foreground/40 bg-card">
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
