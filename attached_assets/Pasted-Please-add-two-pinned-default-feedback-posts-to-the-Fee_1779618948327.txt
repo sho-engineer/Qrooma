@@ -1,0 +1,111 @@
+Please add two pinned default feedback posts to the Feedback Board.
+
+These posts should appear at the top of /feedback and should be visible to all users.
+
+---
+
+# Pinned feedback post 1
+
+Title:
+BYOK Plan — use Clario with your own API keys
+
+Description:
+Use Clario with your own OpenAI, Anthropic, or Google API keys.
+This would make Clario more affordable for builders who already use AI tools and want more control over usage costs.
+
+If this request reaches 50 upvotes, we will prioritize building the BYOK plan.
+
+Threshold:
+50 upvotes
+
+Status:
+under_review
+
+Category:
+pricing
+
+Pinned:
+true
+
+Roadmap rule:
+When this reaches 50 unique authenticated user upvotes, mark it as a strong roadmap candidate.
+
+---
+
+# Pinned feedback post 2
+
+Title:
+Hosted Paid Plan — use Clario without managing API keys
+
+Description:
+Use Clario without setting up your own API keys.
+The plan would include AI usage inside a monthly subscription.
+
+Because this plan includes AI running costs, we will evaluate both demand and unit economics before launching it.
+
+If this request reaches 100 upvotes, we will validate pricing and prioritize building a hosted paid plan if the cost structure works.
+
+Threshold:
+100 upvotes
+
+Status:
+under_review
+
+Category:
+pricing
+
+Pinned:
+true
+
+Roadmap rule:
+When this reaches 100 unique authenticated user upvotes, mark it as a strong roadmap candidate.
+However, do not automatically mark it as planned.
+For hosted paid plans, final implementation should consider:
+- expected AI API cost per user
+- expected monthly usage
+- target monthly price
+- gross margin
+- product strategy fit
+
+---
+
+# Feedback board behavior
+
+Please support pinned feedback posts.
+
+Add fields if needed:
+
+feedback_posts:
+- is_pinned boolean default false
+- vote_threshold integer nullable
+- threshold_action text nullable
+- cost_sensitive boolean default false
+- admin_priority_note text nullable
+
+Pinned posts should:
+- appear before normal feedback posts
+- show a progress indicator such as "32 / 50 votes"
+- show the threshold clearly
+- only count one upvote per authenticated user
+- not be editable or deletable by normal users
+
+---
+
+# Admin behavior
+
+In /admin/feedback, show additional signals for each feedback post:
+
+- upvote count
+- vote threshold
+- progress percentage
+- whether the item is cost-sensitive
+- whether the threshold has been reached
+- admin note
+- roadmap candidate status
+
+For cost-sensitive items, especially the Hosted Paid Plan, show a reminder:
+
+"Votes indicate demand, but final implementation should also consider running cost, expected usage, pricing, and gross margin."
+
+Do not automatically build or mark as planned based only on upvotes.
+Upvotes should be treated as a strong signal, not the final decision.

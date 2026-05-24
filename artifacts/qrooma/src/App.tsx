@@ -15,6 +15,8 @@ import AuthPage from "./pages/AuthPage";
 import RoomsPage from "./pages/RoomsPage";
 import RoomDetailPage from "./pages/RoomDetailPage";
 import SettingsPage from "./pages/SettingsPage";
+import FeedbackPage from "./pages/FeedbackPage";
+import AdminPage from "./pages/AdminPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import Sidebar from "./components/Sidebar";
 
@@ -131,6 +133,8 @@ function AppShell() {
           <Route path="/rooms" component={RoomsPage} />
           <Route path="/rooms/:id" component={RoomDetailPage} />
           <Route path="/settings" component={SettingsPage} />
+          <Route path="/feedback" component={FeedbackPage} />
+          <Route path="/admin" component={AdminPage} />
           <Route component={NotFoundPage} />
         </Switch>
       </main>

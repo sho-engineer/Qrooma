@@ -8,7 +8,7 @@ import { useLocale } from "../context/LocaleContext";
 import type { Room } from "../types";
 import {
   PlusIcon, PencilIcon, CheckIcon, XIcon,
-  LogOutIcon, SettingsIcon,
+  LogOutIcon, SettingsIcon, MessageSquareIcon, LayoutDashboardIcon,
   PanelLeftCloseIcon, PanelLeftOpenIcon,
   MoreHorizontalIcon, Trash2Icon, ArchiveIcon, ArchiveRestoreIcon, ChevronDownIcon,
   FolderIcon, FolderOpenIcon,
@@ -158,7 +158,7 @@ function RoomContextMenu({
 
 export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) {
   const [location, setLocation] = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const { rooms, addRoom, updateRoom, deleteRoom } = useRooms();
   const { projects, addProject } = useProjects();
   const { t, locale } = useLocale();
@@ -679,6 +679,32 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
       </nav>
 
       <div className="border-t border-sidebar-border px-1.5 py-2 space-y-0.5">
+        {isAdmin && (
+          <Link
+            href="/admin"
+            onClick={handleRoomClick}
+            className={`flex items-center gap-2 px-2.5 py-2 text-sm rounded-lg transition-colors ${
+              location === "/admin"
+                ? "bg-sidebar-accent text-foreground"
+                : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
+            }`}
+          >
+            <LayoutDashboardIcon size={13} />
+            Admin
+          </Link>
+        )}
+        <Link
+          href="/feedback"
+          onClick={handleRoomClick}
+          className={`flex items-center gap-2 px-2.5 py-2 text-sm rounded-lg transition-colors ${
+            location === "/feedback"
+              ? "bg-sidebar-accent text-foreground"
+              : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
+          }`}
+        >
+          <MessageSquareIcon size={13} />
+          Feedback
+        </Link>
         <Link
           href="/settings"
           onClick={handleRoomClick}

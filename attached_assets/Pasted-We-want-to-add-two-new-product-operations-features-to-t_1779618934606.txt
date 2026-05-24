@@ -1,0 +1,378 @@
+We want to add two new product operations features to the current SaaS app.
+
+The product is an AI Decision Room for solo founders and product-minded builders.
+
+Please implement the following features carefully and incrementally.
+
+---
+
+# Feature 1: Admin Dashboard
+
+Create an admin-only dashboard at:
+
+/admin
+
+The purpose of the admin dashboard is to allow the product owner to monitor product usage, manage coupons, and review user feedback.
+
+## Access control
+
+Only admin users should be able to access /admin.
+
+Please implement a simple admin role system.
+
+Recommended:
+- Add a role field to the user profile table if one exists
+- Possible roles:
+  - user
+  - admin
+
+If the current app does not have a profile table, create one safely.
+
+Admin pages must be protected both:
+- on the UI level
+- on the server / database access level
+
+Do not expose admin data to normal users.
+
+---
+
+# Admin dashboard sections
+
+Please create the admin dashboard with the following sections.
+
+## 1. Overview metrics
+
+Show basic product metrics:
+
+- total users
+- new users today / this week / this month
+- total Decision Rooms
+- total Decision Memos generated
+- active users in the last 7 days
+- active users in the last 30 days
+- total feedback posts
+- total feedback upvotes
+- total coupons created
+- total coupon redemptions
+
+If some metrics are not yet available in the current database, create a reasonable event tracking foundation.
+
+---
+
+## 2. Access / usage analytics
+
+Create a lightweight internal analytics system.
+
+Track events such as:
+
+- page_view
+- signup
+- login
+- create_project
+- create_decision_room
+- send_message
+- generate_decision_memo
+- export_handoff_prompt
+- create_feedback_post
+- upvote_feedback
+- redeem_coupon
+
+Recommended table:
+
+analytics_events:
+- id
+- user_id nullable
+- event_name
+- path nullable
+- metadata jsonb nullable
+- created_at
+
+Please keep this simple.
+Do not add a heavy external analytics dependency unless already used.
+
+---
+
+## 3. User management
+
+Add a simple admin user list.
+
+Show:
+- user email
+- created date
+- last active date if available
+- number of projects
+- number of decision rooms
+- number of decision memos
+- plan if available
+- role
+
+Admin should be able to:
+- view users
+- filter/search users
+- mark a user as admin only if safe and simple
+
+If role editing is risky, show the role only and leave editing for later.
+
+---
+
+## 4. Coupon management
+
+Create a coupon management page inside /admin.
+
+Admin should be able to create and manage coupons.
+
+Recommended coupon fields:
+
+coupons:
+- id
+- code
+- name
+- description nullable
+- discount_type
+  - percentage
+  - fixed_amount
+  - free_trial_days
+- discount_value
+- currency nullable
+- starts_at nullable
+- expires_at nullable
+- max_redemptions nullable
+- max_redemptions_per_user default 1
+- current_redemptions default 0
+- is_active
+- created_by
+- created_at
+- updated_at
+
+coupon_redemptions:
+- id
+- coupon_id
+- user_id
+- redeemed_at
+- metadata jsonb nullable
+
+Admin should be able to:
+- create coupon
+- deactivate coupon
+- view coupon list
+- view redemption count
+- copy coupon code
+
+Important:
+If billing / Stripe is not fully implemented yet, do not force full payment integration.
+Implement the coupon foundation first.
+The coupon can be stored and validated in the database.
+Actual checkout integration can be added later.
+
+---
+
+# Feature 2: Feedback / Feature Request Board
+
+Create a user-facing feedback board at:
+
+/feedback
+
+The purpose is to collect user requests and use upvotes as a signal for roadmap prioritization.
+
+Users should be able to:
+- submit a feature request
+- view existing feature requests
+- upvote feature requests
+- remove their upvote
+- filter by status
+- sort by most upvoted / newest / recently updated
+
+Recommended fields:
+
+feedback_posts:
+- id
+- user_id
+- title
+- description
+- status
+  - under_review
+  - planned
+  - in_progress
+  - released
+  - not_planned
+- category nullable
+  - feature_request
+  - improvement
+  - bug
+  - integration
+  - pricing
+  - other
+- admin_note nullable
+- upvote_count default 0
+- created_at
+- updated_at
+
+feedback_votes:
+- id
+- feedback_post_id
+- user_id
+- created_at
+
+Constraint:
+- one user can only upvote the same feedback post once
+
+Optional but useful:
+feedback_comments:
+- id
+- feedback_post_id
+- user_id
+- body
+- created_at
+
+If comments increase scope too much, skip comments for the first version.
+
+---
+
+# Admin feedback management
+
+Inside /admin, add a Feedback Management section.
+
+Admin should be able to:
+- view all feedback posts
+- sort by upvote count
+- filter by status
+- change status
+- add admin notes
+- mark as roadmap candidate
+- hide inappropriate posts if necessary
+
+Recommended additional fields if simple:
+
+feedback_posts:
+- is_hidden boolean default false
+- is_roadmap_candidate boolean default false
+- roadmap_priority nullable
+  - low
+  - medium
+  - high
+
+Important:
+Do not automatically move feedback to the roadmap only because it has many upvotes.
+Upvotes should be treated as an important signal, but final roadmap decisions should remain with the product owner/admin.
+
+---
+
+# Roadmap priority logic
+
+Please display feedback in admin with helpful prioritization signals:
+
+- upvote count
+- number of unique voters
+- status
+- created date
+- category
+- whether it is marked as roadmap candidate
+
+The UI can show a “Priority Signal” based on upvotes, for example:
+
+- 0–2 votes: Low signal
+- 3–9 votes: Medium signal
+- 10+ votes: High signal
+
+But this should be only a signal, not an automatic roadmap decision.
+
+---
+
+# UI / UX direction
+
+Keep the same product design direction:
+
+- monochrome
+- clean
+- premium minimal SaaS
+- typography-first
+- founder-oriented
+- simple and fast
+
+Admin UI should be practical and clear.
+Feedback board should be simple and easy to use.
+
+Avoid:
+- colorful dashboard templates
+- overly complex charts
+- unnecessary animations
+- gamified community features
+- too many fields in the first version
+
+---
+
+# Navigation
+
+Please add navigation links carefully.
+
+For normal users:
+- Feedback link can be visible in the app navigation or footer
+- Admin link should only be visible for admin users
+
+Routes:
+- /admin
+- /admin/coupons
+- /admin/users
+- /admin/feedback
+- /feedback
+
+If nested routing is too much for the current structure, implement /admin as a single dashboard page with tabs or sections.
+
+---
+
+# Security requirements
+
+Please ensure:
+
+- normal users cannot access admin pages
+- normal users cannot read coupon redemption data
+- normal users cannot modify feedback status
+- normal users cannot see hidden feedback posts
+- users can only create/edit their own feedback posts if editing is implemented
+- users can only upvote once per feedback post
+- RLS policies are added or updated if Supabase is used
+
+---
+
+# Deliverables
+
+Please do the following:
+
+1. Inspect the current codebase and database structure
+2. Propose the safest implementation plan
+3. Add the necessary database migrations
+4. Add protected admin routes
+5. Add analytics event tracking foundation
+6. Add coupon management foundation
+7. Add user-facing feedback board
+8. Add admin feedback management
+9. Update navigation carefully
+10. Explain all changed files and database tables
+11. Explain what was implemented now and what should be deferred
+
+---
+
+# Scope control
+
+Please keep the first implementation practical.
+
+Implement now:
+- admin access control
+- overview metrics
+- basic analytics events
+- coupon CRUD foundation
+- feedback posts
+- feedback upvotes
+- admin feedback status management
+
+Defer for later:
+- full Stripe integration
+- complex charts
+- notification system
+- public roadmap page
+- comments if too large
+- automatic roadmap scoring
+- advanced moderation
+- team-based admin permissions
+
+The goal is to create a strong operational foundation without overcomplicating the MVP.

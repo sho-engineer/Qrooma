@@ -1,0 +1,111 @@
+Please replace the current Clario logo image with the newly provided transparent/backgroundless Clario wordmark logo.
+
+Use the uploaded logo image as the main brand logo.
+
+Important:
+- Do NOT recreate or redesign the logo.
+- Do NOT use the old logo image anymore.
+- Do NOT crop it awkwardly.
+- Do NOT stretch or distort it.
+- Keep the logo black.
+- Preserve the transparent/backgroundless appearance.
+- Use it as the primary wordmark logo across the landing page.
+
+---
+
+# Logo asset handling
+
+Please add the new uploaded logo file to the public assets folder.
+
+Recommended path:
+- /public/brand/clario-wordmark-transparent.png
+
+If the uploaded file has a different filename, rename/copy it safely to:
+- clario-wordmark-transparent.png
+
+Then update all logo references in the landing page to use this file.
+
+---
+
+# Where to use the new logo
+
+Use this new logo in:
+
+1. English main LP `/`
+   - Header / navbar
+   - Footer
+   - Any major brand placement
+
+2. Japanese LP `/jp`
+   - Header / navbar
+   - Footer
+   - Any major brand placement
+
+If there are existing references to the old Clario logo, replace them.
+
+If there is a separate symbol-only logo already used for favicon/app icon, keep it unless it conflicts with this update.
+
+---
+
+# Header logo sizing
+
+The current logo appears too small, especially on mobile.
+
+Please increase the visible size of the header logo.
+
+Recommended sizing:
+- Mobile: logo width around 96–120px
+- Desktop: logo width around 120–150px
+
+The logo should feel confident and visible, but not oversized.
+
+The header balance should feel like:
+- brand logo has enough presence
+- CTA is still strong
+- logo is not visually weaker than the Start free button
+
+If needed, slightly reduce the size or padding of the Start free button on mobile so the brand and CTA feel balanced.
+
+---
+
+# Visual style
+
+Maintain the current visual direction:
+- monochrome
+- premium minimal
+- typography-first
+- founder-oriented
+- clean editorial SaaS feel
+
+Do NOT add:
+- colors
+- gradients
+- shadows around the logo
+- logo background box
+- decorative logo treatment
+
+The logo should sit cleanly on the page with enough whitespace.
+
+---
+
+# Implementation requirements
+
+Please:
+1. Add the uploaded logo image to the public assets directory
+2. Replace the old logo references with the new transparent wordmark logo
+3. Update logo sizing in the header and footer
+4. Check both `/` and `/jp`
+5. Ensure the logo displays clearly on mobile and desktop
+6. Keep the image aspect ratio intact
+7. Remove any unnecessary small logo container that makes the logo appear tiny
+
+---
+
+# After implementation
+
+Please explain:
+- which file was added
+- which files were updated
+- where the logo was replaced
+- how the logo size was adjusted
+- whether the symbol-only logo or favicon was left unchanged
