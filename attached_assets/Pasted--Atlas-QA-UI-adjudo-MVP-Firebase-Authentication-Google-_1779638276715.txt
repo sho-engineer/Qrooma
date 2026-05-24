@@ -1,0 +1,255 @@
+追加修正です。
+Atlas QAで見つかった不具合と、文言・UI調整を修正してください。
+
+対象：
+adjudo MVP
+構成：
+- Firebase Authentication
+- Google Login
+- Cloud Firestore
+- Waitlist
+- Early Access Coupon
+- Admin account
+
+Admin email:
+shoengineer5@gmail.com
+
+Early Access Coupon:
+ADJUDO-2W-BETA-7KQ9
+
+==================================================
+1. 年表記を2026に統一
+==================================================
+
+現在、Early Accessやテスト用文言などで「2025」が残っている場合は、すべて「2026」に修正してください。
+
+確認対象：
+- Early Access関連文言
+- クーポン関連文言
+- Waitlist文言
+- Footer / meta / placeholder
+- コメントや画面上に表示される文言
+- テスト用seed / mock data
+
+期待結果：
+- ユーザーに見える画面上で2025が残っていない
+- 必要な年表記は2026になっている
+
+==================================================
+2. Login表現をEarly Access向けに変更
+==================================================
+
+現状「Log in」や「Login」が一般公開ログインのように見えるため、Early Access前提の表現に変更してください。
+
+推奨表現：
+
+英語：
+- Early Access Login
+- Continue with Early Access
+- Access for testers
+
+日本語：
+- 先行利用ログイン
+- Early Accessログイン
+- テスター / 先行利用者ログイン
+
+使い分け：
+- LPのCTAは一般ユーザー向けなので「Join waitlist」を維持
+- テスター向け導線では「Early Access Login」または「先行利用ログイン」を使用
+- /login の画面タイトルも、可能であれば「Early Access Login」に変更
+- ただし、Adminもクーポンなしで使うため、Adminが見ても違和感がない表現にする
+
+おすすめ文言：
+画面タイトル：
+Early Access Login
+
+説明文：
+adjudo is currently available for testers and selected early users.
+
+日本語UIの場合：
+先行利用ログイン
+
+説明文：
+adjudoは現在、テスターと一部の先行利用者向けに公開しています。
+
+Googleログインボタン：
+Googleでログイン
+
+==================================================
+3. Early Accessボタンの色を黒に変更
+==================================================
+
+/early-access のクーポン認証ボタンを黒にしてください。
+
+対象ボタン：
+- 認証してログインへ進む
+- Continue to login
+- Verify coupon
+- Early Access認証ボタン
+
+スタイル要件：
+- 背景色：黒
+- 文字色：白
+- hover時：濃いグレー
+- disabled時：薄いグレーまたは透明度を下げる
+- 角丸や余白は既存デザインに合わせる
+- WaitlistボタンやGoogleログインボタンのデザインは崩さない
+
+==================================================
+4. ISSUE-001 Early Accessクーポン認証不可を修正
+==================================================
+
+不具合：
+/early-access で ADJUDO-2W-BETA-7KQ9 を入力しても、
+「クーポンコードが正しくありません」と表示され、/login に進めない。
+
+期待結果：
+- ADJUDO-2W-BETA-7KQ9 は有効なクーポンとして認証される
+- 認証成功後、/login に遷移する
+- early_access_granted が保存される
+- early_access_code が保存される
+- early_access_granted_at が保存される
+- early_access_expires_at が認証日時 + 14日で保存される
+
+確認・修正ポイント：
+- クーポンコードの大文字小文字、前後スペースをtrimして検証する
+- Firestoreで検証している場合、対象クーポンが存在するか確認する
+- 環境変数で検証している場合、EARLY_ACCESS_CODES に以下が含まれているか確認する
+
+EARLY_ACCESS_CODES=ADJUDO-2W-BETA-7KQ9:early_access:14
+
+- フロント側だけで検証している場合は、可能ならserver API経由に変更する
+- ただしMVPとして最短修正が必要な場合、まずこのクーポンが確実に通る状態にする
+- クーポン検証失敗時はconsole/server logに原因が分かるログを出す
+- ユーザー画面にはraw errorを出さない
+
+実装例：
+- 入力値を trim()
+- uppercase化して比較
+- 有効コードと一致したら認証成功
+- localStorageまたはcookieに以下を保存
+
+early_access_granted=true
+early_access_code=ADJUDO-2W-BETA-7KQ9
+early_access_granted_at=<current ISO datetime>
+early_access_expires_at=<current datetime + 14 days>
+
+Firestore保存がある場合：
+earlyAccessRedemptions に以下を保存
+
+- code
+- accessType: early_access
+- grantedAt
+- expiresAt
+- locale
+- timezone
+- createdAt
+
+成功時：
+- 「認証しました。ログイン画面へ移動します。」を表示
+- /login に遷移
+
+失敗時：
+- 「クーポンコードが正しくありません。」を表示
+- /early-access に留まる
+
+==================================================
+5. ISSUE-002 Waitlist登録失敗を修正
+==================================================
+
+不具合：
+/waitlist で email/name/role を入力して送信すると、
+「Something went wrong. Please try again.」で登録に失敗する。
+
+期待結果：
+- Waitlist登録が成功する
+- 完了メッセージが表示される
+- Firestore waitlist collection に保存される
+- 未ログインユーザーでもWaitlist登録できる
+
+確認・修正ポイント：
+- Firestore write処理が正しいcollectionを参照しているか確認
+- Firestore Security Rulesで未ログイン書き込みが許可されているか確認
+- 入力field名と保存field名が一致しているか確認
+- createdAt が正しく保存されるか確認
+- name / role / comment がnullableまたはoptionalとして扱えるか確認
+- 失敗時に内部ログへエラー内容を出す
+- ユーザー画面にはraw errorを出さない
+
+Firestore collection:
+waitlist/{waitlistId}
+
+保存項目：
+- email
+- name nullable
+- role nullable
+- comment nullable
+- locale nullable
+- timezone nullable
+- createdAt
+
+Firestore Rules要件：
+- waitlist は未ログインでも create 可能
+- read はAdminのみ
+- update/delete はAdminのみ、または原則禁止
+
+例：
+match /waitlist/{docId} {
+  allow create: if true;
+  allow read, update, delete: if request.auth != null
+    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+}
+
+入力バリデーション：
+- email必須
+- email形式チェック
+- name/role/commentは任意
+- 不正メール形式の場合はFirestoreに保存しない
+
+成功時文言：
+日本語：
+登録ありがとうございます。
+準備ができ次第、ご案内します。
+
+英語：
+Thank you for joining the waitlist.
+We’ll notify you when access is available.
+
+==================================================
+6. Googleログイン導線との整合性
+==================================================
+
+Early Access認証成功後：
+- /login に遷移
+- /login ではGoogleログインボタンを表示
+- Googleログイン後 /projects に遷移
+- users/{uid} にprofileを作成
+
+クーポンなし一般ユーザー：
+- /login に直接来ても、Adminでない限り通常利用できない
+- Googleログイン後、early_access_granted がない場合は /waitlist または /early-access に戻す
+
+Admin：
+- shoengineer5@gmail.com はクーポン不要
+- Googleログイン後、Adminとして /projects に入れる
+- 14日制限とFree制限の対象外
+
+==================================================
+7. 完了条件
+==================================================
+
+以下を確認してください。
+
+- 画面上の不要な2025表記が2026に修正されている
+- 「Login」表現がEarly Access向けの表現になっている
+- /early-access の認証ボタンが黒になっている
+- /early-access で ADJUDO-2W-BETA-7KQ9 が認証成功する
+- 正しいクーポン入力後 /login に遷移する
+- 間違ったクーポンでは /login に進めない
+- early_access_expires_at が14日後で保存される
+- /waitlist で登録が成功する
+- waitlist collection にemail/name/role等が保存される
+- 未ログインでもWaitlist登録できる
+- Waitlistのreadは一般ユーザーに公開されない
+- raw errorがユーザー画面に出ない
+- Googleログイン、Adminログイン、Project導線が壊れていない

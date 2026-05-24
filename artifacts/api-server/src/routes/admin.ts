@@ -5,6 +5,7 @@ import { eq, gte, count, sql, desc } from "drizzle-orm";
 const router = Router();
 
 async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  if (!req.path.startsWith("/admin")) { next(); return; }
   const userId = req.headers["x-user-id"] as string;
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const rows = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));

@@ -684,7 +684,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-5 sm:px-8 h-12 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={logoA} alt="Adjudo" className="h-5 w-auto opacity-50 dark:invert" />
-            <span className="text-[11px] text-muted-foreground/40">© 2025</span>
+            <span className="text-[11px] text-muted-foreground/40">© 2026</span>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-[11px] text-muted-foreground/40 hidden sm:inline">

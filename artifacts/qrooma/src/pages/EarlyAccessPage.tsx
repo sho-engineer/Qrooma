@@ -129,7 +129,7 @@ export default function EarlyAccessPage() {
               <button
                 type="submit"
                 disabled={status === "loading" || !code.trim()}
-                className="w-full py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 text-sm font-medium bg-zinc-900 text-white rounded-xl hover:bg-zinc-700 transition-colors disabled:bg-zinc-300 disabled:text-zinc-400 disabled:cursor-not-allowed dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 dark:disabled:bg-zinc-600 dark:disabled:text-zinc-400"
               >
                 {status === "loading"
                   ? (isJa ? "確認中…" : "Verifying…")

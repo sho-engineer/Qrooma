@@ -61,12 +61,12 @@ export default function AuthPage() {
         {/* Heading */}
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            {isJa ? "ログイン" : "Sign in"}
+            {isJa ? "先行利用ログイン" : "Early Access Login"}
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
             {isJa
-              ? "AI Decision Roomで、曖昧なテーマを整理し、実行できる判断に変えましょう。"
-              : "Structure your decisions and turn ambiguity into action."}
+              ? "adjudoは現在、テスターと一部の先行利用者向けに公開しています。"
+              : "adjudo is currently available for testers and selected early users."}
           </p>
         </div>
 
