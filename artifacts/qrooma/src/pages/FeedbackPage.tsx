@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
 import {
   ThumbsUpIcon, PlusIcon, XIcon,
   PinIcon, SparklesIcon, BugIcon, ZapIcon, DollarSignIcon,
@@ -35,15 +36,7 @@ interface FeedbackPost {
   hasVoted:           boolean;
 }
 
-// ── Constants ──────────────────────────────────────────────────────────────
-
-const STATUS_LABELS: Record<FeedbackStatus, { label: string; color: string }> = {
-  under_review: { label: "Under Review", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400" },
-  planned:      { label: "Planned",      color: "bg-blue-500/15 text-blue-600 dark:text-blue-400" },
-  in_progress:  { label: "In Progress",  color: "bg-purple-500/15 text-purple-600 dark:text-purple-400" },
-  released:     { label: "Released",     color: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" },
-  not_planned:  { label: "Not Planned",  color: "bg-zinc-500/15 text-zinc-500" },
-};
+// ── Category icons (not locale-dependent) ──────────────────────────────────
 
 const CATEGORY_ICONS: Record<FeedbackCategory, React.ReactNode> = {
   feature_request: <SparklesIcon size={11} />,
@@ -52,15 +45,6 @@ const CATEGORY_ICONS: Record<FeedbackCategory, React.ReactNode> = {
   integration:     <BarChart2Icon size={11} />,
   pricing:         <DollarSignIcon size={11} />,
   other:           <HelpCircleIcon size={11} />,
-};
-
-const CATEGORY_LABELS: Record<FeedbackCategory, string> = {
-  feature_request: "Feature Request",
-  improvement:     "Improvement",
-  bug:             "Bug",
-  integration:     "Integration",
-  pricing:         "Pricing",
-  other:           "Other",
 };
 
 const LS_VOTED_KEY = "adjudo_voted_posts";
@@ -85,7 +69,15 @@ function removeLocalVoted(id: string) {
 // ── Sub-components ─────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: FeedbackStatus }) {
-  const { label, color } = STATUS_LABELS[status] ?? { label: status, color: "bg-muted text-muted-foreground" };
+  const { t } = useLocale();
+  const LABELS: Record<FeedbackStatus, { label: string; color: string }> = {
+    under_review: { label: t.feedbackStatusUnderReview, color: "bg-amber-500/15 text-amber-600 dark:text-amber-400" },
+    planned:      { label: t.feedbackStatusPlanned,     color: "bg-blue-500/15 text-blue-600 dark:text-blue-400" },
+    in_progress:  { label: t.feedbackStatusInProgress,  color: "bg-purple-500/15 text-purple-600 dark:text-purple-400" },
+    released:     { label: t.feedbackStatusReleased,    color: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" },
+    not_planned:  { label: t.feedbackStatusNotPlanned,  color: "bg-zinc-500/15 text-zinc-500" },
+  };
+  const { label, color } = LABELS[status] ?? { label: status, color: "bg-muted text-muted-foreground" };
   return (
     <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium ${color}`}>
       {label}
@@ -94,10 +86,19 @@ function StatusBadge({ status }: { status: FeedbackStatus }) {
 }
 
 function CategoryBadge({ category }: { category: FeedbackCategory }) {
+  const { t } = useLocale();
+  const CAT_LABELS: Record<FeedbackCategory, string> = {
+    feature_request: t.feedbackCatFeatureRequest,
+    improvement:     t.feedbackCatImprovement,
+    bug:             t.feedbackCatBug,
+    integration:     t.feedbackCatIntegration,
+    pricing:         t.feedbackCatPricing,
+    other:           t.feedbackCatOther,
+  };
   return (
     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-muted/60 text-muted-foreground">
       {CATEGORY_ICONS[category]}
-      {CATEGORY_LABELS[category]}
+      {CAT_LABELS[category]}
     </span>
   );
 }
@@ -129,6 +130,7 @@ function PostCard({
   onVote:   (id: string) => void;
   onExpand: (post: FeedbackPost) => void;
 }) {
+  const { t } = useLocale();
   return (
     <div
       className={`group relative rounded-xl border bg-card p-4 transition-all hover:border-border/80 hover:shadow-sm cursor-pointer
@@ -138,7 +140,7 @@ function PostCard({
       {post.isPinned && (
         <span className="absolute top-3 right-3 flex items-center gap-1 text-[10px] text-primary/70 font-medium">
           <PinIcon size={9} className="rotate-45" />
-          Pinned
+          {t.feedbackPinnedBadge}
         </span>
       )}
 
@@ -164,7 +166,7 @@ function PostCard({
             {post.costSensitive && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] bg-orange-500/10 text-orange-600 dark:text-orange-400 font-medium">
                 <DollarSignIcon size={9} />
-                Cost-sensitive
+                {t.feedbackCostSensitive}
               </span>
             )}
           </div>
@@ -173,14 +175,14 @@ function PostCard({
             <ProgressBar
               value={post.upvoteCount}
               max={post.voteThreshold}
-              label="Votes needed to prioritize"
+              label={t.feedbackVotesNeededLabel}
             />
           )}
 
           {post.adminNote && (
             <div className="mt-2 px-2.5 py-2 rounded-lg bg-muted/50 border border-border/60">
               <p className="text-[12px] text-muted-foreground">
-                <span className="font-medium text-foreground">Note: </span>
+                <span className="font-medium text-foreground">{t.feedbackNotePrefix}</span>
                 {post.adminNote}
               </p>
             </div>
@@ -200,19 +202,20 @@ function EmailVoteModal({
   onClose:  () => void;
   onSubmit: (email: string) => Promise<void>;
 }) {
+  const { t } = useLocale();
   const [email,   setEmail]   = useState("");
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim()) { setError("Email is required."); return; }
+    if (!email.trim()) { setError(t.feedbackEmailRequired); return; }
     setLoading(true);
     try {
       await onSubmit(email.trim().toLowerCase());
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(err instanceof Error ? err.message : t.feedbackVoteError);
     } finally {
       setLoading(false);
     }
@@ -227,19 +230,19 @@ function EmailVoteModal({
         onSubmit={handleSubmit}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">Enter your email to vote</h2>
+          <h2 className="text-base font-semibold text-foreground">{t.feedbackVoteModalTitle}</h2>
           <button type="button" onClick={onClose} className="p-1 rounded hover:bg-accent transition-colors">
             <XIcon size={16} className="text-muted-foreground" />
           </button>
         </div>
         <p className="text-[13px] text-muted-foreground leading-relaxed">
-          Your email is only used to prevent duplicate votes. It won't be shared publicly.
+          {t.feedbackVoteModalBody}
         </p>
         <input
           type="email"
           value={email}
           onChange={(e) => { setEmail(e.target.value); setError(""); }}
-          placeholder="your@email.com"
+          placeholder={t.feedbackVoteEmailPlaceholder}
           required
           autoFocus
           className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 transition-colors"
@@ -251,14 +254,14 @@ function EmailVoteModal({
             onClick={onClose}
             className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors"
           >
-            Cancel
+            {t.feedbackCancelBtn}
           </button>
           <button
             type="submit"
             disabled={loading}
             className="px-4 py-1.5 rounded-lg text-sm font-medium bg-foreground text-background hover:opacity-85 transition-opacity disabled:opacity-50"
           >
-            {loading ? "Voting…" : "Vote"}
+            {loading ? t.feedbackVotingBtn : t.feedbackVoteSubmitBtn}
           </button>
         </div>
       </form>
@@ -275,6 +278,16 @@ function SubmitModal({
   onClose:  () => void;
   onSubmit: (title: string, description: string, category: string) => Promise<void>;
 }) {
+  const { t } = useLocale();
+  const CAT_OPTIONS: { value: FeedbackCategory; label: string }[] = [
+    { value: "feature_request", label: t.feedbackCatFeatureRequest },
+    { value: "improvement",     label: t.feedbackCatImprovement },
+    { value: "bug",             label: t.feedbackCatBug },
+    { value: "integration",     label: t.feedbackCatIntegration },
+    { value: "pricing",         label: t.feedbackCatPricing },
+    { value: "other",           label: t.feedbackCatOther },
+  ];
+
   const [title,    setTitle]    = useState("");
   const [desc,     setDesc]     = useState("");
   const [category, setCategory] = useState("feature_request");
@@ -282,13 +295,13 @@ function SubmitModal({
   const [error,    setError]    = useState("");
 
   async function handleSubmit() {
-    if (!title.trim() || !desc.trim()) { setError("Title and description are required."); return; }
+    if (!title.trim() || !desc.trim()) { setError(t.feedbackTitleDescRequired); return; }
     setLoading(true);
     try {
       await onSubmit(title.trim(), desc.trim(), category);
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(e instanceof Error ? e.message : t.feedbackVoteError);
     } finally {
       setLoading(false);
     }
@@ -302,41 +315,41 @@ function SubmitModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">Suggest a feature for Adjudo</h2>
+          <h2 className="text-base font-semibold text-foreground">{t.feedbackSubmitModalTitle}</h2>
           <button onClick={onClose} className="p-1 rounded hover:bg-accent transition-colors">
             <XIcon size={16} className="text-muted-foreground" />
           </button>
         </div>
         <div className="space-y-3">
           <div>
-            <label className="text-[12px] font-medium text-foreground mb-1 block">Title</label>
+            <label className="text-[12px] font-medium text-foreground mb-1 block">{t.feedbackTitleLabel}</label>
             <input
               className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40"
-              placeholder="e.g. Add Notion integration"
+              placeholder={t.feedbackTitlePlaceholder}
               value={title}
               onChange={(e) => { setTitle(e.target.value); setError(""); }}
               maxLength={120}
             />
           </div>
           <div>
-            <label className="text-[12px] font-medium text-foreground mb-1 block">Description</label>
+            <label className="text-[12px] font-medium text-foreground mb-1 block">{t.feedbackDescLabel}</label>
             <textarea
               className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 min-h-[6rem] resize-none"
-              placeholder="Describe the problem this would solve or the improvement you'd like to see."
+              placeholder={t.feedbackDescPlaceholder}
               value={desc}
               onChange={(e) => { setDesc(e.target.value); setError(""); }}
               maxLength={1000}
             />
           </div>
           <div>
-            <label className="text-[12px] font-medium text-foreground mb-1 block">Category</label>
+            <label className="text-[12px] font-medium text-foreground mb-1 block">{t.feedbackCategoryLabel}</label>
             <select
               className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
-              {(Object.entries(CATEGORY_LABELS) as [FeedbackCategory, string][]).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
+              {CAT_OPTIONS.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
               ))}
             </select>
           </div>
@@ -344,14 +357,14 @@ function SubmitModal({
         </div>
         <div className="flex gap-2 justify-end pt-1">
           <button onClick={onClose} className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors">
-            Cancel
+            {t.feedbackCancelBtn}
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
             className="px-4 py-1.5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {loading ? "Submitting…" : "Submit"}
+            {loading ? t.feedbackSubmittingBtn : t.feedbackSubmitBtn}
           </button>
         </div>
       </div>
@@ -362,6 +375,7 @@ function SubmitModal({
 // ── Detail modal ────────────────────────────────────────────────────────────
 
 function DetailModal({ post, onClose, onVote }: { post: FeedbackPost; onClose: () => void; onVote: (id: string) => void }) {
+  const { t } = useLocale();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
@@ -386,7 +400,7 @@ function DetailModal({ post, onClose, onVote }: { post: FeedbackPost; onClose: (
 
         {post.adminNote && (
           <div className="px-3 py-2.5 rounded-lg bg-muted/50 border border-border/60 space-y-1">
-            <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Note</p>
+            <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">{t.feedbackNotePrefix}</p>
             <p className="text-[13px] text-muted-foreground">{post.adminNote}</p>
           </div>
         )}
@@ -395,7 +409,7 @@ function DetailModal({ post, onClose, onVote }: { post: FeedbackPost; onClose: (
           <ProgressBar
             value={post.upvoteCount}
             max={post.voteThreshold}
-            label="Votes needed to prioritize"
+            label={t.feedbackVotesNeededLabel}
           />
         )}
 
@@ -407,46 +421,46 @@ function DetailModal({ post, onClose, onVote }: { post: FeedbackPost; onClose: (
               : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5"}`}
         >
           <ArrowUpIcon size={14} />
-          {post.hasVoted ? "Remove vote" : "Upvote"} · {post.upvoteCount}
+          {post.hasVoted ? t.feedbackRemoveVote : t.feedbackUpvoteBtn} · {post.upvoteCount}
         </button>
       </div>
     </div>
   );
 }
 
-// ── Sort / filter options ───────────────────────────────────────────────────
-
-const SORT_OPTIONS = [
-  { value: "votes",   label: "Most voted" },
-  { value: "newest",  label: "Newest" },
-];
-
-const STATUS_FILTER_OPTIONS = [
-  { value: "",              label: "All statuses" },
-  { value: "under_review",  label: "Under Review" },
-  { value: "planned",       label: "Planned" },
-  { value: "in_progress",   label: "In Progress" },
-  { value: "released",      label: "Released" },
-  { value: "not_planned",   label: "Not Planned" },
-];
-
 // ── Main Page ───────────────────────────────────────────────────────────────
 
 export default function FeedbackPage() {
   const { user } = useAuth();
+  const { t } = useLocale();
 
-  const [posts,           setPosts]           = useState<FeedbackPost[]>([]);
-  const [loading,         setLoading]         = useState(true);
-  const [statusFilter,    setStatus]          = useState("");
-  const [sort,            setSort]            = useState("votes");
-  const [showSubmit,      setShowSubmit]      = useState(false);
-  const [expanded,        setExpanded]        = useState<FeedbackPost | null>(null);
-  const [error,           setError]           = useState("");
-  const [pendingVoteId,   setPendingVoteId]   = useState<string | null>(null);
-  const [anonEmail,       setAnonEmail]       = useState(() => localStorage.getItem("adjudo_anon_email") || "");
+  const [posts,         setPosts]         = useState<FeedbackPost[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [statusFilter,  setStatus]        = useState("");
+  const [sort,          setSort]          = useState("votes");
+  const [showSubmit,    setShowSubmit]    = useState(false);
+  const [expanded,      setExpanded]      = useState<FeedbackPost | null>(null);
+  const [hasError,      setHasError]      = useState(false);
+  const [pendingVoteId, setPendingVoteId] = useState<string | null>(null);
+  const [anonEmail,     setAnonEmail]     = useState(() => localStorage.getItem("adjudo_anon_email") || "");
+
+  const SORT_OPTIONS = [
+    { value: "votes",  label: t.feedbackMostVoted },
+    { value: "newest", label: t.feedbackNewest },
+  ];
+
+  const STATUS_FILTER_OPTIONS = [
+    { value: "",             label: t.feedbackAllStatuses },
+    { value: "under_review", label: t.feedbackStatusUnderReview },
+    { value: "planned",      label: t.feedbackStatusPlanned },
+    { value: "in_progress",  label: t.feedbackStatusInProgress },
+    { value: "released",     label: t.feedbackStatusReleased },
+    { value: "not_planned",  label: t.feedbackStatusNotPlanned },
+  ];
 
   const fetchPosts = useCallback(async () => {
     setLoading(true);
+    setHasError(false);
     try {
       const params = new URLSearchParams();
       if (statusFilter) params.set("status", statusFilter);
@@ -467,7 +481,7 @@ export default function FeedbackPage() {
         setPosts(data);
       }
     } catch {
-      setError("Could not load feedback. Please try again.");
+      setHasError(true);
     } finally {
       setLoading(false);
     }
@@ -477,12 +491,16 @@ export default function FeedbackPage() {
 
   async function doVote(id: string, voterEmail?: string) {
     const headers: Record<string, string> = {};
-    const body: Record<string, string> = {};
+    const body: Record<string, string | undefined> = {};
+
     if (user) {
       headers["x-user-id"] = user.id;
     } else if (voterEmail) {
       body["voter_email"] = voterEmail;
     }
+
+    body["locale"]   = navigator.language ?? undefined;
+    body["timezone"] = Intl.DateTimeFormat().resolvedOptions().timeZone ?? undefined;
 
     const res = await fetch(`/api/feedback/${id}/vote`, {
       method:  "POST",
@@ -513,19 +531,10 @@ export default function FeedbackPage() {
   }
 
   function handleVote(id: string) {
-    if (user) {
-      void doVote(id);
-      return;
-    }
+    if (user) { void doVote(id); return; }
     const localVoted = getLocalVotedIds();
-    if (localVoted.has(id) && anonEmail) {
-      void doVote(id, anonEmail);
-      return;
-    }
-    if (anonEmail) {
-      void doVote(id, anonEmail);
-      return;
-    }
+    if (localVoted.has(id) && anonEmail) { void doVote(id, anonEmail); return; }
+    if (anonEmail) { void doVote(id, anonEmail); return; }
     setPendingVoteId(id);
   }
 
@@ -536,7 +545,7 @@ export default function FeedbackPage() {
   }
 
   async function handleSubmit(title: string, description: string, category: string) {
-    if (!user) throw new Error("You must be logged in to submit feedback.");
+    if (!user) throw new Error(t.feedbackLoginRequired);
     const res = await fetch("/api/feedback", {
       method:  "POST",
       headers: { "Content-Type": "application/json", "x-user-id": user.id },
@@ -544,7 +553,7 @@ export default function FeedbackPage() {
     });
     if (!res.ok) {
       const data = await res.json() as { error?: string };
-      throw new Error(data.error ?? "Failed to submit feedback");
+      throw new Error(data.error ?? t.feedbackVoteError);
     }
     await fetchPosts();
   }
@@ -565,19 +574,19 @@ export default function FeedbackPage() {
             {user ? (
               <Link href="/rooms">
                 <button className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  ← Rooms
+                  {t.feedbackBackToRooms}
                 </button>
               </Link>
             ) : (
               <>
                 <Link href="/login">
                   <button className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                    Log in
+                    {t.feedbackLoginLink}
                   </button>
                 </Link>
                 <Link href="/waitlist">
                   <button className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-foreground text-background rounded-full hover:opacity-85 transition-all">
-                    Join waitlist <ArrowRightIcon size={11} />
+                    {t.feedbackJoinWaitlistBtn} <ArrowRightIcon size={11} />
                   </button>
                 </Link>
               </>
@@ -592,9 +601,9 @@ export default function FeedbackPage() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Help shape Adjudo</h1>
+            <h1 className="text-xl font-bold text-foreground">{t.feedbackPageTitle}</h1>
             <p className="mt-0.5 text-sm text-muted-foreground max-w-sm leading-relaxed">
-              Vote on what we should build next, or suggest what would make Adjudo more useful for solo founders.
+              {t.feedbackPageSub}
             </p>
           </div>
           {user ? (
@@ -603,13 +612,13 @@ export default function FeedbackPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity shrink-0"
             >
               <PlusIcon size={14} />
-              Suggest
+              {t.feedbackSuggestBtn}
             </button>
           ) : (
             <Link href="/login">
               <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all shrink-0">
                 <PlusIcon size={14} />
-                Suggest
+                {t.feedbackSuggestBtn}
               </button>
             </Link>
           )}
@@ -643,9 +652,9 @@ export default function FeedbackPage() {
         </div>
 
         {/* Error */}
-        {error && (
+        {hasError && (
           <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-500">
-            {error}
+            {t.feedbackLoadError}
           </div>
         )}
 
@@ -663,7 +672,7 @@ export default function FeedbackPage() {
               <div className="space-y-2">
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
                   <PinIcon size={9} className="rotate-45" />
-                  Pinned — help us decide
+                  {t.feedbackPinnedSection}
                 </p>
                 <div className="space-y-2">
                   {pinned.map((p) => (
@@ -682,7 +691,7 @@ export default function FeedbackPage() {
               <div className="space-y-2">
                 {pinned.length > 0 && (
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                    Community Requests
+                    {t.feedbackCommunitySection}
                   </p>
                 )}
                 {regular.map((p) => (
@@ -694,7 +703,7 @@ export default function FeedbackPage() {
             {posts.length === 0 && (
               <div className="text-center py-16 space-y-2">
                 <ThumbsUpIcon className="mx-auto text-muted-foreground/30" size={32} />
-                <p className="text-sm text-muted-foreground">No feedback yet. Be the first!</p>
+                <p className="text-sm text-muted-foreground">{t.feedbackEmpty}</p>
               </div>
             )}
           </>
@@ -704,11 +713,11 @@ export default function FeedbackPage() {
         {!user && !loading && (
           <div className="mt-8 pt-6 border-t border-border/50 text-center">
             <p className="text-[12px] text-muted-foreground/60 mb-2">
-              Want to be first when Adjudo launches?
+              {t.feedbackWaitlistNudge}
             </p>
             <Link href="/waitlist">
               <span className="text-[12px] text-foreground/60 hover:text-foreground underline underline-offset-2 transition-colors cursor-pointer">
-                Join the waitlist →
+                {t.feedbackJoinWaitlistLink}
               </span>
             </Link>
           </div>

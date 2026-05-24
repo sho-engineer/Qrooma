@@ -33,6 +33,10 @@ export const feedbackVotesTable = pgTable("feedback_votes", {
   feedbackPostId: uuid("feedback_post_id").notNull().references(() => feedbackPostsTable.id),
   userId:         text("user_id"),
   voterEmail:     text("voter_email"),
+  country:        text("country"),
+  region:         text("region"),
+  locale:         text("locale"),
+  timezone:       text("timezone"),
   createdAt:      timestamp("created_at").notNull().defaultNow(),
 });
 

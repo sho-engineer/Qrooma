@@ -376,6 +376,57 @@ export interface Translations {
   useProjectContextLabel: string;
   useProjectContextDesc: string;
   newRoomDecisionTypeLabel: string;
+  // ── Feedback page ──────────────────────────────────────────────────────────
+  feedbackPageTitle: string;
+  feedbackPageSub: string;
+  feedbackSuggestBtn: string;
+  feedbackAllStatuses: string;
+  feedbackMostVoted: string;
+  feedbackNewest: string;
+  feedbackPinnedSection: string;
+  feedbackCommunitySection: string;
+  feedbackEmpty: string;
+  feedbackLoadError: string;
+  feedbackVotesNeededLabel: string;
+  feedbackNotePrefix: string;
+  feedbackPinnedBadge: string;
+  feedbackCostSensitive: string;
+  feedbackWaitlistNudge: string;
+  feedbackJoinWaitlistLink: string;
+  feedbackBackToRooms: string;
+  feedbackLoginLink: string;
+  feedbackJoinWaitlistBtn: string;
+  feedbackVoteModalTitle: string;
+  feedbackVoteModalBody: string;
+  feedbackVoteEmailPlaceholder: string;
+  feedbackCancelBtn: string;
+  feedbackVoteSubmitBtn: string;
+  feedbackVotingBtn: string;
+  feedbackEmailRequired: string;
+  feedbackVoteError: string;
+  feedbackSubmitModalTitle: string;
+  feedbackTitleLabel: string;
+  feedbackTitlePlaceholder: string;
+  feedbackDescLabel: string;
+  feedbackDescPlaceholder: string;
+  feedbackCategoryLabel: string;
+  feedbackSubmitBtn: string;
+  feedbackSubmittingBtn: string;
+  feedbackTitleDescRequired: string;
+  feedbackLoginRequired: string;
+  feedbackRemoveVote: string;
+  feedbackUpvoteBtn: string;
+  feedbackCatFeatureRequest: string;
+  feedbackCatImprovement: string;
+  feedbackCatBug: string;
+  feedbackCatIntegration: string;
+  feedbackCatPricing: string;
+  feedbackCatOther: string;
+  feedbackStatusUnderReview: string;
+  feedbackStatusPlanned: string;
+  feedbackStatusInProgress: string;
+  feedbackStatusReleased: string;
+  feedbackStatusNotPlanned: string;
 }
 
 const ja: Translations = {
@@ -750,6 +801,57 @@ const ja: Translations = {
   useProjectContextLabel:   "同じProject内の過去Decision Memoを参照する",
   useProjectContextDesc:    "同一Project内の過去の判断（最大5件）をAIのコンテキストとして渡します。",
   newRoomDecisionTypeLabel: "何を決めますか？（任意）",
+  // ── Feedback page ──────────────────────────────────────────────────────────
+  feedbackPageTitle: "Adjudoをより良くしよう",
+  feedbackPageSub: "次に作ってほしい機能に投票するか、Adjudoをより役立てるための提案をしてください。",
+  feedbackSuggestBtn: "提案する",
+  feedbackAllStatuses: "すべてのステータス",
+  feedbackMostVoted: "人気順",
+  feedbackNewest: "新着順",
+  feedbackPinnedSection: "ピン留め — あなたの意見が重要",
+  feedbackCommunitySection: "コミュニティリクエスト",
+  feedbackEmpty: "まだフィードバックがありません。最初に投稿しましょう！",
+  feedbackLoadError: "フィードバックを読み込めませんでした。もう一度お試しください。",
+  feedbackVotesNeededLabel: "優先化に必要な投票数",
+  feedbackNotePrefix: "メモ：",
+  feedbackPinnedBadge: "ピン留め",
+  feedbackCostSensitive: "コスト影響あり",
+  feedbackWaitlistNudge: "Adjudoのリリース通知を受け取りますか？",
+  feedbackJoinWaitlistLink: "ウェイトリストに参加 →",
+  feedbackBackToRooms: "← ルーム",
+  feedbackLoginLink: "ログイン",
+  feedbackJoinWaitlistBtn: "ウェイトリストに参加",
+  feedbackVoteModalTitle: "メールアドレスを入力して投票",
+  feedbackVoteModalBody: "メールアドレスは重複投票の防止のみに使用します。公開されることはありません。",
+  feedbackVoteEmailPlaceholder: "your@email.com",
+  feedbackCancelBtn: "キャンセル",
+  feedbackVoteSubmitBtn: "投票する",
+  feedbackVotingBtn: "投票中…",
+  feedbackEmailRequired: "メールアドレスを入力してください。",
+  feedbackVoteError: "エラーが発生しました。",
+  feedbackSubmitModalTitle: "Adjudoへの機能提案",
+  feedbackTitleLabel: "タイトル",
+  feedbackTitlePlaceholder: "例：Notion連携を追加したい",
+  feedbackDescLabel: "詳細",
+  feedbackDescPlaceholder: "解決したい課題や改善点を記入してください。",
+  feedbackCategoryLabel: "カテゴリ",
+  feedbackSubmitBtn: "送信する",
+  feedbackSubmittingBtn: "送信中…",
+  feedbackTitleDescRequired: "タイトルと詳細は必須です。",
+  feedbackLoginRequired: "フィードバックを投稿するにはログインが必要です。",
+  feedbackRemoveVote: "投票を取り消す",
+  feedbackUpvoteBtn: "賛成する",
+  feedbackCatFeatureRequest: "機能リクエスト",
+  feedbackCatImprovement: "改善",
+  feedbackCatBug: "バグ",
+  feedbackCatIntegration: "連携",
+  feedbackCatPricing: "料金",
+  feedbackCatOther: "その他",
+  feedbackStatusUnderReview: "レビュー中",
+  feedbackStatusPlanned: "予定",
+  feedbackStatusInProgress: "進行中",
+  feedbackStatusReleased: "リリース済",
+  feedbackStatusNotPlanned: "未予定",
 };
 
 const en: Translations = {
@@ -1125,6 +1227,57 @@ const en: Translations = {
   useProjectContextLabel:   "Reference past Decision Memos in this project",
   useProjectContextDesc:    "Up to 5 past decisions from the same project will be added to the AI's context.",
   newRoomDecisionTypeLabel: "What are you deciding? (optional)",
+  // ── Feedback page ──────────────────────────────────────────────────────────
+  feedbackPageTitle: "Help shape Adjudo",
+  feedbackPageSub: "Vote on what we should build next, or suggest what would make Adjudo more useful for solo founders.",
+  feedbackSuggestBtn: "Suggest",
+  feedbackAllStatuses: "All statuses",
+  feedbackMostVoted: "Most voted",
+  feedbackNewest: "Newest",
+  feedbackPinnedSection: "Pinned — help us decide",
+  feedbackCommunitySection: "Community Requests",
+  feedbackEmpty: "No feedback yet. Be the first!",
+  feedbackLoadError: "Could not load feedback. Please try again.",
+  feedbackVotesNeededLabel: "Votes needed to prioritize",
+  feedbackNotePrefix: "Note: ",
+  feedbackPinnedBadge: "Pinned",
+  feedbackCostSensitive: "Cost-sensitive",
+  feedbackWaitlistNudge: "Want to be first when Adjudo launches?",
+  feedbackJoinWaitlistLink: "Join the waitlist →",
+  feedbackBackToRooms: "← Rooms",
+  feedbackLoginLink: "Log in",
+  feedbackJoinWaitlistBtn: "Join waitlist",
+  feedbackVoteModalTitle: "Enter your email to vote",
+  feedbackVoteModalBody: "Your email is only used to prevent duplicate votes. It won't be shared publicly.",
+  feedbackVoteEmailPlaceholder: "your@email.com",
+  feedbackCancelBtn: "Cancel",
+  feedbackVoteSubmitBtn: "Vote",
+  feedbackVotingBtn: "Voting…",
+  feedbackEmailRequired: "Email is required.",
+  feedbackVoteError: "Something went wrong.",
+  feedbackSubmitModalTitle: "Suggest a feature for Adjudo",
+  feedbackTitleLabel: "Title",
+  feedbackTitlePlaceholder: "e.g. Add Notion integration",
+  feedbackDescLabel: "Description",
+  feedbackDescPlaceholder: "Describe the problem this would solve or the improvement you'd like to see.",
+  feedbackCategoryLabel: "Category",
+  feedbackSubmitBtn: "Submit",
+  feedbackSubmittingBtn: "Submitting…",
+  feedbackTitleDescRequired: "Title and description are required.",
+  feedbackLoginRequired: "You must be logged in to submit feedback.",
+  feedbackRemoveVote: "Remove vote",
+  feedbackUpvoteBtn: "Upvote",
+  feedbackCatFeatureRequest: "Feature Request",
+  feedbackCatImprovement: "Improvement",
+  feedbackCatBug: "Bug",
+  feedbackCatIntegration: "Integration",
+  feedbackCatPricing: "Pricing",
+  feedbackCatOther: "Other",
+  feedbackStatusUnderReview: "Under Review",
+  feedbackStatusPlanned: "Planned",
+  feedbackStatusInProgress: "In Progress",
+  feedbackStatusReleased: "Released",
+  feedbackStatusNotPlanned: "Not Planned",
 };
 
 const TRANSLATIONS: Record<Locale, Translations> = { ja, en };
@@ -1145,7 +1298,9 @@ const LocaleContext = createContext<LocaleContextValue>({
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === "en" || stored === "ja" ? stored : "ja";
+    if (stored === "en" || stored === "ja") return stored;
+    const lang = (navigator.language ?? "").toLowerCase();
+    return lang.startsWith("ja") ? "ja" : "en";
   });
 
   function setLocale(l: Locale) {

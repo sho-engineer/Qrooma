@@ -171,6 +171,29 @@ router.get("/admin/feedback", async (req, res) => {
   }
 });
 
+router.get("/admin/feedback/regions", async (req, res) => {
+  try {
+    const rows = await db
+      .select({
+        country:    sql<string>`COALESCE(${feedbackVotesTable.country}, 'Unknown')`,
+        region:     sql<string>`COALESCE(${feedbackVotesTable.region}, 'Unknown')`,
+        voteCount:  sql<number>`COUNT(*)::int`,
+        postCount:  sql<number>`COUNT(DISTINCT ${feedbackVotesTable.feedbackPostId})::int`,
+        lastVoteAt: sql<string>`MAX(${feedbackVotesTable.createdAt})`,
+      })
+      .from(feedbackVotesTable)
+      .groupBy(
+        sql`COALESCE(${feedbackVotesTable.country}, 'Unknown')`,
+        sql`COALESCE(${feedbackVotesTable.region}, 'Unknown')`,
+      )
+      .orderBy(desc(sql`COUNT(*)`));
+    res.json(rows);
+  } catch (e) {
+    req.log.error(e);
+    res.status(500).json({ error: "db error" });
+  }
+});
+
 // ── Analytics ───────────────────────────────────────────────────────────────
 router.get("/admin/analytics", async (req, res) => {
   try {

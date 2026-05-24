@@ -4,7 +4,7 @@ import { Redirect } from "wouter";
 import {
   UsersIcon, TagIcon, MessageSquareIcon, BarChart2Icon,
   PlusIcon, ToggleLeftIcon, ToggleRightIcon, ShieldIcon, UserIcon,
-  TrendingUpIcon, CalendarIcon, ArrowUpIcon,
+  TrendingUpIcon, CalendarIcon, ArrowUpIcon, MapPinIcon,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -407,8 +407,17 @@ function CouponsTab({ headers }: { headers: Record<string, string> }) {
 
 // ── Tab: Feedback ──────────────────────────────────────────────────────────
 
+interface RegionRow {
+  country:    string;
+  region:     string;
+  voteCount:  number;
+  postCount:  number;
+  lastVoteAt: string | null;
+}
+
 function FeedbackAdminTab({ headers }: { headers: Record<string, string> }) {
-  const [posts, setPosts]     = useState<FeedbackPost[]>([]);
+  const [posts,   setPosts]   = useState<FeedbackPost[]>([]);
+  const [regions, setRegions] = useState<RegionRow[]>([]);
   const [loading, setLoad]    = useState(true);
   const [editing, setEditing] = useState<FeedbackPost | null>(null);
   const [note, setNote]       = useState("");
@@ -416,7 +425,14 @@ function FeedbackAdminTab({ headers }: { headers: Record<string, string> }) {
   const [saving, setSaving]   = useState(false);
 
   useEffect(() => {
-    fetch("/api/admin/feedback", { headers }).then((r) => r.json()).then((d) => { setPosts(d as FeedbackPost[]); setLoad(false); });
+    Promise.all([
+      fetch("/api/admin/feedback",         { headers }).then((r) => r.json()),
+      fetch("/api/admin/feedback/regions", { headers }).then((r) => r.json()),
+    ]).then(([p, reg]) => {
+      setPosts(p as FeedbackPost[]);
+      setRegions(reg as RegionRow[]);
+      setLoad(false);
+    });
   }, []);
 
   function openEdit(p: FeedbackPost) {
@@ -527,6 +543,45 @@ function FeedbackAdminTab({ headers }: { headers: Record<string, string> }) {
           {posts.length === 0 && <EmptyRow label="No feedback posts yet." />}
         </div>
       </div>
+
+      {regions.length > 0 && (
+        <section className="space-y-3">
+          <SectionTitle icon={<MapPinIcon size={13} />} label="Vote Regions" />
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Country</th>
+                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Region</th>
+                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Votes</th>
+                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Posts</th>
+                    <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Last vote</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {regions.map((r, i) => (
+                    <tr key={`${r.country}-${r.region}`} className={`${i < regions.length - 1 ? "border-b border-border" : ""}`}>
+                      <td className="px-4 py-3 font-medium text-foreground text-[13px]">{r.country}</td>
+                      <td className="px-4 py-3 text-[13px] text-muted-foreground">{r.region}</td>
+                      <td className="px-4 py-3">
+                        <span className="flex items-center gap-1 text-[13px] font-semibold text-foreground tabular-nums">
+                          <ArrowUpIcon size={11} className="text-muted-foreground" />
+                          {r.voteCount}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-[13px] text-muted-foreground tabular-nums">{r.postCount}</td>
+                      <td className="px-4 py-3 text-[12px] text-muted-foreground">
+                        {r.lastVoteAt ? relDate(r.lastVoteAt) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
