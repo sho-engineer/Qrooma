@@ -215,7 +215,7 @@ export default function RoomDetailPage() {
   // ─── Tab title ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    const base = "Clario";
+    const base = "Adjudo";
     if (isRunActive) {
       document.title = `${t.tabTitleGenerating} · ${base}`;
     } else if (runStatus === "completed") {

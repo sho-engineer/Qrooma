@@ -1,0 +1,310 @@
+Please update the current product branding from Clario to Adjudo.
+
+This includes:
+- changing the service name
+- replacing the logo assets
+- updating the landing page copy
+- updating metadata
+- updating English and Japanese pages
+- removing old Clario branding from user-facing areas
+
+This is NOT a blind find-and-replace task.
+Please make context-aware updates and avoid breaking internal technical references.
+
+---
+
+# New service name
+
+The new product name is:
+
+Adjudo
+
+Adjudo is an AI Decision Room for solo founders and product-minded builders.
+
+Core positioning:
+Turn messy thinking into clear decisions and next actions.
+
+The product helps users:
+- compare options
+- pressure-test assumptions
+- structure decisions
+- decide what to do now / not now / later
+- generate a Decision Memo
+- create handoff-ready outputs for execution tools
+
+---
+
+# Logo assets
+
+I will provide two new Adjudo logo assets.
+
+## Logo A: Wordmark logo
+This includes the Adjudo symbol and the word “Adjudo”.
+
+Use this as the main brand logo.
+
+Recommended usage:
+- header / navbar
+- footer
+- main landing page brand areas
+- Japanese page header/footer
+
+## Logo B: Symbol-only logo
+This is the compact Adjudo mark without text.
+
+Use this for:
+- favicon
+- app icon
+- compact sidebar logo if needed
+- small brand mark
+- loading state or small UI accent if appropriate
+
+Do NOT use the old Clario logos anymore.
+
+---
+
+# Asset handling
+
+Please add the new logo files to the public assets folder.
+
+Recommended paths:
+
+- /public/brand/adjudo-wordmark.png
+- /public/brand/adjudo-symbol.png
+
+If the uploaded filenames are different, safely copy or rename them to these paths.
+
+If transparent/backgroundless versions are provided, use those.
+Do not add a white box or background behind the logo.
+Do not crop the logo awkwardly.
+Do not stretch or distort the logo.
+Keep the logo monochrome.
+
+---
+
+# Logo sizing
+
+The previous logo appeared too small on mobile.
+
+Please make the new Adjudo logo more visible and confident.
+
+Recommended header logo sizing:
+
+Mobile:
+- wordmark width: 100–125px
+
+Desktop:
+- wordmark width: 130–165px
+
+The header should feel balanced:
+- the logo should not feel weaker than the CTA
+- the CTA should still be clear
+- the logo should have enough whitespace
+- do not make the header crowded
+
+If necessary, slightly reduce the mobile CTA padding to keep balance.
+
+---
+
+# Pages
+
+The site should remain structured as:
+
+- `/` = English main landing page
+- `/jp` = Japanese landing page
+
+Please update both pages from Clario to Adjudo.
+
+Do not leave visible Clario references on either page.
+
+---
+
+# English LP copy direction
+
+Use Adjudo as the product name.
+
+Recommended positioning:
+
+Adjudo  
+AI Decision Room for Solo Founders
+
+Core line:
+Turn messy thinking into clear decisions and next actions.
+
+Hero headline options:
+- Turn messy thinking into clear decisions.
+- Decide what to build next — with better reasoning.
+- Compare. Challenge. Decide. Hand off.
+
+Recommended hero copy:
+Built for solo founders and product-minded builders. Compare options, pressure-test assumptions, decide what to do now, and hand off a structured memo to your execution tools.
+
+Please choose the best version based on the current page layout.
+
+---
+
+# Japanese LP copy direction
+
+Use Adjudo as the product name.
+
+Recommended Japanese positioning:
+
+Adjudoは、Solo Founderやプロダクトをつくる人のためのAI Decision Roomです。
+
+Core line:
+散らかった思考を、明確な判断と次アクションへ。
+
+Recommended Japanese copy:
+選択肢を比較し、前提を検証し、今やること・やらないこと・後で考えることを整理。判断内容をDecision Memoとしてまとめ、実行ツールへ渡せる形にします。
+
+Avoid literal translation.
+Make the Japanese page sound natural and product-oriented.
+
+---
+
+# Product positioning to preserve
+
+Adjudo is NOT:
+- just a multi-AI debate tool
+- just another chatbot
+- a meeting summary tool
+- a project management tool
+- a generic AI workspace
+
+Adjudo IS:
+- an AI Decision Room
+- a decision layer before execution
+- a tool for comparing, challenging, deciding, and handing off
+- a place where solo founders turn unclear thinking into structured decisions
+
+Please keep this positioning clear across the LP.
+
+---
+
+# Design direction
+
+Keep the current visual direction:
+
+- monochrome
+- premium minimal
+- typography-first
+- clean
+- sharp
+- founder-oriented
+- editorial SaaS feel
+
+Do NOT add:
+- colorful gradients
+- blue SaaS-style accents
+- playful illustrations
+- too many icons
+- heavy dashboard-style visuals
+- unnecessary animations
+
+The new Adjudo logo is more angular and forward-moving, so the LP can feel slightly more confident and decisive, but it should still remain minimal.
+
+---
+
+# Where to update the name
+
+Please update user-facing references from Clario to Adjudo in:
+
+- landing page visible text
+- `/` English page
+- `/jp` Japanese page
+- header
+- footer
+- CTA areas if needed
+- metadata title
+- metadata description
+- Open Graph / social metadata if present
+- README product name and public-facing description
+- visible app labels where the product name appears
+- auth pages if the product name appears
+- dashboard navigation if the product name appears
+
+Also remove or update any old Qrooma references if they still appear in user-facing areas.
+
+---
+
+# Safe rename rules
+
+Do NOT blindly rename internal technical identifiers unless clearly safe.
+
+Be careful with:
+- database table names
+- Supabase schema
+- migration filenames
+- environment variable names
+- API route contracts
+- import paths
+- package names
+- internal constants
+- existing storage buckets
+
+If an internal name still uses qrooma or clario but changing it could break the app, leave it unchanged and document it.
+
+User-facing branding should become Adjudo.
+Internal technical names can remain unchanged if safer.
+
+---
+
+# Favicon / app icon
+
+Please use the new symbol-only Adjudo logo as the basis for favicon / app icon if the current setup makes that easy.
+
+Recommended:
+- replace favicon with Adjudo symbol
+- use symbol-only mark for small app icon references
+
+If favicon generation is risky or requires extra tooling, leave a clear note about what should be done manually.
+
+---
+
+# Admin and feedback board references
+
+If the app already includes or is adding:
+- admin dashboard
+- feedback board
+- pinned roadmap requests
+- coupon management
+
+Please make sure those pages also use Adjudo branding.
+
+For example:
+- “Adjudo Feedback”
+- “Adjudo Admin”
+- “Help shape Adjudo”
+- “Suggest a feature for Adjudo”
+
+Do not leave Clario references in these operational pages.
+
+---
+
+# Deliverables
+
+Please do the following:
+
+1. Inspect the current codebase for Clario and Qrooma references
+2. Add the new Adjudo logo assets
+3. Replace the old logo usage with the Adjudo wordmark
+4. Use the Adjudo symbol where compact logo usage is needed
+5. Update `/` English LP copy and metadata
+6. Update `/jp` Japanese LP copy and metadata if applicable
+7. Update footer/header branding
+8. Update favicon/app icon if safe
+9. Update README public-facing product name/description
+10. Keep internal technical references unchanged if renaming may break the app
+
+After implementation, please explain:
+
+- which files were updated
+- where the new logos were added
+- where the wordmark is used
+- where the symbol-only logo is used
+- which Clario references were replaced
+- whether any Qrooma references remain and why
+- whether any internal references were intentionally left unchanged for safety
+- how to manually verify the branding on `/` and `/jp`
+
+The final result should feel like a polished Adjudo landing page and product brand, not a renamed Clario page.

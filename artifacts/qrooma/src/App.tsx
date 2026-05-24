@@ -126,7 +126,7 @@ function AppShell() {
           >
             <MenuIcon size={20} />
           </button>
-          <span className="text-sm font-semibold text-foreground">Clario</span>
+          <span className="text-sm font-semibold text-foreground">Adjudo</span>
         </div>
 
         <Switch>

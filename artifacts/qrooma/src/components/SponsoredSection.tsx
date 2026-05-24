@@ -37,7 +37,7 @@ const SPONSORS: Record<Locale, Sponsor[]> = {
       initials: "L",
       bgColor:  "#5E6AD2",
       name:     "Linear",
-      desc:     "プロダクトチームのための高速な課題管理。Clarioの判断をタスクに変換。",
+      desc:     "プロダクトチームのための高速な課題管理。Adjudoの判断をタスクに変換。",
       href:     "https://linear.app",
     },
     {
@@ -63,7 +63,7 @@ const SPONSORS: Record<Locale, Sponsor[]> = {
       initials: "L",
       bgColor:  "#5E6AD2",
       name:     "Linear",
-      desc:     "Fast issue tracking for product teams. Turn Clario decisions into action items.",
+      desc:     "Fast issue tracking for product teams. Turn Adjudo decisions into action items.",
       href:     "https://linear.app",
     },
     {

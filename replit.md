@@ -1,10 +1,10 @@
-# Clario
+# Adjudo
 
 AI Decision Room for solo founders and product-minded builders — bring your own API keys (BYOK).
-Clario helps founders compare options, pressure-test assumptions, structure decisions, and hand off results as a one-page Decision Memo to execution tools like ChatGPT, Manus, Replit, and Cursor.
+Adjudo helps founders compare options, pressure-test assumptions, structure decisions, and hand off results as a one-page Decision Memo to execution tools like ChatGPT, Manus, Replit, and Cursor.
 **BYOK mode is now live**: when the user enters API keys in Settings, real OpenAI / Anthropic / Google calls are made via the Express API server using SSE streaming. Free mode still uses local simulation (dummy data). Supabase Auth/DB and Trigger.dev are future integration points.
 
-> Internal note: package name (`@workspace/qrooma`), directory (`artifacts/qrooma/`), and localStorage keys (`qrooma_*`) are intentionally kept as-is for technical stability. Only user-facing branding has been updated to "Clario".
+> Internal note: package name (`@workspace/qrooma`), directory (`artifacts/qrooma/`), and localStorage keys (`qrooma_*`) are intentionally kept as-is for technical stability. Only user-facing branding has been updated to "Adjudo".
 
 ---
 

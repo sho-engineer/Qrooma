@@ -50,7 +50,7 @@ export default function AuthPage({ initialMode = "login" }: Props) {
           <Link href="/">
             <button className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeftIcon size={12} />
-              Clario
+              Adjudo
             </button>
           </Link>
           <div className="flex gap-1">
@@ -71,7 +71,7 @@ export default function AuthPage({ initialMode = "login" }: Props) {
         </div>
 
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Clario</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Adjudo</h1>
           <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
             {locale === "ja"
               ? "ひとりの創業者のための AI Decision Room"

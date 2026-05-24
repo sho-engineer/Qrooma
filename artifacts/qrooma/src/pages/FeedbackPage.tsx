@@ -207,7 +207,7 @@ function SubmitModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">Submit Feedback</h2>
+          <h2 className="text-base font-semibold text-foreground">Suggest a feature for Adjudo</h2>
           <button onClick={onClose} className="p-1 rounded hover:bg-accent transition-colors">
             <XIcon size={16} className="text-muted-foreground" />
           </button>
@@ -420,9 +420,9 @@ export default function FeedbackPage() {
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Feedback</h1>
+            <h1 className="text-xl font-bold text-foreground">Adjudo Feedback</h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Vote on ideas and help us decide what to build next.
+              Vote on ideas and help shape Adjudo.
             </p>
           </div>
           {user && (

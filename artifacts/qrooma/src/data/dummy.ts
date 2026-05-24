@@ -169,7 +169,7 @@ export const DUMMY_MESSAGES: Message[] = [
   // ── room-4: Marketing Copy Review ── 1 run (Free Talk) ────────────────────
   {
     id: "m4-1", roomId: "room-4", role: "user",
-    content: "Help me improve this headline: 'Clario — AI Decision Room for founders'. It feels too generic.",
+    content: "Help me improve this headline: 'Adjudo — AI Decision Room for founders'. It feels too generic.",
     createdAt: "2026-04-14T10:00:00Z", runId: "run-1",
   },
   {

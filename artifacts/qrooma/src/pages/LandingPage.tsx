@@ -2,8 +2,8 @@ import { useRef, useEffect, useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "../context/AuthContext";
 import { ArrowRightIcon } from "lucide-react";
-import logoA from "@assets/36F012D4-0DE3-4A75-A486-1607B0602A6C_1779613152980.png";
-import logoB from "@assets/80261625-23D3-40DD-95D0-9D7E4A01D73D_1779613152980.png";
+const logoA = "/brand/adjudo-wordmark.png";
+const logoB = "/brand/adjudo-symbol.png";
 
 // ─── useFadeSection — scroll-triggered fade-up ────────────────────────────────
 function useFadeSection() {
@@ -64,7 +64,7 @@ function DecisionMemoPreview() {
             <div className="w-2.5 h-2.5 rounded-full bg-foreground/8" />
             <div className="w-2.5 h-2.5 rounded-full bg-foreground/8" />
           </div>
-          <img src={logoB} alt="Clario" className="h-3.5 w-auto opacity-40 ml-1" />
+          <img src={logoB} alt="Adjudo" className="h-3.5 w-auto opacity-40 ml-1 dark:invert" />
         </div>
         <span className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground/40">
           Decision Memo
@@ -178,7 +178,7 @@ function PositioningGrid() {
     },
     {
       category: "Deciding",
-      tools:    "Clario",
+      tools:    "Adjudo",
       role:     "Compare, pressure-test, structure",
       here:     true,
     },
@@ -279,7 +279,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between gap-4">
           <Link href="/">
-            <img src={logoA} alt="Clario" className="h-8 sm:h-9 w-auto hover:opacity-70 transition-opacity duration-150" />
+            <img src={logoA} alt="Adjudo" className="w-[105px] sm:w-[140px] h-auto hover:opacity-70 transition-opacity duration-150 dark:invert" />
           </Link>
           <div className="flex items-center gap-2 shrink-0">
             <Link href="/jp">
@@ -488,7 +488,7 @@ export default function LandingPage() {
           The layer between thinking and execution.
         </h2>
         <p className="text-[15px] text-muted-foreground leading-relaxed mb-10 max-w-xl">
-          Clario isn't another chatbot, a PM tool, or a meeting summarizer. It's the decision layer that sits before you build.
+          Adjudo isn't another chatbot, a PM tool, or a meeting summarizer. It's the decision layer that sits before you build.
         </p>
         <PositioningGrid />
       </section>
@@ -605,7 +605,7 @@ export default function LandingPage() {
       <footer className="border-t border-border bg-card/40">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 h-12 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={logoA} alt="Clario" className="h-5 w-auto opacity-50" />
+            <img src={logoA} alt="Adjudo" className="h-5 w-auto opacity-50 dark:invert" />
             <span className="text-[11px] text-muted-foreground/40">© 2025</span>
           </div>
           <div className="flex items-center gap-4">

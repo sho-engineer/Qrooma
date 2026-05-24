@@ -583,8 +583,8 @@ export default function AdminPage() {
     <div className="flex-1 overflow-y-auto bg-background">
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Admin Dashboard</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Manage users, coupons, and feedback.</p>
+          <h1 className="text-xl font-bold text-foreground">Adjudo Admin</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">Manage Adjudo users, coupons, and feedback.</p>
         </div>
 
         {/* Tab bar */}

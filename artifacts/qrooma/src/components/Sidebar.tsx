@@ -282,7 +282,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
   return (
     <aside className={containerClass}>
       <div className="flex items-center justify-between px-3.5 py-3 border-b border-sidebar-border">
-        <span className="text-sm font-semibold text-foreground tracking-tight">Clario</span>
+        <img src="/brand/adjudo-wordmark.png" alt="Adjudo" className="h-5 w-auto dark:invert" />
         <div className="flex items-center gap-0.5">
           <button
             onClick={() => setNewRoomMode(true)}
