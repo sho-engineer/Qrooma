@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, feedbackPostsTable, feedbackVotesTable, usersTable } from "@workspace/db";
 import type { FeedbackPost } from "@workspace/db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, isNotNull } from "drizzle-orm";
 
 type FeedbackStatus   = FeedbackPost["status"];
 type FeedbackCategory = FeedbackPost["category"];
@@ -23,7 +23,8 @@ const VALID_CATEGORIES: NonNullable<FeedbackCategory>[] = ["feature_request", "i
 
 // GET /api/feedback — list posts (pinned first, then by upvotes)
 router.get("/feedback", async (req, res) => {
-  const userId = getUserId(req);
+  const userId    = getUserId(req);
+  const voterEmail = (req.query.voter_email as string | undefined)?.trim().toLowerCase() || null;
   const { status, category, sort } = req.query as { status?: string; category?: string; sort?: string };
   try {
     const conditions = [eq(feedbackPostsTable.isHidden, false)] as ReturnType<typeof eq>[];
@@ -52,7 +53,13 @@ router.get("/feedback", async (req, res) => {
       const votes = await db
         .select({ id: feedbackVotesTable.feedbackPostId })
         .from(feedbackVotesTable)
-        .where(eq(feedbackVotesTable.userId, userId));
+        .where(and(eq(feedbackVotesTable.userId, userId), isNotNull(feedbackVotesTable.userId)));
+      votedIds = new Set(votes.map((v) => v.id));
+    } else if (voterEmail) {
+      const votes = await db
+        .select({ id: feedbackVotesTable.feedbackPostId })
+        .from(feedbackVotesTable)
+        .where(eq(feedbackVotesTable.voterEmail, voterEmail));
       votedIds = new Set(votes.map((v) => v.id));
     }
 
@@ -85,26 +92,56 @@ router.post("/feedback", async (req, res) => {
   }
 });
 
-// POST /api/feedback/:id/vote — toggle vote
+// POST /api/feedback/:id/vote — toggle vote (auth OR voter_email)
 router.post("/feedback/:id/vote", async (req, res) => {
-  const userId = getUserId(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const { id } = req.params;
+  const userId     = getUserId(req);
+  const voterEmail = (req.body as { voter_email?: string }).voter_email?.trim().toLowerCase() || null;
+  const { id }     = req.params;
+
+  if (!userId && !voterEmail) {
+    res.status(401).json({ error: "login or provide email to vote" });
+    return;
+  }
+
   try {
-    const existing = await db
-      .select()
-      .from(feedbackVotesTable)
-      .where(and(eq(feedbackVotesTable.feedbackPostId, id), eq(feedbackVotesTable.userId, userId)));
+    let existing: { id: string }[];
+
+    if (userId) {
+      existing = await db
+        .select({ id: feedbackVotesTable.id })
+        .from(feedbackVotesTable)
+        .where(and(eq(feedbackVotesTable.feedbackPostId, id), eq(feedbackVotesTable.userId, userId)));
+    } else {
+      existing = await db
+        .select({ id: feedbackVotesTable.id })
+        .from(feedbackVotesTable)
+        .where(and(
+          eq(feedbackVotesTable.feedbackPostId, id),
+          eq(feedbackVotesTable.voterEmail, voterEmail!),
+        ));
+    }
 
     if (existing.length > 0) {
-      await db.delete(feedbackVotesTable)
-        .where(and(eq(feedbackVotesTable.feedbackPostId, id), eq(feedbackVotesTable.userId, userId)));
+      if (userId) {
+        await db.delete(feedbackVotesTable)
+          .where(and(eq(feedbackVotesTable.feedbackPostId, id), eq(feedbackVotesTable.userId, userId)));
+      } else {
+        await db.delete(feedbackVotesTable)
+          .where(and(
+            eq(feedbackVotesTable.feedbackPostId, id),
+            eq(feedbackVotesTable.voterEmail, voterEmail!),
+          ));
+      }
       await db.update(feedbackPostsTable)
         .set({ upvoteCount: sql`${feedbackPostsTable.upvoteCount} - 1`, updatedAt: new Date() })
         .where(eq(feedbackPostsTable.id, id));
       res.json({ voted: false });
     } else {
-      await db.insert(feedbackVotesTable).values({ feedbackPostId: id, userId });
+      await db.insert(feedbackVotesTable).values(
+        userId
+          ? { feedbackPostId: id, userId }
+          : { feedbackPostId: id, userId: null, voterEmail: voterEmail! },
+      );
       await db.update(feedbackPostsTable)
         .set({ upvoteCount: sql`${feedbackPostsTable.upvoteCount} + 1`, updatedAt: new Date() })
         .where(eq(feedbackPostsTable.id, id));
@@ -116,7 +153,7 @@ router.post("/feedback/:id/vote", async (req, res) => {
   }
 });
 
-// PATCH /api/feedback/:id — admin update (status, adminNote, etc.)
+// PATCH /api/feedback/:id — admin update
 router.patch("/feedback/:id", async (req, res) => {
   const userId = getUserId(req);
   if (!await isAdmin(userId)) { res.status(403).json({ error: "Forbidden" }); return; }

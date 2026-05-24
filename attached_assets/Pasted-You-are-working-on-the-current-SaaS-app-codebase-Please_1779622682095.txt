@@ -1,0 +1,436 @@
+You are working on the current SaaS app codebase.
+
+Please implement the next MVP preparation scope for the product.
+
+The product name is now:
+
+Adjudo
+
+Adjudo is an AI Decision Room for solo founders and product-minded builders.
+
+Core value:
+Turn messy thinking into clear decisions and next actions.
+
+This iteration is for preparing the product before starting marketing on X and YouTube.
+
+Do NOT implement admin features in this iteration.
+
+---
+
+# Scope to implement
+
+Please implement the following only:
+
+1. Update user-facing branding to Adjudo
+2. Replace logos with the provided Adjudo logo assets
+3. Make `/` the English main landing page
+4. Create `/jp` as the Japanese landing page
+5. Create a Waitlist
+6. Update landing page CTAs to focus on Waitlist
+7. Create a Feedback Board at `/feedback`
+8. Add two pinned default feedback posts:
+   - BYOK Plan
+   - Hosted Paid Plan
+9. Document Admin Dashboard as future work only
+
+---
+
+# 1. Branding update
+
+Update visible user-facing product names from Clario / Qrooma to Adjudo.
+
+Update:
+- landing page text
+- header
+- footer
+- metadata title
+- metadata description
+- visible app labels where the product name appears
+- README public-facing description if safe
+
+Do NOT blindly rename internal technical identifiers if it may break the app.
+
+Do not force rename:
+- database table names
+- migration filenames
+- environment variables
+- package name
+- API routes
+- storage buckets
+- internal constants
+
+User-facing branding should become Adjudo.
+Internal technical names may remain unchanged if safer.
+
+---
+
+# 2. Logo replacement
+
+I will provide two Adjudo logo assets:
+
+1. Wordmark logo
+   - symbol + “Adjudo”
+   - use in header, footer, landing pages
+
+2. Symbol-only logo
+   - use for favicon / app icon / compact logo areas if safe
+
+Please add them to public assets, for example:
+
+- /public/brand/adjudo-wordmark.png
+- /public/brand/adjudo-symbol.png
+
+Use the wordmark as the main logo.
+
+Do not distort, crop, recolor, or add a background box behind the logo.
+
+Keep the overall design monochrome and premium.
+
+---
+
+# 3. English main LP `/`
+
+Make `/` the English main landing page.
+
+Positioning:
+
+Adjudo
+AI Decision Room for Solo Founders
+
+Core line:
+Turn messy thinking into clear decisions and next actions.
+
+The LP should communicate:
+
+- Adjudo helps solo founders clarify messy thinking
+- compare options
+- pressure-test assumptions
+- decide what to do now / not now / later
+- generate a Decision Memo
+- hand off clear next actions to execution tools
+
+Primary CTA:
+Join waitlist
+
+Secondary CTA:
+View feedback board
+
+The design should remain:
+- monochrome
+- premium minimal
+- typography-first
+- founder-oriented
+- clean SaaS style
+
+Avoid:
+- colorful gradients
+- generic AI icons
+- robots
+- playful illustrations
+- heavy dashboard visuals
+
+---
+
+# 4. Japanese LP `/jp`
+
+Create a Japanese landing page at:
+
+/jp
+
+It should be a natural Japanese version, not a literal translation.
+
+Recommended positioning:
+
+Adjudoは、Solo Founderやプロダクトをつくる人のためのAI Decision Roomです。
+
+Core line:
+散らかった思考を、明確な判断と次アクションへ。
+
+Primary CTA:
+Waitlistに登録する
+
+Secondary CTA:
+要望を見る・投票する
+
+Keep the same visual identity as the English page.
+
+---
+
+# 5. Waitlist
+
+Create a waitlist system.
+
+The LP should guide users to join the waitlist.
+
+Create either:
+- embedded waitlist form on the LP
+- `/waitlist` page
+- or both if simple
+
+Fields:
+- email: required
+- name: optional
+- role: optional
+- use_case: optional
+- source: default "waitlist"
+
+Create database table:
+
+waitlist_entries:
+- id
+- email
+- name
+- role
+- use_case
+- source
+- created_at
+- updated_at
+
+Rules:
+- email must be unique
+- if the same email submits again, show a friendly already-joined message or update the existing record
+- do not expose waitlist entries publicly
+- no admin UI is needed
+
+English success message:
+You're on the waitlist. We'll let you know when Adjudo is ready.
+
+Japanese success message:
+Waitlistに登録しました。Adjudoの準備ができ次第、お知らせします。
+
+---
+
+# 6. Feedback Board
+
+Create a user-facing feedback board at:
+
+/feedback
+
+Purpose:
+Collect user requests and use upvotes as a demand signal for roadmap prioritization.
+
+Users should be able to:
+- view feedback posts
+- submit a feature request
+- upvote a feature request
+- remove their own upvote
+- sort by most upvoted / newest
+- see pinned posts at the top
+
+Recommended tables:
+
+feedback_posts:
+- id
+- slug
+- user_id nullable
+- title
+- description
+- status
+- category
+- upvote_count default 0
+- is_pinned default false
+- vote_threshold nullable
+- threshold_action nullable
+- cost_sensitive default false
+- admin_priority_note nullable
+- is_hidden default false
+- is_roadmap_candidate default false
+- created_at
+- updated_at
+
+feedback_votes:
+- id
+- feedback_post_id
+- user_id nullable
+- voter_email nullable
+- created_at
+
+Voting rule:
+- one vote per user or email per feedback post
+- if logged in, use user_id
+- if not logged in, ask for email and prevent duplicate votes by email
+- do not expose voter emails publicly
+
+---
+
+# 7. Pinned feedback posts
+
+Seed two pinned posts.
+
+They should:
+- appear at the top of `/feedback`
+- show vote progress
+- show threshold
+- not be editable or deletable by normal users
+
+---
+
+## Pinned post 1
+
+Title:
+BYOK Plan — use Adjudo with your own API keys
+
+Description:
+Use Adjudo with your own OpenAI, Anthropic, or Google API keys.
+This would make Adjudo more affordable for builders who already use AI tools and want more control over usage costs.
+
+If this request reaches 50 upvotes, we will prioritize building the BYOK plan.
+
+Category:
+pricing
+
+Status:
+under_review
+
+Pinned:
+true
+
+Threshold:
+50
+
+Threshold action:
+50 upvotes reached → build
+
+Cost sensitive:
+false
+
+Admin note:
+Low running-cost risk. Treat 50 votes as a strong build signal.
+
+---
+
+## Pinned post 2
+
+Title:
+Hosted Paid Plan — use Adjudo without managing API keys
+
+Description:
+Use Adjudo without setting up your own API keys.
+The plan would include AI usage inside a monthly subscription.
+
+Because this plan includes AI running costs, we will evaluate both demand and unit economics before launching it.
+
+If this request reaches 100 upvotes, we will validate pricing and prioritize building a hosted paid plan if the cost structure works.
+
+Category:
+pricing
+
+Status:
+under_review
+
+Pinned:
+true
+
+Threshold:
+100
+
+Threshold action:
+100 upvotes reached → validate pricing and cost, then build if viable
+
+Cost sensitive:
+true
+
+Admin note:
+Votes indicate demand, but final implementation should also consider API running cost, expected usage, pricing, and gross margin.
+
+---
+
+# 8. Feedback Board UI
+
+The feedback page should include:
+
+Page title:
+Help shape Adjudo
+
+Subtitle:
+Vote on what we should build next, or suggest what would make Adjudo more useful for solo founders.
+
+Sections:
+- Pinned roadmap questions
+- Community requests
+
+Sorting:
+- Most upvoted
+- Newest
+
+Each feedback card should show:
+- title
+- description
+- category
+- status
+- vote count
+- threshold progress if applicable
+- cost-sensitive note if applicable
+
+For Hosted Paid Plan, show this note:
+Votes indicate demand. Final implementation also depends on running cost, expected usage, pricing, and gross margin.
+
+---
+
+# 9. LP CTA update
+
+Update LP CTAs.
+
+Primary CTA:
+Join waitlist
+
+Secondary CTA:
+View feedback board
+
+Add a small section near the bottom:
+
+Help shape Adjudo
+
+Text:
+Vote on what we should build next, or suggest a feature.
+
+Link:
+View feedback board → /feedback
+
+Japanese page should also include:
+- Waitlistに登録する
+- 要望を見る・投票する
+
+---
+
+# 10. Future work only
+
+Do NOT implement Admin Dashboard now.
+
+Document these as future work:
+
+Future Work: Admin Dashboard
+
+Deferred features:
+- admin dashboard
+- admin access control
+- usage analytics
+- user management
+- coupon management
+- feedback moderation
+- roadmap priority management
+- admin-only status editing
+- Stripe integration
+
+---
+
+# Deliverables
+
+After implementation, explain:
+
+1. What changed
+2. Which routes were added
+3. Which database tables were added
+4. How the waitlist works
+5. How feedback posting works
+6. How feedback voting works
+7. How the two pinned posts work
+8. What admin features were intentionally deferred
+9. How to test:
+   - join waitlist
+   - open `/feedback`
+   - upvote BYOK Plan
+   - upvote Hosted Paid Plan
+   - submit a new feedback request
+
+Please keep the implementation practical and avoid overbuilding.

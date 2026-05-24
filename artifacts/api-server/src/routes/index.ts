@@ -6,6 +6,7 @@ import usersRouter       from "./users";
 import analyticsRouter   from "./analytics";
 import feedbackRouter    from "./feedback";
 import adminRouter       from "./admin";
+import waitlistRouter    from "./waitlist";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(usersRouter);
 router.use(analyticsRouter);
 router.use(feedbackRouter);
 router.use(adminRouter);
+router.use(waitlistRouter);
 
 export default router;

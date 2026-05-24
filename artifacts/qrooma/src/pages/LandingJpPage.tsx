@@ -52,6 +52,68 @@ function GhostBtn({ children }: { children: React.ReactNode }) {
   );
 }
 
+function WaitlistHeroFormJp() {
+  const [email,  setEmail]  = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "already" | "error">("idle");
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setStatus("loading");
+    try {
+      const r = await fetch("/api/waitlist", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email: email.trim() }),
+      });
+      const d = await r.json() as { status?: string };
+      if (d.status === "joined")               setStatus("success");
+      else if (d.status === "already_joined")  setStatus("already");
+      else setStatus("error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "success" || status === "already") {
+    return (
+      <div className="flex items-center gap-3 flex-wrap">
+        <p className="text-sm font-medium text-foreground py-1">
+          ✓ {status === "already"
+            ? "このメールアドレスはすでに登録済みです — 準備が整い次第ご連絡します。"
+            : "Waitlistへの登録が完了しました。Adjudoの準備ができ次第お知らせします。"}
+        </p>
+        <Link href="/feedback">
+          <GhostBtn>要望ボードを見る <ArrowRightIcon size={13} /></GhostBtn>
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-wrap">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="your@email.com"
+        required
+        className="px-4 py-2.5 text-sm border border-border rounded-full bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground/40 min-w-[220px] w-full sm:w-auto transition-colors"
+      />
+      <PrimaryBtn large>
+        {status === "loading" ? "登録中…" : "Waitlistに登録する"}
+        {status !== "loading" && <ArrowRightIcon size={14} />}
+      </PrimaryBtn>
+      <Link href="/feedback">
+        <GhostBtn>要望ボードを見る</GhostBtn>
+      </Link>
+      {status === "error" && (
+        <span className="text-[12px] text-red-500 w-full sm:w-auto">エラーが発生しました。もう一度お試しください。</span>
+      )}
+    </form>
+  );
+}
+
 // ─── Decision Memo Preview (Japanese) ─────────────────────────────────────────
 function DecisionMemoPreviewJp() {
   return (
@@ -298,8 +360,8 @@ export default function LandingJpPage() {
                     ログイン
                   </button>
                 </Link>
-                <Link href="/signup">
-                  <PrimaryBtn>無料で始める</PrimaryBtn>
+                <Link href="/waitlist/jp">
+                  <PrimaryBtn>Waitlistに登録する</PrimaryBtn>
                 </Link>
               </>
             )}
@@ -326,20 +388,15 @@ export default function LandingJpPage() {
             ひとりで事業をつくる人のための AI Decision Room。選択肢を比較し、前提を崩し、判断する。ChatGPT、Manus、Replit、Cursorに渡せる形でまとめます。
           </p>
 
-          <div className="animate-fade-up anim-d3 flex items-center gap-3 flex-wrap">
+          <div className="animate-fade-up anim-d3">
             {user ? (
-              <Link href="/rooms">
-                <PrimaryBtn large>アプリを開く <ArrowRightIcon size={14} /></PrimaryBtn>
-              </Link>
+              <div className="flex items-center gap-3 flex-wrap">
+                <Link href="/rooms">
+                  <PrimaryBtn large>アプリを開く <ArrowRightIcon size={14} /></PrimaryBtn>
+                </Link>
+              </div>
             ) : (
-              <>
-                <Link href="/signup">
-                  <PrimaryBtn large>無料で始める <ArrowRightIcon size={14} /></PrimaryBtn>
-                </Link>
-                <Link href="/login">
-                  <GhostBtn>ログイン</GhostBtn>
-                </Link>
-              </>
+              <WaitlistHeroFormJp />
             )}
           </div>
         </div>
@@ -546,8 +603,8 @@ export default function LandingJpPage() {
                 </li>
               ))}
             </ul>
-            <Link href="/signup">
-              <PrimaryBtn>無料で始める <ArrowRightIcon size={13} /></PrimaryBtn>
+            <Link href="/waitlist/jp">
+              <PrimaryBtn>Waitlistに登録する <ArrowRightIcon size={13} /></PrimaryBtn>
             </Link>
           </div>
 
@@ -566,6 +623,27 @@ export default function LandingJpPage() {
         </div>
       </section>
 
+      {/* ── Help shape Adjudo ───────────────────────────────────────────────── */}
+      <section className="border-t border-border bg-[#F7F7F5]">
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-12 sm:py-16">
+          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/50 mb-4">
+            プロダクトを一緒に作る
+          </p>
+          <h2
+            className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-3"
+            style={{ fontSize: "clamp(1.5rem, 3.5vw, 2.25rem)" }}
+          >
+            Adjudoを一緒に作ろう
+          </h2>
+          <p className="text-[15px] text-muted-foreground mb-6 max-w-md leading-relaxed">
+            次に何を作るべきか、あなたの声を聞かせてください。機能リクエストへの投票や提案ができます。
+          </p>
+          <Link href="/feedback">
+            <GhostBtn>要望ボードを見る <ArrowRightIcon size={13} /></GhostBtn>
+          </Link>
+        </div>
+      </section>
+
       {/* ── Footer CTA ──────────────────────────────────────────────────────── */}
       <section
         ref={secFooter.ref as React.RefObject<HTMLElement>}
@@ -577,10 +655,10 @@ export default function LandingJpPage() {
             className="font-black tracking-[-0.03em] leading-[1.15] text-foreground mb-4 max-w-lg"
             style={{ fontSize: "clamp(2rem, 5vw, 3.25rem)" }}
           >
-            最初のDecision Roomを作ろう。
+            Adjudoを最初に使う一人になろう。
           </h2>
           <p className="text-[15px] text-muted-foreground mb-8">
-            無料で始められます。APIキー不要。
+            Waitlistに登録して、一緒にプロダクトを作りましょう。
           </p>
           <div className="flex items-center gap-3 flex-wrap">
             {user ? (
@@ -589,11 +667,11 @@ export default function LandingJpPage() {
               </Link>
             ) : (
               <>
-                <Link href="/signup">
-                  <PrimaryBtn large>無料で始める <ArrowRightIcon size={14} /></PrimaryBtn>
+                <Link href="/waitlist/jp">
+                  <PrimaryBtn large>Waitlistに登録する <ArrowRightIcon size={14} /></PrimaryBtn>
                 </Link>
-                <Link href="/login">
-                  <GhostBtn>ログイン</GhostBtn>
+                <Link href="/feedback">
+                  <GhostBtn>要望ボードを見る</GhostBtn>
                 </Link>
               </>
             )}

@@ -52,6 +52,68 @@ function GhostBtn({ children }: { children: React.ReactNode }) {
   );
 }
 
+function WaitlistHeroForm() {
+  const [email,  setEmail]  = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "already" | "error">("idle");
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setStatus("loading");
+    try {
+      const r = await fetch("/api/waitlist", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email: email.trim() }),
+      });
+      const d = await r.json() as { status?: string };
+      if (d.status === "joined")          setStatus("success");
+      else if (d.status === "already_joined") setStatus("already");
+      else setStatus("error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "success" || status === "already") {
+    return (
+      <div className="flex items-center gap-3 flex-wrap">
+        <p className="text-sm font-medium text-foreground py-1">
+          ✓ {status === "already"
+            ? "You're already on the waitlist — we'll reach out soon."
+            : "You're on the waitlist. We'll let you know when Adjudo is ready."}
+        </p>
+        <Link href="/feedback">
+          <GhostBtn>View feedback board <ArrowRightIcon size={13} /></GhostBtn>
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-wrap">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="your@email.com"
+        required
+        className="px-4 py-2.5 text-sm border border-border rounded-full bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground/40 min-w-[220px] w-full sm:w-auto transition-colors"
+      />
+      <PrimaryBtn large>
+        {status === "loading" ? "Joining…" : "Join waitlist"}
+        {status !== "loading" && <ArrowRightIcon size={14} />}
+      </PrimaryBtn>
+      <Link href="/feedback">
+        <GhostBtn>View feedback board</GhostBtn>
+      </Link>
+      {status === "error" && (
+        <span className="text-[12px] text-red-500 w-full sm:w-auto">Something went wrong — please try again.</span>
+      )}
+    </form>
+  );
+}
+
 // ─── Decision Memo Preview Card ───────────────────────────────────────────────
 function DecisionMemoPreview() {
   return (
@@ -298,8 +360,8 @@ export default function LandingPage() {
                     Log in
                   </button>
                 </Link>
-                <Link href="/signup">
-                  <PrimaryBtn>Start free</PrimaryBtn>
+                <Link href="/waitlist">
+                  <PrimaryBtn>Join waitlist</PrimaryBtn>
                 </Link>
               </>
             )}
@@ -326,20 +388,15 @@ export default function LandingPage() {
             Built for solo founders and product-minded builders. Compare options, pressure-test assumptions, decide what to do now — and hand off a structured memo to your execution tools.
           </p>
 
-          <div className="animate-fade-up anim-d3 flex items-center gap-3 flex-wrap">
+          <div className="animate-fade-up anim-d3">
             {user ? (
-              <Link href="/rooms">
-                <PrimaryBtn large>Open app <ArrowRightIcon size={14} /></PrimaryBtn>
-              </Link>
+              <div className="flex items-center gap-3 flex-wrap">
+                <Link href="/rooms">
+                  <PrimaryBtn large>Open app <ArrowRightIcon size={14} /></PrimaryBtn>
+                </Link>
+              </div>
             ) : (
-              <>
-                <Link href="/signup">
-                  <PrimaryBtn large>Start free <ArrowRightIcon size={14} /></PrimaryBtn>
-                </Link>
-                <Link href="/login">
-                  <GhostBtn>Log in</GhostBtn>
-                </Link>
-              </>
+              <WaitlistHeroForm />
             )}
           </div>
         </div>
@@ -546,8 +603,8 @@ export default function LandingPage() {
                 </li>
               ))}
             </ul>
-            <Link href="/signup">
-              <PrimaryBtn>Get started free <ArrowRightIcon size={13} /></PrimaryBtn>
+            <Link href="/waitlist">
+              <PrimaryBtn>Join waitlist <ArrowRightIcon size={13} /></PrimaryBtn>
             </Link>
           </div>
 
@@ -566,6 +623,27 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Help shape Adjudo ───────────────────────────────────────────────── */}
+      <section className="border-t border-border bg-[#F7F7F5]">
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-12 sm:py-16">
+          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/50 mb-4">
+            Shape the product
+          </p>
+          <h2
+            className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-3"
+            style={{ fontSize: "clamp(1.5rem, 3.5vw, 2.25rem)" }}
+          >
+            Help shape Adjudo
+          </h2>
+          <p className="text-[15px] text-muted-foreground mb-6 max-w-md leading-relaxed">
+            Vote on what we should build next, or suggest a feature that would make Adjudo more useful for you.
+          </p>
+          <Link href="/feedback">
+            <GhostBtn>View feedback board <ArrowRightIcon size={13} /></GhostBtn>
+          </Link>
+        </div>
+      </section>
+
       {/* ── Footer CTA ──────────────────────────────────────────────────────── */}
       <section
         ref={secFooter.ref as React.RefObject<HTMLElement>}
@@ -577,10 +655,10 @@ export default function LandingPage() {
             className="font-black tracking-[-0.03em] leading-[1.05] text-foreground mb-4 max-w-lg"
             style={{ fontSize: "clamp(2rem, 5vw, 3.25rem)" }}
           >
-            Create your first Decision Room.
+            Be the first to use Adjudo.
           </h2>
           <p className="text-[15px] text-muted-foreground mb-8">
-            Free to start. No API keys required.
+            Join the waitlist and help shape what we build next.
           </p>
           <div className="flex items-center gap-3 flex-wrap">
             {user ? (
@@ -589,11 +667,11 @@ export default function LandingPage() {
               </Link>
             ) : (
               <>
-                <Link href="/signup">
-                  <PrimaryBtn large>Start free <ArrowRightIcon size={14} /></PrimaryBtn>
+                <Link href="/waitlist">
+                  <PrimaryBtn large>Join waitlist <ArrowRightIcon size={14} /></PrimaryBtn>
                 </Link>
-                <Link href="/login">
-                  <GhostBtn>Log in</GhostBtn>
+                <Link href="/feedback">
+                  <GhostBtn>View feedback board</GhostBtn>
                 </Link>
               </>
             )}

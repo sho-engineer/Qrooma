@@ -31,7 +31,8 @@ export const feedbackPostsTable = pgTable("feedback_posts", {
 export const feedbackVotesTable = pgTable("feedback_votes", {
   id:             uuid("id").primaryKey().defaultRandom(),
   feedbackPostId: uuid("feedback_post_id").notNull().references(() => feedbackPostsTable.id),
-  userId:         text("user_id").notNull(),
+  userId:         text("user_id"),
+  voterEmail:     text("voter_email"),
   createdAt:      timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -1,45 +1,48 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "wouter";
 import { useAuth } from "../context/AuthContext";
 import {
-  ThumbsUpIcon, PlusIcon, XIcon, ChevronUpIcon,
+  ThumbsUpIcon, PlusIcon, XIcon,
   PinIcon, SparklesIcon, BugIcon, ZapIcon, DollarSignIcon,
-  BarChart2Icon, HelpCircleIcon, ArrowUpIcon,
+  BarChart2Icon, HelpCircleIcon, ArrowUpIcon, ArrowRightIcon,
 } from "lucide-react";
+
+const logoA = "/brand/adjudo-wordmark.png";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type FeedbackStatus = "under_review" | "planned" | "in_progress" | "released" | "not_planned";
+type FeedbackStatus   = "under_review" | "planned" | "in_progress" | "released" | "not_planned";
 type FeedbackCategory = "feature_request" | "improvement" | "bug" | "integration" | "pricing" | "other";
 
 interface FeedbackPost {
-  id: string;
-  userId: string;
-  title: string;
-  description: string;
-  status: FeedbackStatus;
-  category: FeedbackCategory | null;
-  adminNote: string | null;
-  adminPriorityNote: string | null;
-  upvoteCount: number;
-  isHidden: boolean;
-  isPinned: boolean;
+  id:                 string;
+  userId:             string;
+  title:              string;
+  description:        string;
+  status:             FeedbackStatus;
+  category:           FeedbackCategory | null;
+  adminNote:          string | null;
+  adminPriorityNote:  string | null;
+  upvoteCount:        number;
+  isHidden:           boolean;
+  isPinned:           boolean;
   isRoadmapCandidate: boolean;
-  roadmapPriority: string | null;
-  voteThreshold: number | null;
-  costSensitive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  hasVoted: boolean;
+  roadmapPriority:    string | null;
+  voteThreshold:      number | null;
+  costSensitive:      boolean;
+  createdAt:          string;
+  updatedAt:          string;
+  hasVoted:           boolean;
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<FeedbackStatus, { label: string; color: string }> = {
-  under_review: { label: "Under Review",  color: "bg-amber-500/15 text-amber-600 dark:text-amber-400" },
-  planned:      { label: "Planned",       color: "bg-blue-500/15 text-blue-600 dark:text-blue-400" },
-  in_progress:  { label: "In Progress",   color: "bg-purple-500/15 text-purple-600 dark:text-purple-400" },
-  released:     { label: "Released",      color: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" },
-  not_planned:  { label: "Not Planned",   color: "bg-zinc-500/15 text-zinc-500" },
+  under_review: { label: "Under Review", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400" },
+  planned:      { label: "Planned",      color: "bg-blue-500/15 text-blue-600 dark:text-blue-400" },
+  in_progress:  { label: "In Progress",  color: "bg-purple-500/15 text-purple-600 dark:text-purple-400" },
+  released:     { label: "Released",     color: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" },
+  not_planned:  { label: "Not Planned",  color: "bg-zinc-500/15 text-zinc-500" },
 };
 
 const CATEGORY_ICONS: Record<FeedbackCategory, React.ReactNode> = {
@@ -59,6 +62,25 @@ const CATEGORY_LABELS: Record<FeedbackCategory, string> = {
   pricing:         "Pricing",
   other:           "Other",
 };
+
+const LS_VOTED_KEY = "adjudo_voted_posts";
+
+function getLocalVotedIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(LS_VOTED_KEY);
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch { return new Set(); }
+}
+function addLocalVoted(id: string) {
+  const s = getLocalVotedIds();
+  s.add(id);
+  localStorage.setItem(LS_VOTED_KEY, JSON.stringify([...s]));
+}
+function removeLocalVoted(id: string) {
+  const s = getLocalVotedIds();
+  s.delete(id);
+  localStorage.setItem(LS_VOTED_KEY, JSON.stringify([...s]));
+}
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
@@ -90,7 +112,7 @@ function ProgressBar({ value, max, label }: { value: number; max: number; label:
       </div>
       <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
         <div
-          className="h-full rounded-full bg-primary transition-all duration-500"
+          className="h-full rounded-full bg-foreground/60 transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -103,8 +125,8 @@ function PostCard({
   onVote,
   onExpand,
 }: {
-  post: FeedbackPost;
-  onVote: (id: string) => void;
+  post:     FeedbackPost;
+  onVote:   (id: string) => void;
   onExpand: (post: FeedbackPost) => void;
 }) {
   return (
@@ -121,7 +143,6 @@ function PostCard({
       )}
 
       <div className="flex gap-3">
-        {/* Vote button */}
         <button
           onClick={(e) => { e.stopPropagation(); onVote(post.id); }}
           className={`flex flex-col items-center gap-0.5 min-w-[2.5rem] pt-0.5 rounded-lg p-1.5 border transition-all shrink-0
@@ -133,7 +154,6 @@ function PostCard({
           <span className="text-[12px] font-semibold leading-none">{post.upvoteCount}</span>
         </button>
 
-        {/* Content */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground leading-snug pr-12">{post.title}</p>
           <p className="mt-1 text-[13px] text-muted-foreground line-clamp-2 leading-relaxed">{post.description}</p>
@@ -160,7 +180,7 @@ function PostCard({
           {post.adminNote && (
             <div className="mt-2 px-2.5 py-2 rounded-lg bg-muted/50 border border-border/60">
               <p className="text-[12px] text-muted-foreground">
-                <span className="font-medium text-foreground">Admin note: </span>
+                <span className="font-medium text-foreground">Note: </span>
                 {post.adminNote}
               </p>
             </div>
@@ -171,20 +191,95 @@ function PostCard({
   );
 }
 
-// ── Submit modal ───────────────────────────────────────────────────────────
+// ── Email vote modal (anonymous users) ─────────────────────────────────────
+
+function EmailVoteModal({
+  onClose,
+  onSubmit,
+}: {
+  onClose:  () => void;
+  onSubmit: (email: string) => Promise<void>;
+}) {
+  const [email,   setEmail]   = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) { setError("Email is required."); return; }
+    setLoading(true);
+    try {
+      await onSubmit(email.trim().toLowerCase());
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <form
+        className="relative z-10 w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl p-5 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={handleSubmit}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-foreground">Enter your email to vote</h2>
+          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-accent transition-colors">
+            <XIcon size={16} className="text-muted-foreground" />
+          </button>
+        </div>
+        <p className="text-[13px] text-muted-foreground leading-relaxed">
+          Your email is only used to prevent duplicate votes. It won't be shared publicly.
+        </p>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); setError(""); }}
+          placeholder="your@email.com"
+          required
+          autoFocus
+          className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 transition-colors"
+        />
+        {error && <p className="text-[12px] text-red-500">{error}</p>}
+        <div className="flex gap-2 justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-1.5 rounded-lg text-sm font-medium bg-foreground text-background hover:opacity-85 transition-opacity disabled:opacity-50"
+          >
+            {loading ? "Voting…" : "Vote"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// ── Submit modal ────────────────────────────────────────────────────────────
 
 function SubmitModal({
   onClose,
   onSubmit,
 }: {
-  onClose: () => void;
+  onClose:  () => void;
   onSubmit: (title: string, description: string, category: string) => Promise<void>;
 }) {
-  const [title, setTitle]       = useState("");
-  const [desc, setDesc]         = useState("");
+  const [title,    setTitle]    = useState("");
+  const [desc,     setDesc]     = useState("");
   const [category, setCategory] = useState("feature_request");
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState("");
 
   async function handleSubmit() {
     if (!title.trim() || !desc.trim()) { setError("Title and description are required."); return; }
@@ -212,7 +307,6 @@ function SubmitModal({
             <XIcon size={16} className="text-muted-foreground" />
           </button>
         </div>
-
         <div className="space-y-3">
           <div>
             <label className="text-[12px] font-medium text-foreground mb-1 block">Title</label>
@@ -224,7 +318,6 @@ function SubmitModal({
               maxLength={120}
             />
           </div>
-
           <div>
             <label className="text-[12px] font-medium text-foreground mb-1 block">Description</label>
             <textarea
@@ -235,7 +328,6 @@ function SubmitModal({
               maxLength={1000}
             />
           </div>
-
           <div>
             <label className="text-[12px] font-medium text-foreground mb-1 block">Category</label>
             <select
@@ -248,15 +340,10 @@ function SubmitModal({
               ))}
             </select>
           </div>
-
           {error && <p className="text-[12px] text-red-500">{error}</p>}
         </div>
-
         <div className="flex gap-2 justify-end pt-1">
-          <button
-            onClick={onClose}
-            className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors"
-          >
+          <button onClick={onClose} className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors">
             Cancel
           </button>
           <button
@@ -272,7 +359,7 @@ function SubmitModal({
   );
 }
 
-// ── Detail modal ───────────────────────────────────────────────────────────
+// ── Detail modal ────────────────────────────────────────────────────────────
 
 function DetailModal({ post, onClose, onVote }: { post: FeedbackPost; onClose: () => void; onVote: (id: string) => void }) {
   return (
@@ -299,7 +386,7 @@ function DetailModal({ post, onClose, onVote }: { post: FeedbackPost; onClose: (
 
         {post.adminNote && (
           <div className="px-3 py-2.5 rounded-lg bg-muted/50 border border-border/60 space-y-1">
-            <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Admin note</p>
+            <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Note</p>
             <p className="text-[13px] text-muted-foreground">{post.adminNote}</p>
           </div>
         )}
@@ -327,32 +414,36 @@ function DetailModal({ post, onClose, onVote }: { post: FeedbackPost; onClose: (
   );
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────
+// ── Sort / filter options ───────────────────────────────────────────────────
 
 const SORT_OPTIONS = [
   { value: "votes",   label: "Most voted" },
   { value: "newest",  label: "Newest" },
-  { value: "updated", label: "Recently updated" },
 ];
 
-const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
-  { value: "",            label: "All statuses" },
-  { value: "under_review", label: "Under Review" },
-  { value: "planned",      label: "Planned" },
-  { value: "in_progress",  label: "In Progress" },
-  { value: "released",     label: "Released" },
-  { value: "not_planned",  label: "Not Planned" },
+const STATUS_FILTER_OPTIONS = [
+  { value: "",              label: "All statuses" },
+  { value: "under_review",  label: "Under Review" },
+  { value: "planned",       label: "Planned" },
+  { value: "in_progress",   label: "In Progress" },
+  { value: "released",      label: "Released" },
+  { value: "not_planned",   label: "Not Planned" },
 ];
+
+// ── Main Page ───────────────────────────────────────────────────────────────
 
 export default function FeedbackPage() {
   const { user } = useAuth();
-  const [posts, setPosts]           = useState<FeedbackPost[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [statusFilter, setStatus]   = useState("");
-  const [sort, setSort]             = useState("votes");
-  const [showSubmit, setShowSubmit] = useState(false);
-  const [expanded, setExpanded]     = useState<FeedbackPost | null>(null);
-  const [error, setError]           = useState("");
+
+  const [posts,           setPosts]           = useState<FeedbackPost[]>([]);
+  const [loading,         setLoading]         = useState(true);
+  const [statusFilter,    setStatus]          = useState("");
+  const [sort,            setSort]            = useState("votes");
+  const [showSubmit,      setShowSubmit]      = useState(false);
+  const [expanded,        setExpanded]        = useState<FeedbackPost | null>(null);
+  const [error,           setError]           = useState("");
+  const [pendingVoteId,   setPendingVoteId]   = useState<string | null>(null);
+  const [anonEmail,       setAnonEmail]       = useState(() => localStorage.getItem("adjudo_anon_email") || "");
 
   const fetchPosts = useCallback(async () => {
     setLoading(true);
@@ -360,11 +451,21 @@ export default function FeedbackPage() {
       const params = new URLSearchParams();
       if (statusFilter) params.set("status", statusFilter);
       params.set("sort", sort);
+      const storedEmail = localStorage.getItem("adjudo_anon_email");
+      if (!user && storedEmail) params.set("voter_email", storedEmail);
+
       const res = await fetch(`/api/feedback?${params}`, {
         headers: user ? { "x-user-id": user.id } : {},
       });
       if (!res.ok) throw new Error("Failed to load feedback");
-      setPosts(await res.json() as FeedbackPost[]);
+      const data = await res.json() as FeedbackPost[];
+
+      if (!user) {
+        const localVoted = getLocalVotedIds();
+        setPosts(data.map((p) => ({ ...p, hasVoted: p.hasVoted || localVoted.has(p.id) })));
+      } else {
+        setPosts(data);
+      }
     } catch {
       setError("Could not load feedback. Please try again.");
     } finally {
@@ -374,14 +475,29 @@ export default function FeedbackPage() {
 
   useEffect(() => { void fetchPosts(); }, [fetchPosts]);
 
-  async function handleVote(id: string) {
-    if (!user) return;
+  async function doVote(id: string, voterEmail?: string) {
+    const headers: Record<string, string> = {};
+    const body: Record<string, string> = {};
+    if (user) {
+      headers["x-user-id"] = user.id;
+    } else if (voterEmail) {
+      body["voter_email"] = voterEmail;
+    }
+
     const res = await fetch(`/api/feedback/${id}/vote`, {
-      method: "POST",
-      headers: { "x-user-id": user.id },
+      method:  "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body:    JSON.stringify(body),
     });
-    if (!res.ok) return;
+    if (!res.ok) throw new Error("Vote failed");
     const { voted } = await res.json() as { voted: boolean };
+
+    if (!user && voterEmail) {
+      voted ? addLocalVoted(id) : removeLocalVoted(id);
+      localStorage.setItem("adjudo_anon_email", voterEmail);
+      setAnonEmail(voterEmail);
+    }
+
     setPosts((prev) =>
       prev.map((p) =>
         p.id === id
@@ -396,12 +512,35 @@ export default function FeedbackPage() {
     );
   }
 
+  function handleVote(id: string) {
+    if (user) {
+      void doVote(id);
+      return;
+    }
+    const localVoted = getLocalVotedIds();
+    if (localVoted.has(id) && anonEmail) {
+      void doVote(id, anonEmail);
+      return;
+    }
+    if (anonEmail) {
+      void doVote(id, anonEmail);
+      return;
+    }
+    setPendingVoteId(id);
+  }
+
+  async function handleAnonEmailSubmit(email: string) {
+    if (!pendingVoteId) return;
+    await doVote(pendingVoteId, email);
+    setPendingVoteId(null);
+  }
+
   async function handleSubmit(title: string, description: string, category: string) {
     if (!user) throw new Error("You must be logged in to submit feedback.");
     const res = await fetch("/api/feedback", {
-      method: "POST",
+      method:  "POST",
       headers: { "Content-Type": "application/json", "x-user-id": user.id },
-      body: JSON.stringify({ title, description, category }),
+      body:    JSON.stringify({ title, description, category }),
     });
     if (!res.ok) {
       const data = await res.json() as { error?: string };
@@ -414,25 +553,65 @@ export default function FeedbackPage() {
   const regular = posts.filter((p) => !p.isPinned);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-background">
+    <div className="min-h-screen bg-background text-foreground">
+
+      {/* ── Nav ──────────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-xl">
+        <div className="max-w-2xl mx-auto px-4 h-12 flex items-center justify-between">
+          <Link href="/">
+            <img src={logoA} alt="Adjudo" className="h-5 w-auto dark:invert hover:opacity-70 transition-opacity" />
+          </Link>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <Link href="/rooms">
+                <button className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  ← Rooms
+                </button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/login">
+                  <button className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    Log in
+                  </button>
+                </Link>
+                <Link href="/waitlist">
+                  <button className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-foreground text-background rounded-full hover:opacity-85 transition-all">
+                    Join waitlist <ArrowRightIcon size={11} />
+                  </button>
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* ── Content ──────────────────────────────────────────────────────── */}
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
 
         {/* Header */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Adjudo Feedback</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Vote on ideas and help shape Adjudo.
+            <h1 className="text-xl font-bold text-foreground">Help shape Adjudo</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground max-w-sm leading-relaxed">
+              Vote on what we should build next, or suggest what would make Adjudo more useful for solo founders.
             </p>
           </div>
-          {user && (
+          {user ? (
             <button
               onClick={() => setShowSubmit(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity shrink-0"
             >
               <PlusIcon size={14} />
-              Submit
+              Suggest
             </button>
+          ) : (
+            <Link href="/login">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all shrink-0">
+                <PlusIcon size={14} />
+                Suggest
+              </button>
+            </Link>
           )}
         </div>
 
@@ -447,7 +626,6 @@ export default function FeedbackPage() {
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
-
           <div className="flex rounded-lg border border-border overflow-hidden">
             {SORT_OPTIONS.map((o) => (
               <button
@@ -495,17 +673,16 @@ export default function FeedbackPage() {
               </div>
             )}
 
-            {/* Divider */}
             {pinned.length > 0 && regular.length > 0 && (
               <div className="border-t border-border" />
             )}
 
-            {/* Regular posts */}
+            {/* Community posts */}
             {regular.length > 0 && (
               <div className="space-y-2">
                 {pinned.length > 0 && (
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                    Community Feedback
+                    Community Requests
                   </p>
                 )}
                 {regular.map((p) => (
@@ -514,7 +691,6 @@ export default function FeedbackPage() {
               </div>
             )}
 
-            {/* Empty */}
             {posts.length === 0 && (
               <div className="text-center py-16 space-y-2">
                 <ThumbsUpIcon className="mx-auto text-muted-foreground/30" size={32} />
@@ -523,8 +699,29 @@ export default function FeedbackPage() {
             )}
           </>
         )}
+
+        {/* Waitlist nudge for non-logged-in users */}
+        {!user && !loading && (
+          <div className="mt-8 pt-6 border-t border-border/50 text-center">
+            <p className="text-[12px] text-muted-foreground/60 mb-2">
+              Want to be first when Adjudo launches?
+            </p>
+            <Link href="/waitlist">
+              <span className="text-[12px] text-foreground/60 hover:text-foreground underline underline-offset-2 transition-colors cursor-pointer">
+                Join the waitlist →
+              </span>
+            </Link>
+          </div>
+        )}
       </div>
 
+      {/* Modals */}
+      {pendingVoteId && (
+        <EmailVoteModal
+          onClose={() => setPendingVoteId(null)}
+          onSubmit={handleAnonEmailSubmit}
+        />
+      )}
       {showSubmit && (
         <SubmitModal onClose={() => setShowSubmit(false)} onSubmit={handleSubmit} />
       )}

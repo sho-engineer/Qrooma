@@ -17,6 +17,7 @@ import RoomDetailPage from "./pages/RoomDetailPage";
 import SettingsPage from "./pages/SettingsPage";
 import FeedbackPage from "./pages/FeedbackPage";
 import AdminPage from "./pages/AdminPage";
+import WaitlistPage from "./pages/WaitlistPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import Sidebar from "./components/Sidebar";
 
@@ -133,7 +134,6 @@ function AppShell() {
           <Route path="/rooms" component={RoomsPage} />
           <Route path="/rooms/:id" component={RoomDetailPage} />
           <Route path="/settings" component={SettingsPage} />
-          <Route path="/feedback" component={FeedbackPage} />
           <Route path="/admin" component={AdminPage} />
           <Route component={NotFoundPage} />
         </Switch>
@@ -157,6 +157,14 @@ function Router() {
         <GuestGuard>
           <AuthPage initialMode="signup" />
         </GuestGuard>
+      </Route>
+
+      <Route path="/feedback" component={FeedbackPage} />
+      <Route path="/waitlist">
+        <WaitlistPage locale="en" />
+      </Route>
+      <Route path="/waitlist/jp">
+        <WaitlistPage locale="ja" />
       </Route>
 
       <Route>
