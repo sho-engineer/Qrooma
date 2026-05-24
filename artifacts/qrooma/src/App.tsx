@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MenuIcon } from "lucide-react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -7,11 +7,12 @@ import { SettingsProvider } from "./context/SettingsContext";
 import { RoomsProvider } from "./context/RoomsContext";
 import { ProjectsProvider } from "./context/ProjectsContext";
 import { LocaleProvider } from "./context/LocaleContext";
-import { PlanProvider, usePlan, type Plan } from "./context/PlanContext";
+import { PlanProvider } from "./context/PlanContext";
 import { UserProfileProvider } from "./context/UserProfileContext";
 import LandingPage from "./pages/LandingPage";
 import LandingJpPage from "./pages/LandingJpPage";
 import AuthPage from "./pages/AuthPage";
+import EarlyAccessPage from "./pages/EarlyAccessPage";
 import RoomsPage from "./pages/RoomsPage";
 import RoomDetailPage from "./pages/RoomDetailPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -20,75 +21,58 @@ import AdminPage from "./pages/AdminPage";
 import WaitlistPage from "./pages/WaitlistPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import Sidebar from "./components/Sidebar";
+import { isEarlyAccessValid } from "./services/earlyAccess";
 
 const queryClient = new QueryClient();
 
-/** Routes that require authentication — redirect to /login if not signed in */
-function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
-  const [location] = useLocation();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-      </div>
-    );
-  }
-  if (!user) return <Redirect to={`/login`} />;
-  return <>{children}</>;
-}
-
-/** Routes that should redirect away if already signed in */
-function GuestGuard({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-      </div>
-    );
-  }
-  if (user) return <Redirect to="/rooms" />;
-  return <>{children}</>;
-}
-
-const IS_DEV = import.meta.env.DEV;
-
-// ─── Dev Plan Switcher (floating) ────────────────────────────────────────────
-function DevPlanSwitcher() {
-  const { plan, setPlan } = usePlan();
-  const planLabels: Record<Plan, string> = {
-    free:    "Free",
-    connect: "Connect",
-    pro:     "Pro",
-  };
+function Spinner() {
   return (
-    <div className="fixed bottom-5 right-5 z-[200] flex items-center gap-0.5 px-1 py-1 rounded-full border border-border bg-card shadow-lg shadow-black/8">
-      <span className="text-[9px] font-bold text-foreground/30 pl-2 pr-1.5 uppercase tracking-widest select-none">
-        DEV
-      </span>
-      {(["free", "connect", "pro"] as Plan[]).map((p) => (
-        <button
-          key={p}
-          onClick={() => setPlan(p)}
-          className={`px-2.5 py-1 text-[10px] font-semibold rounded-full transition-all duration-150 ${
-            plan === p
-              ? "bg-foreground text-background"
-              : "text-foreground/60 hover:text-foreground hover:bg-accent"
-          }`}
-        >
-          {planLabels[p]}
-        </button>
-      ))}
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
     </div>
   );
+}
+
+/**
+ * Protects app routes.
+ * - Not logged in → /login (if early access valid) or /early-access
+ * - Logged in but early access expired (non-admin) → /early-access?expired=true
+ */
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) return <Spinner />;
+
+  if (!user) {
+    return <Redirect to={isEarlyAccessValid() ? "/login" : "/early-access"} />;
+  }
+
+  if (user.role !== "admin" && !isEarlyAccessValid()) {
+    return <Redirect to="/early-access?expired=true" />;
+  }
+
+  return <>{children}</>;
+}
+
+/**
+ * Protects /login.
+ * - Already logged in → /rooms
+ * - No valid early access → /early-access
+ */
+function LoginGuard({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) return <Spinner />;
+  if (user)                    return <Redirect to="/rooms" />;
+  if (!isEarlyAccessValid())   return <Redirect to="/early-access" />;
+
+  return <>{children}</>;
 }
 
 // ─── App Shell ───────────────────────────────────────────────────────────────
 
 function AppShell() {
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [isMobile, setIsMobile]       = useState(() => window.innerWidth < 768);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
 
   useEffect(() => {
@@ -133,10 +117,10 @@ function AppShell() {
         </div>
 
         <Switch>
-          <Route path="/rooms" component={RoomsPage} />
+          <Route path="/rooms"     component={RoomsPage} />
           <Route path="/rooms/:id" component={RoomDetailPage} />
-          <Route path="/settings" component={SettingsPage} />
-          <Route path="/admin" component={AdminPage} />
+          <Route path="/settings"  component={SettingsPage} />
+          <Route path="/admin"     component={AdminPage} />
           <Route component={NotFoundPage} />
         </Switch>
       </main>
@@ -147,20 +131,9 @@ function AppShell() {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={LandingPage} />
-      <Route path="/jp" component={LandingJpPage} />
-
-      <Route path="/login">
-        <GuestGuard>
-          <AuthPage />
-        </GuestGuard>
-      </Route>
-      <Route path="/signup">
-        <GuestGuard>
-          <AuthPage />
-        </GuestGuard>
-      </Route>
-
+      {/* Public pages */}
+      <Route path="/"         component={LandingPage} />
+      <Route path="/jp"       component={LandingJpPage} />
       <Route path="/feedback" component={FeedbackPage} />
       <Route path="/waitlist">
         <WaitlistPage locale="en" />
@@ -169,6 +142,21 @@ function Router() {
         <WaitlistPage locale="ja" />
       </Route>
 
+      {/* Early access coupon entry */}
+      <Route path="/early-access" component={EarlyAccessPage} />
+
+      {/* Login — requires valid early access */}
+      <Route path="/login">
+        <LoginGuard>
+          <AuthPage />
+        </LoginGuard>
+      </Route>
+      {/* Redirect legacy /signup to early-access */}
+      <Route path="/signup">
+        <Redirect to="/early-access" />
+      </Route>
+
+      {/* Protected app */}
       <Route>
         <AuthGuard>
           <AppShell />
@@ -178,15 +166,11 @@ function Router() {
   );
 }
 
-// ─── Root (inside all providers) ─────────────────────────────────────────────
 function Root() {
   return (
-    <>
-      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-        <Router />
-      </WouterRouter>
-      {IS_DEV && <DevPlanSwitcher />}
-    </>
+    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+      <Router />
+    </WouterRouter>
   );
 }
 

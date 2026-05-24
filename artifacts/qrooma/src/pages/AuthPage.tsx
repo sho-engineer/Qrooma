@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useLocale, type Locale } from "../context/LocaleContext";
 import { ArrowLeftIcon } from "lucide-react";
 import { GoogleIcon } from "../components/GoogleIcon";
-import { IS_CONNECTED } from "../services/client";
+import { IS_CONFIGURED } from "../lib/firebase";
 
 export default function AuthPage() {
   const [error, setError]           = useState("");
@@ -73,16 +73,16 @@ export default function AuthPage() {
         {/* Card */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
 
-          {/* Supabase not configured warning (dev only) */}
-          {!IS_CONNECTED && (
+          {/* Firebase not configured warning */}
+          {!IS_CONFIGURED && (
             <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
               <p className="text-xs font-semibold text-amber-800 mb-0.5">
-                {isJa ? "Supabase 未設定" : "Supabase not configured"}
+                {isJa ? "Firebase 未設定" : "Firebase not configured"}
               </p>
               <p className="text-xs text-amber-700 leading-relaxed">
                 {isJa
-                  ? "VITE_SUPABASE_URL と VITE_SUPABASE_ANON_KEY を設定してください。"
-                  : "Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable login."}
+                  ? "VITE_FIREBASE_* 環境変数を設定してください。"
+                  : "Set the VITE_FIREBASE_* environment variables to enable login."}
               </p>
             </div>
           )}
@@ -91,7 +91,7 @@ export default function AuthPage() {
           <button
             type="button"
             onClick={handleGoogle}
-            disabled={isSubmitting || !IS_CONNECTED}
+            disabled={isSubmitting || !IS_CONFIGURED}
             className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-ring transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <GoogleIcon size={18} />

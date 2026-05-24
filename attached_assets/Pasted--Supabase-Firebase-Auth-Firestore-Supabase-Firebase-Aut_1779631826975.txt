@@ -1,0 +1,512 @@
+方針変更です。
+Supabaseは使わず、Firebase Auth + Firestore 構成に切り替えてください。
+
+目的：
+- Supabase依存を外す
+- Firebase AuthenticationでGoogleログインを実装する
+- Firestoreでユーザー、Project、Decision Room、Decision Memo、Feedback、Voteを管理する
+- できるだけ無料枠で運用できる構成にする
+- 一般ユーザーには「無料で試す」ではなくWaitlist導線を見せる
+- テスター / 先行利用者だけがクーポンコード経由でログイン画面に進めるようにする
+- 現在右下にあるテスト用のプラン変更UIを削除する
+
+==================================================
+1. Supabase依存を削除
+==================================================
+
+以下のSupabase関連実装を削除または無効化してください。
+
+削除 / 無効化対象：
+- Supabase client
+- Supabase Auth
+- Supabase profiles
+- Supabase RLS
+- VITE_SUPABASE_URL
+- VITE_SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
+- Supabase sessionチェック
+- Supabase前提のGoogleログイン
+- Supabase前提のProject / Room / Message / Feedback保存処理
+
+重要：
+- Replit AgentがSupabase credentialsを要求しない状態にしてください
+- SupabaseのSecretsは不要にしてください
+- 既存UIは可能な限り維持し、データ保存先だけFirebase / Firestoreに置き換えてください
+
+==================================================
+2. Firebase Auth + Firestoreを導入
+==================================================
+
+使用するFirebase機能：
+- Firebase Authentication
+- Google Provider
+- Cloud Firestore
+
+必要な環境変数例：
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+
+Firebase設定ファイル例：
+src/lib/firebase.ts
+
+実装内容：
+- Firebase app initialize
+- Firebase Auth export
+- Firestore export
+- GoogleAuthProvider export
+
+Googleログイン：
+- Firebase Authentication の Google Provider を使用する
+- ログインボタンには正しいGoogleのマルチカラーGロゴを表示する
+- ログイン成功後は /projects に遷移する
+- redirectTo がある場合は元ページへ戻す
+
+==================================================
+3. Firestore collections設計
+==================================================
+
+以下のcollectionsを作成・利用してください。
+
+users/{userId}
+- uid
+- email
+- displayName
+- photoURL
+- provider: google
+- role: user | admin
+- plan: free
+- accessType: normal | tester | early_access | special
+- isUnlimitedUser
+- dailyRunLimit
+- monthlyRunLimit
+- createdAt
+- updatedAt
+- lastLoginAt
+
+projects/{projectId}
+- userId
+- name
+- description
+- status: active | archived
+- createdAt
+- updatedAt
+
+rooms/{roomId}
+- userId
+- projectId
+- title
+- decisionType
+- useProjectContext
+- status
+- createdAt
+- updatedAt
+
+messages/{messageId}
+- userId
+- projectId
+- roomId
+- role
+- side
+- content
+- createdAt
+
+decisionMemos/{memoId}
+- userId
+- projectId
+- roomId
+- decision
+- background
+- reasoning
+- axisEvaluations
+- conditionsThatChangeDecision
+- doNow
+- notNow
+- futureConsideration
+- needsConfirmation
+- nextActions
+- referencedDecisionMemos
+- createdAt
+- updatedAt
+
+feedback/{feedbackId}
+- userId nullable
+- title
+- description
+- status
+- createdAt
+- updatedAt
+
+feedbackVotes/{voteId}
+- userId nullable
+- feedbackId
+- country nullable
+- region nullable
+- locale nullable
+- timezone nullable
+- createdAt
+
+earlyAccessCodes/{codeId}
+- codeHash または code
+- label
+- status: active | used | disabled
+- accessType: tester | early_access | special
+- maxUses
+- usedCount
+- createdAt
+- updatedAt
+
+earlyAccessRedemptions/{redemptionId}
+- codeId
+- codeLabel
+- email nullable
+- userId nullable
+- redeemedAt
+- locale nullable
+- timezone nullable
+
+==================================================
+4. Adminユーザー設定
+==================================================
+
+Admin email:
+shoengineer5@gmail.com
+
+仕様：
+- shoengineer5@gmail.com でGoogleログインしたユーザーはAdminにする
+- users/{uid}.role = admin
+- accessType = special
+- isUnlimitedUser = true
+- dailyRunLimit = 999999
+- monthlyRunLimit = 999999
+- /admin はAdminのみアクセス可能
+
+一般ユーザーの初期値：
+- role: user
+- plan: free
+- accessType: normal
+- isUnlimitedUser: false
+- dailyRunLimit: 5
+- monthlyRunLimit: 100
+
+Admin判定：
+- email === shoengineer5@gmail.com の場合はAdmin
+- users/{uid}.role === admin の場合もAdmin
+- フロントだけでなく、Admin用処理側でも確認する
+
+==================================================
+5. 右下のプラン変更UIを削除
+==================================================
+
+現在、テスト目的で右下にプラン変更ができるUIがあります。
+これは初版では不要なので削除してください。
+
+削除対象：
+- 右下のPlan変更ボタン
+- Plan切り替えドロップダウン
+- Free / Pro / Startup / AdminなどをUIから変更できるテスト機能
+- 一般ユーザーが自分でplan / accessType / isUnlimitedUserを変更できる処理
+
+残してよいもの：
+- Settings画面で現在のプランを表示するだけ
+- Freeプランの利用上限表示
+- Pro / Startup Mode Coming Soon 表示
+
+重要：
+- プランやAdmin権限はユーザーがUIから変更できないようにする
+- Admin / tester / early access はFirestore上のuser profileまたはaccess codeで制御する
+
+==================================================
+6. 一般ユーザー向け導線をWaitlistにする
+==================================================
+
+現状、「無料で試す」ではなく、一般ユーザーにはWaitlist導線を表示してください。
+
+LPのCTA：
+- 「Waitlistに登録」
+- 「Join the waitlist」
+
+一般ユーザーの導線：
+- LP → Waitlist page
+- 直接 /login に来た場合も、early access権限がなければWaitlistへ誘導する
+
+Waitlistページ：
+/waitlist
+
+表示内容：
+- メールアドレス入力
+- 利用目的または任意コメント
+- 送信ボタン
+- 送信完了メッセージ
+
+Firestore保存先：
+waitlist/{waitlistId}
+- email
+- comment nullable
+- locale nullable
+- timezone nullable
+- createdAt
+
+文言例：
+タイトル：
+Waitlistに登録
+
+説明：
+adjudoは現在、テスターと一部の先行利用者向けに公開しています。
+一般公開の準備ができ次第、順次ご案内します。
+
+ボタン：
+Waitlistに登録する
+
+完了メッセージ：
+登録ありがとうございます。
+準備ができ次第、ご案内します。
+
+==================================================
+7. テスター / 先行利用者用URLを作成
+==================================================
+
+テスター / 一部先行利用者用の専用URLを作成してください。
+
+URL案：
+/early-access
+
+このページにはクーポンコード入力欄を表示します。
+
+表示内容：
+- クーポンコード入力欄
+- 認証ボタン
+- エラーメッセージ
+- 成功時はログイン画面へ遷移
+
+文言例：
+タイトル：
+Early Access
+
+説明：
+テスターまたは先行利用者の方は、配布されたクーポンコードを入力してください。
+
+入力欄placeholder：
+クーポンコードを入力
+
+ボタン：
+認証してログインへ進む
+
+成功時：
+認証しました。ログイン画面へ移動します。
+
+失敗時：
+クーポンコードが正しくありません。
+
+==================================================
+8. クーポン認証仕様
+==================================================
+
+クーポンが正しい場合のみ、ログイン画面に遷移できるようにしてください。
+
+推奨仕様：
+- valid coupon codeをフロントエンドにハードコードしない
+- 可能であればReplit側のserver APIで検証する
+- 例：POST /api/early-access/validate
+- 環境変数 EARLY_ACCESS_CODES に有効コードを設定できるようにする
+- 例：EARLY_ACCESS_CODES=TESTER2026,FOUNDER2026,EARLYADJUDO
+- 認証成功時は短期間有効なcookieまたはlocalStorage flagをセットする
+- 例：early_access_granted=true
+- 有効期限は7日程度
+- 成功後 /login に遷移する
+
+MVPとして簡易実装する場合：
+- server APIが難しければ、まずは最小実装でもよい
+- ただし、できるだけフロントに有効コードを直書きしない
+- 将来的にFirestoreのearlyAccessCodes collectionで管理できる形にする
+
+認証成功後：
+- /login に遷移
+- Googleログイン可能
+- Googleログイン後、通常のアプリ機能を使える
+
+認証失敗後：
+- /early-access に留まる
+- エラーメッセージを表示する
+
+==================================================
+9. Loginページのアクセス制御
+==================================================
+
+/login は原則として以下の条件で表示してください。
+
+表示してよい場合：
+- early_access_granted がある
+- すでにログイン済み
+- Admin emailでのアクセスを想定する場合
+- 開発環境でENABLE_DEV_AUTH=true
+
+表示しない場合：
+- 一般ユーザーが直接 /login にアクセスした
+- early access認証がない
+- 未ログインかつクーポン未認証
+
+その場合：
+- /waitlist または /early-access に誘導する
+
+/login の表示内容：
+- Googleでログイン
+- 正しいGoogle Gロゴ
+- エラー表示
+
+ログイン後：
+- users/{uid} を作成または更新
+- early access経由でログインした場合は accessType = early_access
+- Admin emailの場合は role = admin / isUnlimitedUser = true
+- /projects に遷移
+
+==================================================
+10. Early Access経由ユーザーのprofile反映
+==================================================
+
+クーポン認証後にGoogleログインしたユーザーは、Firestore users/{uid} に以下を保存してください。
+
+early accessユーザー：
+- role: user
+- plan: free
+- accessType: early_access
+- isUnlimitedUser: false
+- dailyRunLimit: 5
+- monthlyRunLimit: 100
+
+tester用クーポンの場合：
+- accessType: tester
+- isUnlimitedUser: true または dailyRunLimit / monthlyRunLimitを大きめにする
+- どのコードがtester扱いかは環境変数またはFirestoreのcode設定で管理できるとよい
+
+Admin emailの場合：
+- role: admin
+- accessType: special
+- isUnlimitedUser: true
+- dailyRunLimit: 999999
+- monthlyRunLimit: 999999
+
+==================================================
+11. Protected Routes
+==================================================
+
+以下はログイン必須にしてください。
+
+- /app
+- /projects
+- /rooms
+- /settings
+- /admin
+
+未ログイン時：
+- early_access_granted がない場合は /waitlist または /early-access へ誘導
+- early_access_granted がある場合は /login へ誘導
+
+Adminページ：
+- role === admin のみアクセス可能
+- 一般ユーザーはアクセス不可
+
+==================================================
+12. Firestore Security Rules
+==================================================
+
+Firestore Security Rulesを設定してください。
+
+基本方針：
+- users は本人のみ読み書き可能
+- projects / rooms / messages / decisionMemos は userId === auth.uid の場合のみ読み書き可能
+- feedback は必要に応じてログインユーザーが投稿可能
+- feedbackVotes は必要に応じてログインユーザーが作成可能
+- waitlist は未ログインでも作成可能。ただし読み取りはAdminのみ
+- admin集計はAdminのみ
+- 他人のprojectId / roomIdをURL直打ちしても見られないようにする
+
+注意：
+- フロント側のuserIdだけを信用しない
+- Firestore rulesで必ずauth.uidと一致確認する
+- Admin判定もrulesまたはサーバー側で確認する
+
+==================================================
+13. Googleログインボタンのロゴ
+==================================================
+
+Googleログインボタンには、正しいGoogleロゴを使用してください。
+
+要件：
+- Google公式に近いマルチカラーの「G」ロゴ
+- 単なる黒いG、絵文字、汎用アイコンで代用しない
+- 18px〜20px程度
+- 白背景
+- 薄いグレー枠
+- 黒または濃いグレー文字
+- hover / focus / disabled 状態を用意
+- 可能ならローカルSVGコンポーネントとして管理
+
+ボタン文言：
+Googleでログイン
+
+==================================================
+14. Firebase側で必要な設定をREADMEに明記
+==================================================
+
+READMEまたはセットアップドキュメントに、Firebase側で必要な設定を書いてください。
+
+必要設定：
+- Firebase projectを作成
+- Web Appを作成
+- Firebase configを.envに設定
+- Authentication > Sign-in method > Google を有効化
+- Firestore Databaseを作成
+- Firestore Security Rulesを設定
+- Authorized domainsにReplit preview domain / 本番ドメインを追加
+- ADMIN_EMAIL=shoengineer5@gmail.com
+- EARLY_ACCESS_CODESを設定
+
+==================================================
+15. 初版では入れない
+==================================================
+
+以下は初版では入れないでください。
+
+- Supabase
+- Stripe課金
+- Proプラン切替UI
+- ユーザー自身によるプラン変更UI
+- チーム招待
+- 組織アカウント
+- SSO / SAML
+- Appleログイン
+- GitHubログイン
+- 高度なクーポン管理画面
+- 決済連動クーポン
+- 複雑なキャンペーン管理
+
+==================================================
+16. 完了条件
+==================================================
+
+以下を確認してください。
+
+- Supabase credentialsを要求しない
+- Firebase AuthでGoogleログインできる
+- Googleログインボタンに正しいGoogle Gロゴが表示される
+- ログイン後にusers/{uid} がFirestoreに作成される
+- shoengineer5@gmail.com はAdminになる
+- shoengineer5@gmail.com はFree制限にかからない
+- 一般ユーザー向けCTAはWaitlistになっている
+- Waitlistにメール登録できる
+- /early-access でクーポン入力できる
+- 正しいクーポンなら /login に遷移する
+- 間違ったクーポンならエラー表示する
+- クーポン認証後にGoogleログインできる
+- ログイン後は通常のProject / Decision Room機能を使える
+- 右下のテスト用プラン変更UIが消えている
+- 一般ユーザーが直接 /login に来ても、無条件でログインできない
+- /app /projects /rooms /settings /admin はログイン必須
+- /admin はAdminのみアクセス可能
+- 他人のProject / RoomをURL直打ちで見られない
+- Firestore Security Rulesが最低限設定されている
+- 既存UIを大きく壊していない

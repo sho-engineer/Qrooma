@@ -1,16 +1,21 @@
 /**
- * Auth Context — Supabase Auth (Google OAuth + email/password)
+ * Auth Context — Firebase Authentication (Google OAuth)
  *
- * Production connection points:
- *   signInWithGoogle  → supabase.auth.signInWithOAuth({ provider: 'google' })
- *   signIn            → supabase.auth.signInWithPassword()
- *   signUp            → supabase.auth.signUp()
- *   signOut           → supabase.auth.signOut()
- *   onAuthStateChange → supabase.auth.onAuthStateChange()
+ * Swap signInWithGoogle for real Firebase signInWithPopup.
+ * After sign-in, syncs user profile to the Express API / PostgreSQL.
  */
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import { supabase } from "../services/client";
+import {
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut as fbSignOut,
+  GoogleAuthProvider,
+} from "firebase/auth";
+import { auth } from "../lib/firebase";
+import { getEarlyAccess, clearEarlyAccess } from "../services/earlyAccess";
+
+const ADMIN_EMAILS = new Set(["shoengineer5@gmail.com"]);
 
 export interface User {
   id:    string;
@@ -20,16 +25,22 @@ export interface User {
 }
 
 interface AuthContextValue {
-  user:            User | null;
-  isLoading:       boolean;
-  isAdmin:         boolean;
+  user:             User | null;
+  isLoading:        boolean;
+  isAdmin:          boolean;
   signInWithGoogle: () => Promise<void>;
-  signIn:          (email: string, password: string) => Promise<void>;
-  signUp:          (email: string, password: string, name: string) => Promise<void>;
-  signOut:         () => Promise<void>;
+  signOut:          () => Promise<void>;
+  /** @deprecated kept for callers that still reference these — noops */
+  signIn:           (email: string, password: string) => Promise<void>;
+  signUp:           (email: string, password: string, name: string) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+const AuthContext   = createContext<AuthContextValue | null>(null);
+const googleProvider = new GoogleAuthProvider();
+
+function isAdminEmail(email: string): boolean {
+  return ADMIN_EMAILS.has(email.trim().toLowerCase());
+}
 
 async function upsertUserInDb(u: { id: string; email: string; name: string }): Promise<"user" | "admin"> {
   try {
@@ -38,81 +49,52 @@ async function upsertUserInDb(u: { id: string; email: string; name: string }): P
       headers: { "Content-Type": "application/json", "x-user-id": u.id },
       body:    JSON.stringify(u),
     });
-    if (!res.ok) return "user";
+    if (!res.ok) return isAdminEmail(u.email) ? "admin" : "user";
     const data = await res.json() as { role: "user" | "admin" };
     return data.role ?? "user";
   } catch {
-    return "user";
+    return isAdminEmail(u.email) ? "admin" : "user";
   }
-}
-
-function extractName(meta: Record<string, unknown> | undefined, email: string): string {
-  const full = meta?.full_name ?? meta?.name;
-  return typeof full === "string" && full.trim() ? full.trim() : email.split("@")[0];
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser]       = useState<User | null>(null);
-  const [isLoading, setLoading] = useState(true);
+  const [isLoading, setLoad]  = useState(true);
 
   useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
+    if (!auth) {
+      setLoad(false);
       return;
     }
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const sb   = session.user;
-        const email = sb.email ?? "";
-        const name  = extractName(sb.user_metadata, email);
-        const role  = await upsertUserInDb({ id: sb.id, email, name });
-        setUser({ id: sb.id, email, name, role });
-      }
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const sb   = session.user;
-        const email = sb.email ?? "";
-        const name  = extractName(sb.user_metadata, email);
-        const role  = await upsertUserInDb({ id: sb.id, email, name });
-        setUser({ id: sb.id, email, name, role });
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      if (fbUser) {
+        const email = fbUser.email ?? "";
+        const name  = fbUser.displayName ?? email.split("@")[0];
+        const role  = await upsertUserInDb({ id: fbUser.uid, email, name });
+        setUser({ id: fbUser.uid, email, name, role });
       } else {
         setUser(null);
       }
-      setLoading(false);
+      setLoad(false);
     });
 
-    return () => subscription.unsubscribe();
+    return unsubscribe;
   }, []);
 
   async function signInWithGoogle(): Promise<void> {
-    if (!supabase) throw new Error("Supabase not configured");
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) throw error;
-  }
-
-  async function signIn(email: string, password: string): Promise<void> {
-    if (!supabase) throw new Error("Supabase not configured");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-  }
-
-  async function signUp(email: string, password: string, _name: string): Promise<void> {
-    if (!supabase) throw new Error("Supabase not configured");
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
+    if (!auth) throw new Error("Firebase not configured");
+    await signInWithPopup(auth, googleProvider);
   }
 
   async function signOut(): Promise<void> {
-    if (supabase) await supabase.auth.signOut();
+    if (auth) await fbSignOut(auth);
+    clearEarlyAccess();
     setUser(null);
   }
+
+  const signIn  = async (_e: string, _p: string) => { /* noop */ };
+  const signUp  = async (_e: string, _p: string, _n: string) => { /* noop */ };
 
   return (
     <AuthContext.Provider value={{
@@ -120,9 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       isAdmin: user?.role === "admin",
       signInWithGoogle,
+      signOut,
       signIn,
       signUp,
-      signOut,
     }}>
       {children}
     </AuthContext.Provider>

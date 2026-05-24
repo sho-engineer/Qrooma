@@ -1,0 +1,153 @@
+追加要件です。
+Early Accessクーポンに「2週間利用可能」の期限管理を追加してください。
+
+目的：
+- テスター / 先行利用者が、専用クーポンを入力するとログイン画面に進める
+- クーポン認証後、14日間だけ通常機能を使える
+- 14日経過後は、再度Early AccessページまたはWaitlistに誘導する
+- Adminユーザーは期限の影響を受けない
+
+==================================================
+1. 2週間クーポンを追加
+==================================================
+
+以下のクーポンコードを有効にしてください。
+
+Coupon Code:
+ADJUDO-2W-BETA-7KQ9
+
+仕様：
+- クーポン種別：early_access
+- 利用可能期間：認証日から14日間
+- 有効期限切れ後はログイン不可、またはアプリ利用不可にする
+- Adminユーザーは対象外
+- クーポンコードはフロントエンドに直接ハードコードしない
+- 可能であれば環境変数で管理する
+
+環境変数例：
+EARLY_ACCESS_CODES=ADJUDO-2W-BETA-7KQ9
+
+可能なら、以下のように期間も設定できる形にしてください。
+EARLY_ACCESS_CODES=ADJUDO-2W-BETA-7KQ9:early_access:14
+
+==================================================
+2. クーポン認証後の保存情報
+==================================================
+
+/early-access でクーポンが正しい場合、以下を保存してください。
+
+localStorage または cookie:
+- early_access_granted = true
+- early_access_code = ADJUDO-2W-BETA-7KQ9
+- early_access_granted_at = 現在日時
+- early_access_expires_at = 現在日時 + 14日
+
+Firestoreにも、可能であれば以下を保存してください。
+
+earlyAccessRedemptions/{redemptionId}
+- code: ADJUDO-2W-BETA-7KQ9
+- accessType: early_access
+- grantedAt
+- expiresAt
+- userId nullable
+- email nullable
+- locale nullable
+- timezone nullable
+- createdAt
+
+==================================================
+3. Googleログイン後のuser profile反映
+==================================================
+
+クーポン認証後にGoogleログインしたユーザーには、users/{uid} に以下を保存してください。
+
+- accessType: early_access
+- earlyAccessCode: ADJUDO-2W-BETA-7KQ9
+- earlyAccessGrantedAt: クーポン認証日時
+- earlyAccessExpiresAt: クーポン認証日時 + 14日
+- plan: free
+- isUnlimitedUser: false
+- dailyRunLimit: 5
+- monthlyRunLimit: 100
+
+ただし、Admin emailの場合は以下を優先してください。
+
+Admin email:
+shoengineer5@gmail.com
+
+Adminの場合：
+- role: admin
+- accessType: special
+- isUnlimitedUser: true
+- dailyRunLimit: 999999
+- monthlyRunLimit: 999999
+- earlyAccessExpiresAt の影響を受けない
+
+==================================================
+4. アクセス期限チェック
+==================================================
+
+以下のページにアクセスする時、earlyAccessExpiresAt を確認してください。
+
+- /app
+- /projects
+- /rooms
+- /settings
+
+期限内：
+- 通常通り利用可能
+
+期限切れ：
+- /early-access または /waitlist に誘導
+- 以下の文言を表示
+
+表示文言：
+Early Accessの利用期間が終了しました。
+引き続き利用をご希望の場合は、再度ご案内をお待ちください。
+
+Adminユーザー：
+- 期限切れチェックをスキップ
+
+==================================================
+5. /early-access ページの表示
+==================================================
+
+クーポン入力画面に以下を表示してください。
+
+タイトル：
+Early Access
+
+説明：
+テスターまたは先行利用者の方は、配布されたクーポンコードを入力してください。
+このクーポンでは、認証日から14日間adjudoを利用できます。
+
+入力欄placeholder：
+クーポンコードを入力
+
+ボタン：
+認証してログインへ進む
+
+成功時：
+認証しました。ログイン画面へ移動します。
+
+失敗時：
+クーポンコードが正しくありません。
+
+期限切れ時：
+このクーポンの利用期間は終了しました。
+
+==================================================
+6. 完了条件
+==================================================
+
+以下を確認してください。
+
+- /early-access で ADJUDO-2W-BETA-7KQ9 を入力すると認証される
+- 認証後 /login に遷移する
+- Googleログイン後、通常機能を使える
+- users/{uid} に earlyAccessExpiresAt が保存される
+- 認証日から14日間だけ利用できる
+- 14日経過後はアプリ本体に入れない
+- Adminユーザー shoengineer5@gmail.com は期限の影響を受けない
+- クーポンコードがフロントに直接ハードコードされていない
+- 間違ったクーポンではログイン画面に進めない
