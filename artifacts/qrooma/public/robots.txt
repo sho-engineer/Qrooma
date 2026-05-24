@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /rooms
+Disallow: /settings
+Disallow: /admin
+
+Sitemap: https://adjudo.replit.app/sitemap.xml
