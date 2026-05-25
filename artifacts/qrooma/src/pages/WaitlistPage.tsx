@@ -86,6 +86,11 @@ export default function WaitlistPage({ locale = "en" }: WaitlistPageProps) {
                   </button>
                 </Link>
               </div>
+              <p className="mt-6 text-[12px] text-muted-foreground/50 leading-relaxed">
+                {isJa
+                  ? <>ご質問は <a href="mailto:hello@adjudo.com" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">hello@adjudo.com</a> までお気軽にどうぞ。</>
+                  : <>If you have any questions, contact us at <a href="mailto:hello@adjudo.com" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">hello@adjudo.com</a>.</>}
+              </p>
             </div>
           ) : (
             <>

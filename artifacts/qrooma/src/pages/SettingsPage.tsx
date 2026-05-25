@@ -325,6 +325,40 @@ export default function SettingsPage() {
             </div>
           </section>
 
+          {/* ══ CONTACT ══════════════════════════════════════════════════ */}
+          <section>
+            <h3 className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-[0.15em] mb-4">
+              {locale === "ja" ? "お問い合わせ" : "Contact"}
+            </h3>
+            <div className="rounded-2xl border border-border bg-card px-5 py-4">
+              <p className="text-[12px] text-muted-foreground/70 leading-relaxed">
+                {locale === "ja" ? (
+                  <>
+                    ご質問・フィードバック・アクセスに関するお問い合わせは{" "}
+                    <a
+                      href="mailto:hello@adjudo.com"
+                      className="text-foreground/70 underline underline-offset-2 hover:text-foreground transition-colors"
+                    >
+                      hello@adjudo.com
+                    </a>{" "}
+                    までご連絡ください。
+                  </>
+                ) : (
+                  <>
+                    For questions, feedback, or access issues, contact us at{" "}
+                    <a
+                      href="mailto:hello@adjudo.com"
+                      className="text-foreground/70 underline underline-offset-2 hover:text-foreground transition-colors"
+                    >
+                      hello@adjudo.com
+                    </a>
+                    .
+                  </>
+                )}
+              </p>
+            </div>
+          </section>
+
         </div>
       </div>
     </div>

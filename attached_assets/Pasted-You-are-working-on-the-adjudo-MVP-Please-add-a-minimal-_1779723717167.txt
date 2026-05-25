@@ -1,0 +1,76 @@
+You are working on the adjudo MVP.
+
+Please add a minimal contact / inquiry email flow to the product.
+
+Background:
+- adjudo is currently an early-stage MVP.
+- We do not want to build a full inquiry form yet.
+- We only want to add a simple email contact link.
+- The contact email should be:
+
+hello@adjudo.com
+
+Reason:
+- This is better for an early-stage product than support@adjudo.com.
+- It can cover general inquiries, early access questions, feedback, bug reports, and partnership inquiries.
+- A full support/contact form can be added later.
+
+Please implement the following:
+
+1. LP Footer
+Add a small contact link in the landing page footer.
+
+Text:
+Contact: hello@adjudo.com
+
+Behavior:
+- mailto link
+- href="mailto:hello@adjudo.com"
+- Keep it minimal and aligned with the current black/minimal design.
+- Do not make it too prominent.
+
+2. Waitlist Success Message
+After a user successfully joins the waitlist, show a small support/contact sentence.
+
+Text:
+If you have any questions, please contact us at hello@adjudo.com.
+
+Behavior:
+- hello@adjudo.com should be a mailto link.
+- Keep the tone simple and friendly.
+
+3. Settings Page
+Add a small "Contact" or "Help" section in Settings.
+
+Section title:
+Contact
+
+Content:
+For questions, feedback, or access issues, contact us at hello@adjudo.com.
+
+Behavior:
+- hello@adjudo.com should be a mailto link.
+- Do not add a full contact form.
+- Do not add Intercom, chat widgets, or external services.
+- Do not add API key / BYOK / model setting sections.
+
+4. Design Rules
+- Keep the black/minimal adjudo style.
+- Primary action style remains black background + white text.
+- Google login button should remain official-style white.
+- Avoid blue accents as much as possible.
+- Email links can use underline or subtle text styling, but avoid bright blue default link styling if possible.
+
+5. Scope
+Do not implement:
+- Contact form
+- Feedback form
+- Ticketing system
+- Intercom
+- Zendesk
+- Chat widget
+- Multiple support categories
+- Admin inquiry management
+
+Goal:
+Provide a minimal but clear way for users to contact the adjudo team during the MVP / Early Access phase.

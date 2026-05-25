@@ -690,6 +690,12 @@ export default function LandingPage() {
             <span className="text-[11px] text-muted-foreground/40 hidden sm:inline">
               The layer between thinking and execution
             </span>
+            <a
+              href="mailto:hello@adjudo.com"
+              className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+            >
+              hello@adjudo.com
+            </a>
             <Link href="/jp">
               <span className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground transition-colors cursor-pointer">
                 日本語
