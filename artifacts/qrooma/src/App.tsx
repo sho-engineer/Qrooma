@@ -116,6 +116,7 @@ function AppShell() {
         </div>
 
         <Switch>
+          <Route path="/projects"  component={RoomsPage} />
           <Route path="/rooms"     component={RoomsPage} />
           <Route path="/rooms/:id" component={RoomDetailPage} />
           <Route path="/settings"  component={SettingsPage} />

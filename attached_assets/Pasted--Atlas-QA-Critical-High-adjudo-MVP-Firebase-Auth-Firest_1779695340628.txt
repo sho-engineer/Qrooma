@@ -1,0 +1,198 @@
+追加修正です。
+Atlas QAで見つかった認証まわりのCritical/High不具合を修正してください。
+
+対象：
+adjudo MVP
+
+重要：
+- Firebase Auth + Firestore構成
+- Supabaseは使わない
+- Admin email: shoengineer5@gmail.com
+- Early Access Coupon: ADJUDO-2W-BETA-7KQ9
+- Googleログインだけでなく、通常ログインも用意する
+- 全画面の選択色・強調色は青ではなく黒に統一する
+
+==================================================
+1. ISSUE-003：Googleログイン失敗を修正
+==================================================
+
+不具合：
+/early-access でクーポン認証後、/login の「Googleでログイン」を押してもログインに失敗し、ログイン画面に戻る。
+
+期待結果：
+- Googleログインが成功する
+- users/{uid} がFirestoreに作成または更新される
+- /projects に遷移する
+- Admin emailの場合はAdmin権限になる
+
+修正ポイント：
+- Firebase Authの初期化が正しいか確認
+- Firebase configの環境変数が正しく読み込まれているか確認
+- signInWithPopup または signInWithRedirect の実装を確認
+- Replit環境でpopupが不安定なら signInWithRedirect に切り替える
+- getRedirectResult の処理を追加する
+- GoogleAuthProvider の設定を確認
+- Firebase ConsoleでGoogle Providerが有効化されている前提で実装する
+- Authorized domains にReplit preview domain / 本番ドメインが必要な旨をREADMEに明記する
+- エラー時は console.error に詳細を出す
+- ユーザー画面にはraw errorではなく、分かりやすい案内を表示する
+
+エラー表示改善：
+- auth/unauthorized-domain の場合：
+  「このドメインはGoogleログインに許可されていません。管理者に設定確認を依頼してください。」
+- popup blocked の場合：
+  「ポップアップがブロックされました。ブラウザ設定を確認するか、もう一度お試しください。」
+- その他：
+  「ログインに失敗しました。時間を置いてもう一度お試しください。」
+
+完了条件：
+- /early-access → クーポン認証 → /login → Googleログイン → /projects まで完走する
+- shoengineer5@gmail.com はクーポンなしでもログインできる
+- AdminはFree制限・14日制限を受けない
+- 一般ユーザーはクーポンなしでは利用できない
+
+==================================================
+2. 通常ログインも追加
+==================================================
+
+現在、先行ログイン画面にGoogleログインしかないため、通常ログインも追加してください。
+
+追加する方式：
+- メールアドレス + パスワードログイン
+- 新規アカウント作成
+- パスワード再設定
+
+画面構成：
+- タイトル：Early Access Login / 先行利用ログイン
+- Googleでログイン
+- 区切り線：「または」
+- メールアドレス
+- パスワード
+- ログインボタン
+- アカウント作成リンク
+- パスワードを忘れた場合リンク
+
+仕様：
+- Firebase AuthenticationのEmail/Passwordを使う
+- 新規登録時もearly_access_grantedが必要
+- Admin emailの場合はクーポンなしでも利用可能
+- 一般ユーザーがクーポンなしでメール登録・ログインしてもアプリ本体には入れない
+- ログイン成功後は /projects へ遷移
+- users/{uid} をFirestoreに作成または更新する
+
+注意：
+- 通常ログインを追加しても、一般公開ログインにはしない
+- Early Access認証済み、またはAdminのみ本体利用可能
+- Loginという一般的な表現より、画面上は「先行利用ログイン」「Early Access Login」を優先する
+
+==================================================
+3. ISSUE-004：Early Access / Waitlistの間欠失敗を修正
+==================================================
+
+不具合：
+/early-access のクーポン認証、/waitlist 登録が時々失敗する。
+
+期待結果：
+- クーポン認証が安定して成功する
+- Waitlist登録が安定して成功する
+- 失敗時は原因ログを残す
+- ユーザーには自然なエラー文言を表示する
+
+修正ポイント：
+- Firestore接続初期化が二重実行・未初期化になっていないか確認
+- Firebase app initializeが重複していないか確認
+- addDoc / setDoc の await 漏れを確認
+- try/catchで例外を正しく捕捉する
+- ネットワーク失敗時に1回だけリトライする
+- クーポンコードは trim + uppercase して検証する
+- クーポンコード検証は安定する方式にする
+- Firestore Rulesでwaitlist createが未ログインでも許可されているか確認
+- waitlist readはAdminのみ
+
+Early Access成功時に保存：
+- early_access_granted=true
+- early_access_code=ADJUDO-2W-BETA-7KQ9
+- early_access_granted_at
+- early_access_expires_at = 認証日時 + 14日
+
+Waitlist保存：
+waitlist/{id}
+- email
+- name nullable
+- role nullable
+- comment nullable
+- locale nullable
+- timezone nullable
+- createdAt
+
+Firestore Rules：
+- waitlist create は未ログインでも可
+- waitlist read/update/delete はAdminのみ
+
+==================================================
+4. 全画面の選択色・強調色を黒に統一
+==================================================
+
+現在、言語設定などの選択状態が青になっている箇所があります。
+adjudoのUIでは、選択状態・アクティブ状態・主要ボタンを黒系に統一してください。
+
+対象：
+- 言語設定
+- 表示設定
+- タブ選択
+- ラジオボタン
+- チェックボックス
+- トグル
+- Decision Type選択
+- Early Access認証ボタン
+- Prompt Mode関連の選択
+- Settings内の選択状態
+
+スタイル方針：
+- selected / active：黒背景 + 白文字
+- primary button：黒背景 + 白文字
+- hover：濃いグレー
+- focus ring：黒またはグレー
+- 青色の選択表示は使わない
+- Googleログインボタンは公式に近い白背景 + Google Gロゴのまま維持
+
+完了条件：
+- 言語設定などで青い選択状態が残っていない
+- Early Accessボタンが黒
+- Primary CTAが黒基調
+- UI全体で青が主要選択色として使われていない
+
+==================================================
+5. 2026表記に統一
+==================================================
+
+画面上に2025が残っている場合は2026に修正してください。
+
+対象：
+- Early Access関連文言
+- Coupon関連
+- Footer
+- placeholder
+- テスト文言
+- ユーザーに見える画面表示
+
+==================================================
+6. 完了条件
+==================================================
+
+以下を確認してください。
+
+- Googleログインが成功する
+- Googleログイン後 /projects に遷移する
+- Firebase users/{uid} が作成される
+- 通常ログインが追加されている
+- メールアドレス + パスワードでログインできる
+- 新規登録 / パスワード再設定導線がある
+- 一般ユーザーはクーポンなしでは本体利用できない
+- Adminはクーポンなしで利用できる
+- Early Accessクーポンが安定して成功する
+- Waitlist登録が安定して成功する
+- 失敗時にraw errorが出ない
+- 青い選択状態が黒に変更されている
+- 2025表記が残っていない
+- 右下のテスト用プラン変更UIが表示されていない
