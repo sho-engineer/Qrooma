@@ -282,7 +282,9 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
   return (
     <aside className={containerClass}>
       <div className="flex items-center justify-between px-3.5 py-3 border-b border-sidebar-border">
-        <img src="/brand/adjudo-wordmark.png" alt="Adjudo" className="h-5 w-auto dark:invert" />
+        <Link href="/projects">
+          <img src="/brand/adjudo-wordmark.png" alt="Adjudo" className="h-5 w-auto dark:invert hover:opacity-70 transition-opacity cursor-pointer" />
+        </Link>
         <div className="flex items-center gap-0.5">
           <button
             onClick={() => setNewRoomMode(true)}

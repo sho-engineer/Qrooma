@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, Link } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MenuIcon } from "lucide-react";
 import { AuthProvider, useAuth, isTesterEmail } from "./context/AuthContext";
@@ -112,7 +112,9 @@ function AppShell() {
           >
             <MenuIcon size={20} />
           </button>
-          <img src="/brand/adjudo-wordmark.png" alt="Adjudo" className="h-5 w-auto dark:invert" />
+          <Link href="/projects">
+            <img src="/brand/adjudo-wordmark.png" alt="Adjudo" className="h-5 w-auto dark:invert hover:opacity-70 transition-opacity cursor-pointer" />
+          </Link>
         </div>
 
         <Switch>

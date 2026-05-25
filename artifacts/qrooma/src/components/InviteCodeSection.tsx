@@ -99,27 +99,20 @@ export default function InviteCodeSection() {
         {!isUnlimited && (
           <>
             <div>
-              <p className="text-xs text-muted-foreground/70 leading-relaxed mb-3">
-                {hasFullAccess
-                  ? (ja
-                      ? "別のコードを追加して有効期限を延長できます（最大30日まで累積）。"
-                      : "Apply another code to extend your access (stacks up to 30 days).")
-                  : t.inviteCodeDesc}
-              </p>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={code}
                   onChange={(e) => handleCodeChange(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") void handleApply(); }}
-                  placeholder={t.inviteCodePlaceholder}
+                  placeholder={ja ? "コードを入力" : "Enter code"}
                   disabled={status === "loading"}
-                  className="flex-1 px-3 py-2 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring font-mono uppercase placeholder:normal-case placeholder:font-sans placeholder:text-muted-foreground/50"
+                  className="flex-1 px-3 py-2.5 text-sm bg-white dark:bg-zinc-800 border-2 border-zinc-300 dark:border-zinc-600 rounded-xl outline-none focus:border-zinc-500 dark:focus:border-zinc-400 font-mono uppercase placeholder:normal-case placeholder:font-sans placeholder:text-zinc-400 dark:placeholder:text-zinc-500 text-zinc-900 dark:text-zinc-100"
                 />
                 <button
                   onClick={() => void handleApply()}
                   disabled={!code.trim() || status === "loading"}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-foreground text-background disabled:opacity-30 hover:opacity-90 transition-all active:scale-[0.97] whitespace-nowrap flex items-center gap-1.5"
+                  className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 disabled:opacity-30 hover:opacity-85 transition-all active:scale-[0.97] whitespace-nowrap flex items-center gap-1.5"
                 >
                   {status === "loading"
                     ? <Loader2Icon size={12} className="animate-spin" />
