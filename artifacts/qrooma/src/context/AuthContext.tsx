@@ -62,6 +62,7 @@ async function upsertUserInDb(u: { id: string; email: string; name: string }): P
 
 export function mapFirebaseError(err: unknown): string {
   const code = (err as FirebaseError)?.code ?? "";
+  console.error("[Adjudo] Firebase auth error code:", code, err);
   if (code === "auth/unauthorized-domain") {
     return "このドメインはGoogleログインに許可されていません。管理者に設定確認を依頼してください。";
   }
@@ -83,7 +84,12 @@ export function mapFirebaseError(err: unknown): string {
   if (code === "auth/too-many-requests") {
     return "試行回数が多すぎます。時間を置いてもう一度お試しください。";
   }
-  console.error("[Adjudo] Firebase auth error:", code, err);
+  if (code === "auth/operation-not-allowed") {
+    return "メール認証が無効です。Firebase ConsoleでEmail/Passwordログインを有効にしてください。";
+  }
+  if (code === "auth/network-request-failed") {
+    return "ネットワークエラーです。接続を確認して再度お試しください。";
+  }
   return "ログインに失敗しました。時間を置いてもう一度お試しください。";
 }
 
