@@ -15,7 +15,7 @@ import {
 import { auth } from "../lib/firebase";
 import { getEarlyAccess, clearEarlyAccess } from "../services/earlyAccess";
 
-const ADMIN_EMAILS = new Set(["shoengineer5@gmail.com"]);
+const ADMIN_EMAILS = new Set(["admin@adjudo.com"]);
 
 export interface User {
   id:    string;

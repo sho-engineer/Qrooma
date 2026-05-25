@@ -53,5 +53,5 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-ADMIN_EMAILS = "shoengineer5@gmail.com"
 EARLY_ACCESS_CODES = "ADJUDO-2W-BETA-7KQ9:early_access:14"
+ADMIN_EMAILS = "admin@adjudo.com"
