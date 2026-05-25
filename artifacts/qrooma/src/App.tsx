@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MenuIcon } from "lucide-react";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider, useAuth, isTesterEmail } from "./context/AuthContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { RoomsProvider } from "./context/RoomsContext";
 import { ProjectsProvider } from "./context/ProjectsContext";
@@ -47,7 +47,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     return <Redirect to={isEarlyAccessValid() ? "/login" : "/early-access"} />;
   }
 
-  if (user.role !== "admin" && !isEarlyAccessValid()) {
+  if (user.role !== "admin" && !isTesterEmail(user.email) && !isEarlyAccessValid()) {
     return <Redirect to="/early-access?expired=true" />;
   }
 

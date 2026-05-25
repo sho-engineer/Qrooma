@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import { useAuth } from "./AuthContext";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { useAuth, isTesterEmail } from "./AuthContext";
+import { db as firestoreDb } from "../lib/firebase";
 
 export type AccessType = "normal" | "tester" | "early_access" | "special";
 export type UserRole   = "user" | "admin";
@@ -29,6 +31,15 @@ const DEFAULT_PROFILE: UserProfile = {
 const ADMIN_PROFILE_OVERRIDE: Partial<UserProfile> = {
   role:              "admin",
   accessType:        "special",
+  isUnlimitedUser:   true,
+  dailyRunLimit:     null,
+  monthlyRunLimit:   null,
+  continuationLimit: null,
+};
+
+const TESTER_PROFILE_OVERRIDE: Partial<UserProfile> = {
+  role:              "user",
+  accessType:        "tester",
   isUnlimitedUser:   true,
   dailyRunLimit:     null,
   monthlyRunLimit:   null,
@@ -71,10 +82,45 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
   }
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin  = user?.role === "admin";
+  const isTester = isTesterEmail(user?.email ?? "");
   const profile: UserProfile = isAdmin
     ? { ...storedProfile, ...ADMIN_PROFILE_OVERRIDE }
-    : storedProfile;
+    : isTester
+      ? { ...storedProfile, ...TESTER_PROFILE_OVERRIDE }
+      : storedProfile;
+
+  // Write / refresh Firestore profile for tester account on every login
+  useEffect(() => {
+    if (!user || !isTester || !firestoreDb) return;
+    const ref = doc(firestoreDb, "users", user.id);
+    void (async () => {
+      try {
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          await setDoc(ref, {
+            email:            user.email,
+            role:             "user",
+            plan:             "free",
+            accessType:       "tester",
+            isUnlimitedUser:  true,
+            dailyRunLimit:    999999,
+            monthlyRunLimit:  999999,
+            createdAt:        serverTimestamp(),
+            updatedAt:        serverTimestamp(),
+            lastLoginAt:      serverTimestamp(),
+          });
+        } else {
+          await updateDoc(ref, {
+            updatedAt:   serverTimestamp(),
+            lastLoginAt: serverTimestamp(),
+          });
+        }
+      } catch (e) {
+        console.warn("[Adjudo] Firestore tester profile write failed:", e);
+      }
+    })();
+  }, [user?.id, isTester]);
 
   async function applyCode(code: string): Promise<{ success: boolean; message: string }> {
     if (storedProfile.inviteCodeAppliedAt) {

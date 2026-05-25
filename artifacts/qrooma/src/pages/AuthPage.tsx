@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useAuth, mapFirebaseError, isAdminEmail } from "../context/AuthContext";
+import { useAuth, mapFirebaseError, isAdminEmail, isTesterEmail } from "../context/AuthContext";
 import { useLocale, type Locale } from "../context/LocaleContext";
 import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 import { GoogleIcon } from "../components/GoogleIcon";
@@ -62,7 +62,7 @@ export default function AuthPage() {
     e.preventDefault();
     setError("");
 
-    const needsEA = !isAdminEmail(email) && !isEarlyAccessValid();
+    const needsEA = !isAdminEmail(email) && !isTesterEmail(email) && !isEarlyAccessValid();
     if (needsEA) {
       setError(
         isJa

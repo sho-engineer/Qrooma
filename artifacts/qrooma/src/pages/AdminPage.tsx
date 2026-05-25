@@ -544,6 +544,8 @@ function FeedbackAdminTab({ headers }: { headers: Record<string, string> }) {
         </div>
       </div>
 
+      <DevToolsSection headers={headers} />
+
       {regions.length > 0 && (
         <section className="space-y-3">
           <SectionTitle icon={<MapPinIcon size={13} />} label="Vote Regions" />
@@ -610,6 +612,64 @@ function Spinner() {
 function EmptyRow({ label }: { label: string }) {
   return (
     <div className="px-4 py-6 text-center text-sm text-muted-foreground">{label}</div>
+  );
+}
+
+// ── Dev Tools ──────────────────────────────────────────────────────────────
+
+function DevToolsSection({ headers }: { headers: Record<string, string> }) {
+  const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [msg,    setMsg]    = useState("");
+
+  async function seedTestAccount() {
+    setStatus("loading");
+    setMsg("");
+    try {
+      const res  = await fetch("/api/admin/seed-test-account", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", ...headers },
+      });
+      const data = await res.json() as { ok?: boolean; uid?: string; email?: string; error?: string; note?: string };
+      if (res.ok && data.ok) {
+        setStatus("ok");
+        setMsg(`✓ UID: ${data.uid ?? "?"} — ${data.note ?? ""}`);
+      } else {
+        setStatus("error");
+        setMsg(data.error ?? "Unknown error");
+      }
+    } catch (e) {
+      setStatus("error");
+      setMsg(String(e));
+    }
+  }
+
+  return (
+    <section className="space-y-3">
+      <SectionTitle icon={<ShieldIcon size={13} />} label="Dev Tools" />
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <div>
+          <p className="text-[13px] font-medium text-foreground">Seed Test Account</p>
+          <p className="text-[12px] text-muted-foreground mt-0.5">
+            Creates <code className="font-mono bg-muted px-1 rounded text-[11px]">dev@adjudo.com</code> in Firebase Auth + PostgreSQL.
+            Requires Email/Password auth enabled in Firebase Console. Safe to run multiple times.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={seedTestAccount}
+            disabled={status === "loading"}
+            className="px-3 py-1.5 text-[13px] font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {status === "loading" ? "Creating…" : "Create dev@adjudo.com"}
+          </button>
+          {msg && (
+            <p className={`text-[12px] ${status === "error" ? "text-destructive" : "text-emerald-600"}`}>
+              {msg}
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -15,7 +15,8 @@ import {
 import { auth } from "../lib/firebase";
 import { getEarlyAccess, clearEarlyAccess } from "../services/earlyAccess";
 
-const ADMIN_EMAILS = new Set(["admin@adjudo.com"]);
+const ADMIN_EMAILS  = new Set(["admin@adjudo.com"]);
+const TESTER_EMAILS = new Set(["dev@adjudo.com"]);
 
 export interface User {
   id:    string;
@@ -43,6 +44,10 @@ googleProvider.setCustomParameters({ prompt: "select_account" });
 
 export function isAdminEmail(email: string): boolean {
   return ADMIN_EMAILS.has(email.trim().toLowerCase());
+}
+
+export function isTesterEmail(email: string): boolean {
+  return TESTER_EMAILS.has(email.trim().toLowerCase());
 }
 
 async function upsertUserInDb(u: { id: string; email: string; name: string }): Promise<"user" | "admin"> {

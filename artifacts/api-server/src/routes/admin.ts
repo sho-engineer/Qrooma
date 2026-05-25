@@ -210,4 +210,76 @@ router.get("/admin/analytics", async (req, res) => {
   }
 });
 
+// ── Seed test account ────────────────────────────────────────────────────────
+router.post("/admin/seed-test-account", async (req, res) => {
+  const firebaseApiKey = process.env["VITE_FIREBASE_API_KEY"];
+  if (!firebaseApiKey) {
+    res.status(500).json({ error: "VITE_FIREBASE_API_KEY not configured" });
+    return;
+  }
+
+  const TEST_EMAIL    = "dev@adjudo.com";
+  const TEST_PASSWORD = "AdjudoDev-2026-Beta!";
+  const TEST_NAME     = "Dev Tester";
+
+  try {
+    // 1. Create Firebase Auth user via Identity Toolkit REST API
+    const createRes = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseApiKey}`,
+      {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email: TEST_EMAIL, password: TEST_PASSWORD, returnSecureToken: false }),
+      }
+    );
+    const createData = await createRes.json() as { localId?: string; error?: { message?: string } };
+
+    let uid: string;
+
+    if (createRes.ok && createData.localId) {
+      uid = createData.localId;
+      req.log.info({ uid }, "Firebase test account created");
+    } else if (createData.error?.message === "EMAIL_EXISTS") {
+      // Already exists — sign in to retrieve UID
+      const signInRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseApiKey}`,
+        {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ email: TEST_EMAIL, password: TEST_PASSWORD, returnSecureToken: true }),
+        }
+      );
+      const signInData = await signInRes.json() as { localId?: string; error?: { message?: string } };
+      if (!signInData.localId) {
+        res.status(409).json({ error: "User already exists but sign-in failed: " + (signInData.error?.message ?? "unknown") });
+        return;
+      }
+      uid = signInData.localId;
+      req.log.info({ uid }, "Firebase test account already exists");
+    } else {
+      res.status(500).json({ error: "Firebase error: " + (createData.error?.message ?? "unknown") });
+      return;
+    }
+
+    // 2. Upsert PostgreSQL user record (role: user, NOT admin)
+    const existing = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, uid));
+    if (existing.length === 0) {
+      await db.insert(usersTable).values({ id: uid, email: TEST_EMAIL, name: TEST_NAME, role: "user" });
+    } else {
+      await db.update(usersTable).set({ lastActiveAt: new Date(), email: TEST_EMAIL, name: TEST_NAME }).where(eq(usersTable.id, uid));
+    }
+
+    req.log.info({ uid }, "Test account seeded successfully");
+    res.json({
+      ok:    true,
+      uid,
+      email: TEST_EMAIL,
+      note:  "Firestore profile users/{uid} will be written automatically on first login.",
+    });
+  } catch (e) {
+    req.log.error(e);
+    res.status(500).json({ error: "Seed failed" });
+  }
+});
+
 export default router;
