@@ -24,7 +24,7 @@ import { useSettings } from "../context/SettingsContext";
 import { useRooms } from "../context/RoomsContext";
 import { useLocale } from "../context/LocaleContext";
 import { usePlan } from "../context/PlanContext";
-import { useUserProfile } from "../context/UserProfileContext";
+import { useUserProfile, isFullAccessActive } from "../context/UserProfileContext";
 import { usageService } from "../services/usageService";
 import type { ConclusionData, ConclusionStatus, Message, PromptConfig, RunStatus } from "../types";
 import RoomHeader from "../components/RoomHeader";
@@ -446,7 +446,7 @@ export default function RoomDetailPage() {
     if (!input.trim() || isRunActive) return;
 
     // ── Usage limit check for Free plan ──
-    if (isFree && !profile.isUnlimitedUser) {
+    if (isFree && !profile.isUnlimitedUser && !isFullAccessActive(profile)) {
       if (!usageService.canRunToday(profile.dailyRunLimit)) {
         setLimitError(t.usageLimitDayReached);
         return;
@@ -595,7 +595,7 @@ export default function RoomDetailPage() {
     if (!hasSomeKey && !isFree) return;
 
     // ── Continuation limit check for Free plan ──
-    if (isFree && !profile.isUnlimitedUser) {
+    if (isFree && !profile.isUnlimitedUser && !isFullAccessActive(profile)) {
       if (!usageService.canContinue(roomId, profile.continuationLimit)) {
         setLimitError(t.usageContinuationLimit);
         return;

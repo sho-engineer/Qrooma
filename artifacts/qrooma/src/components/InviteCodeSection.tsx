@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { CheckIcon, GiftIcon, AlertCircleIcon, Loader2Icon } from "lucide-react";
+import { CheckIcon, GiftIcon, AlertCircleIcon, Loader2Icon, CalendarIcon } from "lucide-react";
 import { useLocale } from "../context/LocaleContext";
-import { useUserProfile } from "../context/UserProfileContext";
+import { useUserProfile, isFullAccessActive } from "../context/UserProfileContext";
 
 export default function InviteCodeSection() {
   const { t, locale } = useLocale();
@@ -10,10 +10,11 @@ export default function InviteCodeSection() {
 
   const [code,      setCode]      = useState("");
   const [status,    setStatus]    = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorType, setErrorType] = useState<"invalid" | "already_applied" | "network" | null>(null);
+  const [errorType, setErrorType] = useState<"invalid" | "already_used" | "network" | null>(null);
+  const [lastDays,  setLastDays]  = useState<number | null>(null);
 
-  const alreadyApplied = !!profile.inviteCodeAppliedAt;
-  const isUnlimited    = profile.isUnlimitedUser;
+  const hasFullAccess = isFullAccessActive(profile);
+  const isUnlimited   = profile.isUnlimitedUser;
 
   const accessTypeLabel: Record<string, string> = {
     tester:       ja ? "テスター" : "Tester",
@@ -22,10 +23,18 @@ export default function InviteCodeSection() {
     normal:       ja ? "通常" : "Normal",
   };
 
+  function fmtDate(iso: string) {
+    const d = new Date(iso);
+    return ja
+      ? `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`
+      : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+
   async function handleApply() {
     if (!code.trim() || status === "loading") return;
     setStatus("loading");
     setErrorType(null);
+    setLastDays(null);
 
     const result = await applyCode(code.trim());
     if (result.success) {
@@ -33,7 +42,7 @@ export default function InviteCodeSection() {
       setCode("");
     } else {
       setStatus("error");
-      if (result.message === "already_applied") setErrorType("already_applied");
+      if (result.message === "already_used") setErrorType("already_used");
       else if (result.message === "network_error") setErrorType("network");
       else setErrorType("invalid");
     }
@@ -41,7 +50,7 @@ export default function InviteCodeSection() {
 
   function handleCodeChange(v: string) {
     setCode(v.toUpperCase());
-    if (status !== "idle") { setStatus("idle"); setErrorType(null); }
+    if (status !== "idle") { setStatus("idle"); setErrorType(null); setLastDays(null); }
   }
 
   return (
@@ -52,8 +61,25 @@ export default function InviteCodeSection() {
 
       <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
 
-        {/* ── Already applied ── */}
-        {alreadyApplied && (
+        {/* ── Full access active banner ── */}
+        {hasFullAccess && profile.fullAccessExpiresAt && (
+          <div className="flex items-start gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40 px-4 py-3">
+            <CalendarIcon size={14} className="text-emerald-600 mt-0.5 shrink-0" />
+            <div className="space-y-0.5">
+              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                {ja ? "フルアクセス有効中" : "Full Access Active"}
+              </p>
+              <p className="text-[11px] text-emerald-600/80 dark:text-emerald-500/80">
+                {ja
+                  ? `有効期限: ${fmtDate(profile.fullAccessExpiresAt)} · 制限なしで利用可能`
+                  : `Expires ${fmtDate(profile.fullAccessExpiresAt)} · No usage limits`}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Unlimited invite code applied ── */}
+        {!hasFullAccess && isUnlimited && profile.inviteCodeAppliedAt && (
           <div className="flex items-start gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40 px-4 py-3">
             <CheckIcon size={14} className="text-emerald-600 mt-0.5 shrink-0" />
             <div className="space-y-0.5">
@@ -62,19 +88,23 @@ export default function InviteCodeSection() {
               </p>
               <p className="text-[11px] text-emerald-600/80 dark:text-emerald-500/80">
                 {ja
-                  ? `アクセスタイプ: ${accessTypeLabel[profile.accessType] ?? profile.accessType}${isUnlimited ? " · 無制限利用" : ""}`
-                  : `Access type: ${accessTypeLabel[profile.accessType] ?? profile.accessType}${isUnlimited ? " · Unlimited access" : ""}`}
+                  ? `アクセスタイプ: ${accessTypeLabel[profile.accessType] ?? profile.accessType} · 無制限利用`
+                  : `Access type: ${accessTypeLabel[profile.accessType] ?? profile.accessType} · Unlimited access`}
               </p>
             </div>
           </div>
         )}
 
-        {/* ── Input area (only when not yet applied) ── */}
-        {!alreadyApplied && (
+        {/* ── Input area — always visible unless unlimited invite already applied ── */}
+        {!isUnlimited && (
           <>
             <div>
               <p className="text-xs text-muted-foreground/70 leading-relaxed mb-3">
-                {t.inviteCodeDesc}
+                {hasFullAccess
+                  ? (ja
+                      ? "別のコードを追加して有効期限を延長できます（最大30日まで累積）。"
+                      : "Apply another code to extend your access (stacks up to 30 days).")
+                  : t.inviteCodeDesc}
               </p>
               <div className="flex gap-2">
                 <input
@@ -104,21 +134,23 @@ export default function InviteCodeSection() {
               <div className="flex items-start gap-2 rounded-xl bg-destructive/5 border border-destructive/20 px-3 py-2.5">
                 <AlertCircleIcon size={13} className="text-destructive mt-0.5 shrink-0" />
                 <p className="text-[11px] text-destructive/90 leading-relaxed">
-                  {errorType === "invalid"
-                    ? t.inviteCodeInvalid
-                    : errorType === "already_applied"
-                    ? t.inviteCodeAlreadyApplied
-                    : t.inviteCodeNetworkError}
+                  {errorType === "already_used"
+                    ? (ja ? "このコードは既に使用されています。" : "This code has already been used.")
+                    : errorType === "network"
+                    ? t.inviteCodeNetworkError
+                    : t.inviteCodeInvalid}
                 </p>
               </div>
             )}
 
-            {/* Momentary success */}
+            {/* Success */}
             {status === "success" && (
               <div className="flex items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 px-3 py-2.5">
                 <CheckIcon size={13} className="text-emerald-600 shrink-0" />
                 <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
-                  {t.inviteCodeSuccess}
+                  {lastDays !== null
+                    ? (ja ? `+${lastDays}日のフルアクセスを追加しました。` : `+${lastDays} days of full access added.`)
+                    : t.inviteCodeSuccess}
                 </p>
               </div>
             )}
@@ -128,7 +160,9 @@ export default function InviteCodeSection() {
         {/* ── Footer note ── */}
         <div className="border-t border-border pt-3">
           <p className="text-[11px] text-muted-foreground/50 leading-relaxed">
-            {t.inviteCodeNote}
+            {ja
+              ? "各コードは1回のみ利用可能です。複数コードの併用で最大30日まで延長できます。"
+              : "Each code can only be used once. Stack multiple codes to extend access up to 30 days."}
           </p>
         </div>
       </div>

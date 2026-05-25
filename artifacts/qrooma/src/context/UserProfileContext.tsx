@@ -15,6 +15,7 @@ export interface UserProfile {
   monthlyRunLimit:     number | null;
   continuationLimit:   number | null;
   inviteCodeAppliedAt: string | null;
+  fullAccessExpiresAt: string | null;
 }
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -26,6 +27,7 @@ const DEFAULT_PROFILE: UserProfile = {
   monthlyRunLimit:     100,
   continuationLimit:   1,
   inviteCodeAppliedAt: null,
+  fullAccessExpiresAt: null,
 };
 
 const ADMIN_PROFILE_OVERRIDE: Partial<UserProfile> = {
@@ -45,6 +47,12 @@ const TESTER_PROFILE_OVERRIDE: Partial<UserProfile> = {
   monthlyRunLimit:   null,
   continuationLimit: null,
 };
+
+/** Returns true if the user has an active full-access period from a coupon. */
+export function isFullAccessActive(profile: Pick<UserProfile, "fullAccessExpiresAt">): boolean {
+  if (!profile.fullAccessExpiresAt) return false;
+  return new Date(profile.fullAccessExpiresAt) > new Date();
+}
 
 interface UserProfileContextValue {
   profile:   UserProfile;
@@ -90,6 +98,29 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
       ? { ...storedProfile, ...TESTER_PROFILE_OVERRIDE }
       : storedProfile;
 
+  // Sync fullAccessExpiresAt from DB on login
+  useEffect(() => {
+    if (!user || isAdmin || isTester) return;
+    void (async () => {
+      try {
+        const res = await fetch("/api/users/me", {
+          headers: { "x-user-id": user.id },
+        });
+        if (!res.ok) return;
+        const data = await res.json() as { fullAccessExpiresAt?: string | null };
+        if (data.fullAccessExpiresAt !== undefined) {
+          setStoredProfile((prev) => {
+            const updated = { ...prev, fullAccessExpiresAt: data.fullAccessExpiresAt ?? null };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+            return updated;
+          });
+        }
+      } catch {
+        // silent — localStorage value stays
+      }
+    })();
+  }, [user?.id, isAdmin, isTester]);
+
   // Write / refresh Firestore profile for tester account on every login
   useEffect(() => {
     if (!user || !isTester || !firestoreDb) return;
@@ -123,40 +154,61 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
   }, [user?.id, isTester]);
 
   async function applyCode(code: string): Promise<{ success: boolean; message: string }> {
-    if (storedProfile.inviteCodeAppliedAt) {
-      return { success: false, message: "already_applied" };
-    }
+    if (!user) return { success: false, message: "not_logged_in" };
 
     try {
       const res = await fetch("/api/invite-code/apply", {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-user-id": user.id },
         body:    JSON.stringify({ code }),
       });
 
       if (!res.ok) return { success: false, message: "network_error" };
 
       const data = await res.json() as {
-        valid?:           boolean;
-        reason?:          string;
-        accessType?:      string;
-        isUnlimitedUser?: boolean;
-        dailyRunLimit?:   number | null;
-        monthlyRunLimit?: number | null;
+        valid?:               boolean;
+        reason?:              string;
+        type?:                "full_access" | "invite" | "discount";
+        fullAccessExpiresAt?: string;
+        daysAdded?:           number;
+        accessType?:          string;
+        isUnlimitedUser?:     boolean;
+        dailyRunLimit?:       number | null;
+        monthlyRunLimit?:     number | null;
       };
 
-      if (!data.valid) return { success: false, message: "invalid" };
+      if (!data.valid) {
+        if (data.reason === "already_used") return { success: false, message: "already_used" };
+        return { success: false, message: "invalid" };
+      }
 
-      const updated: UserProfile = {
-        ...storedProfile,
-        accessType:          (data.accessType as AccessType) ?? "normal",
-        isUnlimitedUser:     data.isUnlimitedUser ?? false,
-        dailyRunLimit:       data.isUnlimitedUser ? null : (data.dailyRunLimit ?? 5),
-        monthlyRunLimit:     data.isUnlimitedUser ? null : (data.monthlyRunLimit ?? 100),
-        continuationLimit:   data.isUnlimitedUser ? null : 1,
-        inviteCodeAppliedAt: new Date().toISOString(),
-      };
-      saveProfile(updated);
+      if (data.type === "full_access" && data.fullAccessExpiresAt) {
+        // Stacking coupon — update fullAccessExpiresAt
+        const updated: UserProfile = {
+          ...storedProfile,
+          fullAccessExpiresAt: data.fullAccessExpiresAt,
+          inviteCodeAppliedAt: new Date().toISOString(),
+        };
+        saveProfile(updated);
+        return { success: true, message: "full_access" };
+      }
+
+      if (data.type === "invite") {
+        // Built-in unlimited invite code
+        const updated: UserProfile = {
+          ...storedProfile,
+          accessType:          (data.accessType as AccessType) ?? "normal",
+          isUnlimitedUser:     data.isUnlimitedUser ?? false,
+          dailyRunLimit:       data.isUnlimitedUser ? null : (data.dailyRunLimit ?? 5),
+          monthlyRunLimit:     data.isUnlimitedUser ? null : (data.monthlyRunLimit ?? 100),
+          continuationLimit:   data.isUnlimitedUser ? null : 1,
+          inviteCodeAppliedAt: new Date().toISOString(),
+        };
+        saveProfile(updated);
+        return { success: true, message: "ok" };
+      }
+
+      // discount or other
       return { success: true, message: "ok" };
     } catch {
       return { success: false, message: "network_error" };
