@@ -76,13 +76,14 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 /**
  * Protects /login.
  * - Already logged in → /rooms
- * Admin can reach /login without a coupon; AuthGuard handles post-login access.
+ * - No valid early access → /early-access (coupon gate)
  */
 function LoginGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) return <Spinner />;
   if (user) return <Redirect to="/rooms" />;
+  if (!isEarlyAccessValid()) return <Redirect to="/early-access" />;
 
   return <>{children}</>;
 }
