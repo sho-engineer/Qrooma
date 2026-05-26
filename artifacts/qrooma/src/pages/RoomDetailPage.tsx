@@ -20,6 +20,7 @@ import { RotateCcwIcon } from "lucide-react";
 import { AGENTS } from "../data/dummy";
 import { messagesService } from "../services/messagesService";
 import { runsService, type RunPayload, type RealRunParams } from "../services/runsService";
+import { useAuth } from "../context/AuthContext";
 import { useSettings } from "../context/SettingsContext";
 import { useRooms } from "../context/RoomsContext";
 import { useLocale } from "../context/LocaleContext";
@@ -84,6 +85,7 @@ function groupByRun(messages: Message[]): RunGroup[] {
 
 export default function RoomDetailPage() {
   const { id: roomId } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const { settings } = useSettings();
   const { rooms, getRoomById, updateRoom } = useRooms();
   const { t, locale } = useLocale();
@@ -331,6 +333,7 @@ export default function RoomDetailPage() {
       const params: RealRunParams = {
         roomId,
         runId,
+        userId:     user?.id,
         userMessage,
         mode:       effectiveMode,
         agentConfig,
@@ -467,7 +470,10 @@ export default function RoomDetailPage() {
     try {
       const res = await fetch("/api/check-ambiguity", {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(user?.id ? { "x-user-id": user.id } : {}),
+        },
         body:    JSON.stringify({ message: text, apiKeys: apiKeyPayload }),
       });
       if (res.ok) {
@@ -521,6 +527,7 @@ export default function RoomDetailPage() {
     const params: RealRunParams = {
       roomId,
       runId,
+      userId:           user?.id,
       userMessage:      lastUserMsg.content,
       mode:             effectiveMode,
       agentConfig,
@@ -630,6 +637,7 @@ export default function RoomDetailPage() {
     const params: RealRunParams = {
       roomId,
       runId,
+      userId:           user?.id,
       userMessage:      lastUserMsg.content,
       mode:             effectiveMode,
       agentConfig,

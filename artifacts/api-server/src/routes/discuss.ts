@@ -20,9 +20,39 @@
  */
 
 import { Router } from "express";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { callAI, type Provider } from "../lib/ai";
+import { requireUser } from "../middleware/requireUser";
+
+// ─── Rate limiters (per-user by UID; IP fallback uses ipKeyGenerator for IPv6 safety) ──
+function uidOrIp(req: import("express").Request): string {
+  const uid = req.headers["x-user-id"] as string | undefined;
+  return uid?.trim() || ipKeyGenerator(req);
+}
+
+const discussLimiter = rateLimit({
+  windowMs:        60_000,
+  max:             20,
+  keyGenerator:    uidOrIp,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  message:         { error: "Too many AI requests. Please wait before retrying." },
+});
+
+const ambiguityLimiter = rateLimit({
+  windowMs:        60_000,
+  max:             60,
+  keyGenerator:    uidOrIp,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  message:         { error: "Too many requests. Please wait before retrying." },
+});
 
 const router = Router();
+
+// ─── SSE concurrency guard ─────────────────────────────────────────────────
+let activeSseStreams = 0;
+const MAX_SSE_STREAMS = 20;
 
 // ─── Role labels ──────────────────────────────────────────────────────────────
 
@@ -976,7 +1006,7 @@ SELF-CHECK: Before outputting, verify: Is every sentence in Japanese? If not, re
 
 // ─── Ambiguity check route ─────────────────────────────────────────────────────
 
-router.post("/check-ambiguity", async (req, res) => {
+router.post("/check-ambiguity", ambiguityLimiter, requireUser, async (req, res) => {
   const {
     message,
     apiKeys: clientApiKeys = {},
@@ -990,9 +1020,9 @@ router.post("/check-ambiguity", async (req, res) => {
   }
 
   const apiKeys = {
-    openai:    clientApiKeys.openai    || process.env["OPENAI_API_KEY"]    || undefined,
-    google:    clientApiKeys.google    || process.env["GOOGLE_API_KEY"]    || undefined,
-    anthropic: clientApiKeys.anthropic || process.env["ANTHROPIC_API_KEY"] || undefined,
+    openai:    clientApiKeys.openai    || undefined,
+    google:    clientApiKeys.google    || undefined,
+    anthropic: clientApiKeys.anthropic || undefined,
   };
 
   const systemPrompt = `You analyze user questions to decide if pre-debate clarification is needed before starting an AI team discussion.
@@ -1148,7 +1178,7 @@ function decomposeQuery(text: string): string {
 
 // ─── Route ────────────────────────────────────────────────────────────────────
 
-router.post("/discuss", async (req, res) => {
+router.post("/discuss", discussLimiter, requireUser, async (req, res) => {
   const {
     roomId,
     runId,
@@ -1188,10 +1218,15 @@ router.post("/discuss", async (req, res) => {
   };
 
   const apiKeys = {
-    openai:    clientApiKeys.openai    || process.env["OPENAI_API_KEY"]    || undefined,
-    anthropic: clientApiKeys.anthropic || process.env["ANTHROPIC_API_KEY"] || undefined,
-    google:    clientApiKeys.google    || process.env["GOOGLE_API_KEY"]    || undefined,
+    openai:    clientApiKeys.openai    || undefined,
+    anthropic: clientApiKeys.anthropic || undefined,
+    google:    clientApiKeys.google    || undefined,
   };
+
+  if (activeSseStreams >= MAX_SSE_STREAMS) {
+    res.status(503).json({ error: "Server busy, please try again later." });
+    return;
+  }
 
   res.writeHead(200, {
     "Content-Type":      "text/event-stream",
@@ -1199,6 +1234,10 @@ router.post("/discuss", async (req, res) => {
     "Connection":        "keep-alive",
     "X-Accel-Buffering": "no",
   });
+
+  activeSseStreams++;
+  const controller = new AbortController();
+  req.on("close", () => { controller.abort(); });
 
   const is2Agent   = agentConfig.length <= 2;
   const modeKey    = (mode === "free-talk" ? "free-talk" : "structured-debate");
@@ -1251,6 +1290,7 @@ router.post("/discuss", async (req, res) => {
         systemPrompt: languageLock + systemPrompt + "\n" + presentationSuffix,
         messages:     [{ role: "user", content: contextText }],
         apiKey:       key,
+        signal:       controller.signal,
       });
     } catch {
       return null;
@@ -1352,7 +1392,8 @@ router.post("/discuss", async (req, res) => {
 
         let content: string;
         try {
-          content = await callAI({ provider: provider as Provider, model, systemPrompt, messages, apiKey });
+          if (controller.signal.aborted) break;
+        content = await callAI({ provider: provider as Provider, model, systemPrompt, messages, apiKey, signal: controller.signal });
         } catch (agentErr: unknown) {
           const errMsg = agentErr instanceof Error ? agentErr.message : "Unknown error";
           sseWrite(res, { type: "agent_error", round, side, agentId, message: errMsg });
@@ -1572,9 +1613,13 @@ RULES:
 
     sseWrite(res, { type: "done" });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    sseWrite(res, { type: "error", message: msg });
+    const isAbort = err instanceof Error && (err.name === "AbortError" || err.message.includes("aborted"));
+    if (!isAbort) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      sseWrite(res, { type: "error", message: msg });
+    }
   } finally {
+    activeSseStreams--;
     res.end();
   }
 });

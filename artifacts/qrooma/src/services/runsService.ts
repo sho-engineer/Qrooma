@@ -96,6 +96,7 @@ export interface RunPayload {
 export interface RealRunParams {
   roomId:              string;
   runId:               string;
+  userId?:             string;
   userMessage:         string;
   mode:                "structured-debate" | "free-talk";
   agentConfig:         { side: "A" | "B" | "C"; provider: string; model: string }[];
@@ -198,7 +199,10 @@ export const runsService = {
       try {
         const response = await fetch("/api/discuss", {
           method:  "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(params.userId ? { "x-user-id": params.userId } : {}),
+          },
           body:    JSON.stringify(params),
           signal:  controller.signal,
         });

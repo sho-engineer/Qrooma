@@ -20,39 +20,47 @@ export interface CallAIParams {
   systemPrompt: string;
   messages: AIMessage[];
   apiKey: string;
+  signal?: AbortSignal;
 }
 
-export async function callAI({ provider, model, systemPrompt, messages, apiKey }: CallAIParams): Promise<string> {
+export async function callAI({ provider, model, systemPrompt, messages, apiKey, signal }: CallAIParams): Promise<string> {
   if (provider === "openai") {
     const client = new OpenAI({ apiKey });
-    const res = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages,
-      ],
-      max_tokens: 400,
-      temperature: 0.7,
-    });
+    const res = await client.chat.completions.create(
+      {
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+        max_tokens: 400,
+        temperature: 0.7,
+      },
+      { signal },
+    );
     return res.choices[0]?.message?.content?.trim() ?? "";
   }
 
   if (provider === "anthropic") {
     const client = new Anthropic({ apiKey });
-    const res = await client.messages.create({
-      model,
-      max_tokens: 400,
-      system: systemPrompt,
-      messages: messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-    });
+    const res = await client.messages.create(
+      {
+        model,
+        max_tokens: 400,
+        system: systemPrompt,
+        messages: messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+      },
+      { signal },
+    );
     const block = res.content[0];
     return block?.type === "text" ? block.text.trim() : "";
   }
 
   if (provider === "google") {
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     const genAI = new GoogleGenerativeAI(apiKey);
     const gemini = genAI.getGenerativeModel({
       model,
