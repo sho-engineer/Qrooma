@@ -264,7 +264,7 @@ router.get("/admin/coupons", async (req, res) => {
 
 router.post("/admin/coupons", async (req, res) => {
   const actorUid = req.headers["x-user-id"] as string;
-  const { code, name, description, discountType, discountValue, currency, startsAt, expiresAt, maxRedemptions, maxRedemptionsPerUser } = req.body;
+  const { code, name, description, discountType, discountValue, currency, startsAt, expiresAt, maxRedemptions, maxRedemptionsPerUser, accessDays, couponType, note } = req.body;
   if (!code || !name || !discountType || discountValue === undefined) {
     res.status(400).json({ error: "code, name, discountType, discountValue required" });
     return;
@@ -283,6 +283,9 @@ router.post("/admin/coupons", async (req, res) => {
       maxRedemptionsPerUser: maxRedemptionsPerUser ? Number(maxRedemptionsPerUser) : 1,
       createdBy: actorUid,
       isActive: true,
+      accessDays: accessDays ? Number(accessDays) : (discountType === "free_trial_days" ? Number(discountValue) : 14),
+      couponType: couponType ?? "beta_14d",
+      note: note ?? null,
     }).returning();
     const actor = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, actorUid));
     await writeAuditLog({
@@ -333,6 +336,24 @@ router.get("/admin/coupons/:id/redemptions", async (req, res) => {
   try {
     const rows = await db.select().from(couponRedemptionsTable).where(eq(couponRedemptionsTable.couponId, id)).orderBy(desc(couponRedemptionsTable.redeemedAt));
     res.json(rows);
+  } catch (e) {
+    req.log.error(e);
+    res.status(500).json({ error: "db error" });
+  }
+});
+
+// Lookup coupon by code (admin)
+router.get("/admin/coupons/lookup", async (req, res) => {
+  const { code } = req.query as { code?: string };
+  if (!code) { res.status(400).json({ error: "code required" }); return; }
+  try {
+    const rows = await db.select().from(couponsTable).where(eq(couponsTable.code, code.toUpperCase().trim()));
+    if (rows.length === 0) { res.json({ found: false }); return; }
+    const coupon = rows[0];
+    const redemptions = await db.select().from(couponRedemptionsTable)
+      .where(eq(couponRedemptionsTable.couponId, coupon.id))
+      .orderBy(desc(couponRedemptionsTable.redeemedAt));
+    res.json({ found: true, coupon, redemptions });
   } catch (e) {
     req.log.error(e);
     res.status(500).json({ error: "db error" });

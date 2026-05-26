@@ -3,6 +3,7 @@ import { useLocation, Link } from "wouter";
 import { ArrowLeftIcon } from "lucide-react";
 import { setEarlyAccess, getEarlyAccess } from "../services/earlyAccess";
 import { useLocale } from "../context/LocaleContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function EarlyAccessPage() {
   const [code,       setCode]       = useState("");
@@ -10,16 +11,16 @@ export default function EarlyAccessPage() {
   const [, navigate] = useLocation();
   const { locale }   = useLocale();
   const isJa         = locale === "ja";
+  const { user }     = useAuth();
 
-  // Check if already valid and redirect
+  // If already valid, redirect
   useEffect(() => {
     const ea = getEarlyAccess();
     if (ea && new Date(ea.expiresAt) > new Date()) {
-      navigate("/login");
+      navigate(user ? "/rooms" : "/login");
     }
-  }, [navigate]);
+  }, [navigate, user]);
 
-  // Check for ?expired=true query param
   const isExpired = typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("expired") === "true";
 
@@ -28,20 +29,41 @@ export default function EarlyAccessPage() {
     if (!code.trim()) return;
     setStatus("loading");
 
+    const upperCode = code.trim().toUpperCase();
+
     try {
-      const res = await fetch("/api/early-access/validate", {
+      // Step 1: Validate
+      const valRes = await fetch("/api/coupons/validate", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ code: code.trim() }),
+        body:    JSON.stringify({ code: upperCode }),
       });
-      const data = await res.json() as { valid: boolean; accessType?: string; days?: number };
+      const valData = await valRes.json() as { valid: boolean; accessDays?: number; couponType?: string };
 
-      if (data.valid) {
-        setEarlyAccess(code.trim(), data.accessType ?? "early_access", data.days ?? 14);
+      if (!valData.valid) { setStatus("invalid"); return; }
+
+      const accessDays = valData.accessDays ?? 14;
+      const couponType = valData.couponType ?? "early_access";
+
+      if (user) {
+        // Already logged in → redeem immediately
+        const redeemRes = await fetch("/api/coupons/redeem", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json", "x-user-id": user.id },
+          body:    JSON.stringify({ code: upperCode }),
+        });
+        const rd = redeemRes.ok
+          ? await redeemRes.json() as { accessDays?: number }
+          : { accessDays: accessDays };
+        setEarlyAccess(upperCode, couponType, rd.accessDays ?? accessDays);
+        setStatus("success");
+        setTimeout(() => navigate("/rooms"), 1500);
+      } else {
+        // Not logged in → store for post-login redemption
+        sessionStorage.setItem("pendingCouponCode", upperCode);
+        setEarlyAccess(upperCode, couponType, accessDays);
         setStatus("success");
         setTimeout(() => navigate("/login"), 1200);
-      } else {
-        setStatus("invalid");
       }
     } catch {
       setStatus("error");
@@ -65,12 +87,12 @@ export default function EarlyAccessPage() {
         {/* Heading */}
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Early Access
+            {isJa ? "先行利用コードを入力" : "Early Access"}
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
             {isJa
-              ? "テスターまたは先行利用者の方は、配布されたクーポンコードを入力してください。このクーポンでは、認証日から14日間adjudoを利用できます。"
-              : "Enter the coupon code you received. Access is valid for 14 days from activation."}
+              ? "adjudoは現在、招待された先行ユーザー向けに公開しています。"
+              : "adjudo is currently available to invited early users only."}
           </p>
         </div>
 
@@ -79,8 +101,8 @@ export default function EarlyAccessPage() {
           <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
             <p className="text-sm font-medium text-amber-800">
               {isJa
-                ? "Early Accessの利用期間が終了しました。引き続き利用をご希望の場合は、再度ご案内をお待ちください。"
-                : "Your Early Access period has ended. Please wait for further invitation."}
+                ? "Early Accessの利用期間が終了しました。新しいコードを入力して続けてください。"
+                : "Your Early Access period has ended. Enter a new code to continue."}
             </p>
           </div>
         )}
@@ -95,21 +117,23 @@ export default function EarlyAccessPage() {
                 </svg>
               </div>
               <p className="text-sm font-semibold text-foreground">
-                {isJa ? "認証しました。ログイン画面へ移動します。" : "Verified! Redirecting to sign in…"}
+                {isJa
+                  ? (user ? "アクセスコードを確認しました。" : "アクセスコードを確認しました。ログインして続行してください。")
+                  : (user ? "Access code confirmed. Redirecting…" : "Access code confirmed. Please log in to continue.")}
               </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">
-                  {isJa ? "クーポンコード" : "Coupon Code"}
+                  {isJa ? "アクセスコード" : "Access code"}
                 </label>
                 <input
                   type="text"
                   value={code}
-                  onChange={(e) => { setCode(e.target.value); setStatus("idle"); }}
-                  placeholder={isJa ? "クーポンコードを入力" : "Enter coupon code"}
-                  className="w-full px-3 py-2.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring transition-shadow placeholder:text-muted-foreground font-mono"
+                  onChange={(e) => { setCode(e.target.value.toUpperCase()); setStatus("idle"); }}
+                  placeholder={isJa ? "ADJUDO-14D-XXXX" : "ADJUDO-14D-XXXX"}
+                  className="w-full px-3 py-2.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring transition-shadow placeholder:text-muted-foreground font-mono tracking-wider"
                   autoFocus
                   autoComplete="off"
                 />
@@ -117,7 +141,9 @@ export default function EarlyAccessPage() {
 
               {status === "invalid" && (
                 <p className="text-sm text-destructive">
-                  {isJa ? "クーポンコードが正しくありません。" : "Invalid coupon code."}
+                  {isJa
+                    ? "このアクセスコードは無効、または現在利用できません。"
+                    : "This access code is invalid or no longer available."}
                 </p>
               )}
               {status === "error" && (
@@ -133,7 +159,7 @@ export default function EarlyAccessPage() {
               >
                 {status === "loading"
                   ? (isJa ? "確認中…" : "Verifying…")
-                  : (isJa ? "認証してログインへ進む" : "Verify and continue to sign in")}
+                  : (isJa ? "ログインへ進む" : "Continue to login")}
               </button>
             </form>
           )}
@@ -141,10 +167,10 @@ export default function EarlyAccessPage() {
 
         {/* Waitlist link */}
         <p className="mt-5 text-xs text-center text-muted-foreground/60">
-          {isJa ? "クーポンをお持ちでない方は" : "Don't have a code?"}{" "}
+          {isJa ? "アクセスコードをお持ちでない方は" : "Don't have an access code?"}{" "}
           <Link href="/waitlist">
             <span className="underline cursor-pointer hover:text-foreground transition-colors">
-              {isJa ? "Waitlistへ" : "Join the waitlist"}
+              {isJa ? "Waitlistに登録してください。" : "Join the waitlist."}
             </span>
           </Link>
         </p>

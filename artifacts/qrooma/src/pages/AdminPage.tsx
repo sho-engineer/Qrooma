@@ -54,6 +54,9 @@ interface Coupon {
   currentRedemptions: number;
   isActive: boolean;
   createdAt: string;
+  accessDays: number;
+  couponType: string;
+  note: string | null;
 }
 
 interface FeedbackPost {
@@ -456,52 +459,96 @@ function UsersTab({ headers, currentUserId }: { headers: Record<string, string>;
 
 // ── Tab: Coupons ───────────────────────────────────────────────────────────
 
-function CouponsTab({ headers }: { headers: Record<string, string> }) {
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [loading, setLoad]    = useState(true);
-  const [showForm, setForm]   = useState(false);
-  const [saving, setSaving]   = useState(false);
-  const [formError, setFormError] = useState("");
+type CouponTypeName = "questionnaire_3d" | "payment_commitment_7d" | "beta_14d" | "custom";
+interface CouponPreset { days: number; maxRed: number; prefix: string; label: string }
+const COUPON_PRESETS: Record<CouponTypeName, CouponPreset> = {
+  questionnaire_3d:      { days: 3,  maxRed: 1, prefix: "ADJUDO-3D",  label: "Questionnaire (3d)" },
+  payment_commitment_7d: { days: 7,  maxRed: 1, prefix: "ADJUDO-7D",  label: "Payment (7d)" },
+  beta_14d:              { days: 14, maxRed: 1, prefix: "ADJUDO-14D", label: "Beta (14d)" },
+  custom:                { days: 14, maxRed: 1, prefix: "ADJUDO",     label: "Custom" },
+};
 
-  const [code, setCode]       = useState("");
-  const [name, setName]       = useState("");
-  const [desc, setDesc]       = useState("");
-  const [dtype, setDtype]     = useState<"percentage" | "fixed_amount" | "free_trial_days">("percentage");
-  const [dvalue, setDvalue]   = useState("20");
-  const [maxRed, setMaxRed]   = useState("");
-  const [expires, setExpires] = useState("");
+function genSuffix() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
+interface LookupRedemption {
+  id: string; userId: string; userEmail: string | null;
+  redeemedAt: string; accessDaysGranted: number | null; newAccessExpiresAt: string | null;
+}
+interface LookupResult {
+  found: boolean;
+  coupon?: Coupon;
+  redemptions?: LookupRedemption[];
+}
+
+function CouponsTab({ headers }: { headers: Record<string, string> }) {
+  const [coupons,    setCoupons]   = useState<Coupon[]>([]);
+  const [loading,    setLoad]      = useState(true);
+  const [showForm,   setForm]      = useState(false);
+  const [saving,     setSaving]    = useState(false);
+  const [formError,  setFormError] = useState("");
+
+  // Form state
+  const [couponType, setCouponType] = useState<CouponTypeName>("beta_14d");
+  const [code,       setCode]       = useState(() => `ADJUDO-14D-${genSuffix()}`);
+  const [name,       setName]       = useState("");
+  const [maxRed,     setMaxRed]     = useState("1");
+  const [accessDays, setAccessDays] = useState("14");
+  const [expires,    setExpires]    = useState("");
+  const [note,       setNote]       = useState("");
+
+  // Lookup state
+  const [lookupCode,    setLookupCode]    = useState("");
+  const [lookupResult,  setLookupResult]  = useState<LookupResult | null>(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
+
+  function applyPreset(t: CouponTypeName) {
+    const p = COUPON_PRESETS[t];
+    setCouponType(t);
+    setCode(`${p.prefix}-${genSuffix()}`);
+    setAccessDays(String(p.days));
+    setMaxRed(String(p.maxRed));
+  }
 
   function resetForm() {
-    setCode(""); setName(""); setDesc(""); setDtype("percentage");
-    setDvalue("20"); setMaxRed(""); setExpires(""); setFormError("");
+    setCouponType("beta_14d");
+    setCode(`ADJUDO-14D-${genSuffix()}`);
+    setName(""); setMaxRed("1"); setAccessDays("14");
+    setExpires(""); setNote(""); setFormError("");
   }
 
   useEffect(() => {
-    fetch("/api/admin/coupons", { headers }).then((r) => r.json()).then((d) => { setCoupons(Array.isArray(d) ? d as Coupon[] : []); setLoad(false); });
+    fetch("/api/admin/coupons", { headers }).then((r) => r.json()).then((d) => {
+      setCoupons(Array.isArray(d) ? d as Coupon[] : []);
+      setLoad(false);
+    });
   }, []);
 
   async function handleCreate() {
-    if (!code.trim() || !name.trim() || !dvalue) { setFormError("Code, name, and discount value are required."); return; }
+    if (!code.trim() || !name.trim()) { setFormError("Code and name are required."); return; }
     setSaving(true);
     try {
       const res = await fetch("/api/admin/coupons", {
         method:  "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body:    JSON.stringify({
-          code: code.toUpperCase().trim(),
-          name: name.trim(),
-          description: desc.trim() || null,
-          discountType:  dtype,
-          discountValue: Number(dvalue),
+          code:           code.toUpperCase().trim(),
+          name:           name.trim(),
+          discountType:   "free_trial_days",
+          discountValue:  Number(accessDays),
+          accessDays:     Number(accessDays),
+          couponType,
           maxRedemptions: maxRed ? Number(maxRed) : null,
-          expiresAt: expires || null,
+          expiresAt:      expires || null,
+          note:           note.trim() || null,
         }),
       });
       const data = await res.json() as Coupon & { error?: string };
       if (!res.ok) { setFormError(data.error ?? "Failed to create coupon"); return; }
       setCoupons((prev) => [data, ...prev]);
-      setForm(false);
-      resetForm();
+      setForm(false); resetForm();
     } finally { setSaving(false); }
   }
 
@@ -514,20 +561,92 @@ function CouponsTab({ headers }: { headers: Record<string, string> }) {
     if (res.ok) setCoupons((prev) => prev.map((c) => c.id === coupon.id ? { ...c, isActive: !c.isActive } : c));
   }
 
-  function discountLabel(c: Coupon) {
-    if (c.discountType === "percentage")      return `${c.discountValue}% off`;
-    if (c.discountType === "fixed_amount")    return `${c.currency ?? "$"}${c.discountValue} off`;
-    if (c.discountType === "free_trial_days") return `${c.discountValue} days free`;
-    return String(c.discountValue);
+  async function handleLookup() {
+    if (!lookupCode.trim()) return;
+    setLookupLoading(true);
+    setLookupResult(null);
+    try {
+      const res = await fetch(`/api/admin/coupons/lookup?code=${encodeURIComponent(lookupCode.trim().toUpperCase())}`, { headers });
+      setLookupResult(await res.json() as LookupResult);
+    } finally { setLookupLoading(false); }
+  }
+
+  function typeLabel(t: string) {
+    return COUPON_PRESETS[t as CouponTypeName]?.label ?? t;
   }
 
   if (loading) return <Spinner />;
 
   return (
     <div className="space-y-4">
+
+      {/* ── Lookup section ─────────────────────────────────────────────── */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <p className="text-sm font-semibold text-foreground">Check coupon code</p>
+        <div className="flex gap-2">
+          <input
+            className={fieldCls + " flex-1 font-mono tracking-wider"}
+            placeholder="ADJUDO-14D-XXXX"
+            value={lookupCode}
+            onChange={(e) => { setLookupCode(e.target.value.toUpperCase()); setLookupResult(null); }}
+            onKeyDown={(e) => { if (e.key === "Enter") void handleLookup(); }}
+          />
+          <button
+            onClick={() => void handleLookup()}
+            disabled={lookupLoading || !lookupCode.trim()}
+            className="px-4 py-1.5 text-sm font-medium bg-foreground text-background rounded-lg hover:opacity-80 disabled:opacity-40"
+          >
+            {lookupLoading ? "…" : "Check"}
+          </button>
+        </div>
+
+        {lookupResult && (
+          lookupResult.found && lookupResult.coupon ? (
+            <div className="rounded-lg border border-border bg-background p-3 space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-mono font-bold text-foreground text-[13px]">{lookupResult.coupon.code}</span>
+                <span className="text-muted-foreground text-[12px]">·</span>
+                <span className="text-muted-foreground text-[12px]">{typeLabel(lookupResult.coupon.couponType)}</span>
+                <span className="text-muted-foreground text-[12px]">·</span>
+                <span className="font-medium text-foreground text-[12px]">{lookupResult.coupon.accessDays}d access</span>
+                <span className={`ml-auto px-1.5 py-0.5 rounded text-[11px] font-medium ${lookupResult.coupon.isActive ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
+                  {lookupResult.coupon.isActive ? "Active" : "Inactive"}
+                </span>
+              </div>
+              <p className="text-[12px] text-muted-foreground">
+                Redeemed: {lookupResult.coupon.currentRedemptions}
+                {lookupResult.coupon.maxRedemptions ? ` / ${lookupResult.coupon.maxRedemptions}` : " / ∞"}
+                {lookupResult.coupon.expiresAt && <> · Expires: {new Date(lookupResult.coupon.expiresAt).toLocaleDateString()}</>}
+              </p>
+              {lookupResult.redemptions && lookupResult.redemptions.length > 0 ? (
+                <div className="border-t border-border pt-2 space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Redemptions</p>
+                  {lookupResult.redemptions.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="text-foreground font-medium">{r.userEmail ?? r.userId}</span>
+                      <span className="text-muted-foreground whitespace-nowrap">
+                        {r.accessDaysGranted != null && `+${r.accessDaysGranted}d · `}
+                        {new Date(r.redeemedAt).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground italic">No redemptions yet.</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-[12px] text-muted-foreground">
+              No coupon found with code <code className="font-mono bg-muted px-1 rounded">{lookupCode.toUpperCase()}</code>.
+            </p>
+          )
+        )}
+      </div>
+
+      {/* ── Create button ───────────────────────────────────────────────── */}
       <div className="flex justify-end">
         <button
-          onClick={() => setForm((v) => !v)}
+          onClick={() => { setForm((v) => !v); if (!showForm) resetForm(); }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
         >
           <PlusIcon size={14} />
@@ -535,60 +654,96 @@ function CouponsTab({ headers }: { headers: Record<string, string> }) {
         </button>
       </div>
 
+      {/* ── Create form ─────────────────────────────────────────────────── */}
       {showForm && (
-        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-          <p className="text-sm font-semibold text-foreground">Create Coupon</p>
+        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+          <p className="text-sm font-semibold text-foreground">Create Access Coupon</p>
+
+          {/* Type selector */}
+          <div>
+            <label className="text-[11px] font-medium text-muted-foreground mb-2 block">Type</label>
+            <div className="grid grid-cols-2 gap-2">
+              {(Object.entries(COUPON_PRESETS) as [CouponTypeName, CouponPreset][]).map(([t, p]) => (
+                <button key={t} type="button" onClick={() => applyPreset(t)}
+                  className={`px-3 py-2 rounded-lg text-left text-[12px] border transition-colors
+                    ${couponType === t
+                      ? "border-foreground bg-foreground text-background font-medium"
+                      : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"}`}>
+                  <span className="font-semibold block">{p.label}</span>
+                  <span className="text-[10px] opacity-70 mt-0.5 block">{p.days}d · max {p.maxRed} use{p.maxRed !== 1 ? "s" : ""}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Code + Name */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Code *</label>
-              <input className={fieldCls} placeholder="LAUNCH20" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
+              <div className="flex gap-1">
+                <input className={fieldCls + " flex-1 font-mono text-[12px]"} value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
+                <button type="button"
+                  onClick={() => setCode(`${COUPON_PRESETS[couponType].prefix}-${genSuffix()}`)}
+                  className="px-2 py-1 text-[11px] rounded border border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-colors">
+                  ↺
+                </button>
+              </div>
             </div>
             <div>
               <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Name *</label>
-              <input className={fieldCls} placeholder="Launch discount" value={name} onChange={(e) => setName(e.target.value)} />
+              <input className={fieldCls} placeholder="e.g. Beta tester batch 1" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
+          </div>
+
+          {/* Access days + Max redemptions */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Discount Type</label>
-              <select className={fieldCls} value={dtype} onChange={(e) => setDtype(e.target.value as typeof dtype)}>
-                <option value="percentage">Percentage off</option>
-                <option value="fixed_amount">Fixed amount off</option>
-                <option value="free_trial_days">Free trial days</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Value *</label>
-              <input className={fieldCls} type="number" placeholder="20" value={dvalue} onChange={(e) => setDvalue(e.target.value)} />
+              <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
+                Access days {couponType !== "custom" && <span className="opacity-50">(fixed)</span>}
+              </label>
+              <input className={fieldCls} type="number" min="1" max="365" value={accessDays}
+                disabled={couponType !== "custom"}
+                onChange={(e) => setAccessDays(e.target.value)} />
             </div>
             <div>
               <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Max redemptions</label>
-              <input className={fieldCls} type="number" placeholder="Unlimited" value={maxRed} onChange={(e) => setMaxRed(e.target.value)} />
+              <input className={fieldCls} type="number" min="1" placeholder="Unlimited" value={maxRed} onChange={(e) => setMaxRed(e.target.value)} />
             </div>
+          </div>
+
+          {/* Expires + Note */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Expires at</label>
               <input className={fieldCls} type="date" value={expires} onChange={(e) => setExpires(e.target.value)} />
             </div>
+            <div>
+              <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Note (internal)</label>
+              <input className={fieldCls} placeholder="Optional internal note" value={note} onChange={(e) => setNote(e.target.value)} />
+            </div>
           </div>
-          <div>
-            <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Description</label>
-            <input className={fieldCls} placeholder="Optional description" value={desc} onChange={(e) => setDesc(e.target.value)} />
-          </div>
+
           {formError && <p className="text-[12px] text-red-500">{formError}</p>}
           <div className="flex gap-2 justify-end">
-            <button onClick={() => { setForm(false); resetForm(); }} className="px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent rounded-lg transition-colors">Cancel</button>
-            <button onClick={handleCreate} disabled={saving} className="px-4 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+            <button onClick={() => { setForm(false); resetForm(); }}
+              className="px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent rounded-lg transition-colors">Cancel</button>
+            <button onClick={() => void handleCreate()} disabled={saving}
+              className="px-4 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
               {saving ? "Creating…" : "Create"}
             </button>
           </div>
         </div>
       )}
 
+      {/* ── Coupon list ─────────────────────────────────────────────────── */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Code</th>
-                <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Discount</th>
+                <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Type</th>
+                <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Access</th>
                 <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Redeemed</th>
                 <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Expires</th>
                 <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Status</th>
@@ -602,7 +757,8 @@ function CouponsTab({ headers }: { headers: Record<string, string> }) {
                     <p className="font-mono font-bold text-foreground text-[13px]">{c.code}</p>
                     <p className="text-[11px] text-muted-foreground">{c.name}</p>
                   </td>
-                  <td className="px-4 py-3 text-[13px] font-medium text-foreground">{discountLabel(c)}</td>
+                  <td className="px-4 py-3 text-[12px] text-muted-foreground">{typeLabel(c.couponType)}</td>
+                  <td className="px-4 py-3 text-[13px] font-medium text-foreground">{c.accessDays}d</td>
                   <td className="px-4 py-3 text-[12px] text-muted-foreground">
                     {c.currentRedemptions}{c.maxRedemptions ? ` / ${c.maxRedemptions}` : ""}
                   </td>
@@ -616,11 +772,9 @@ function CouponsTab({ headers }: { headers: Record<string, string> }) {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => toggleActive(c)}
+                    <button onClick={() => void toggleActive(c)}
                       className="text-muted-foreground hover:text-foreground transition-colors"
-                      title={c.isActive ? "Deactivate" : "Activate"}
-                    >
+                      title={c.isActive ? "Deactivate" : "Activate"}>
                       {c.isActive ? <ToggleRightIcon size={16} className="text-primary" /> : <ToggleLeftIcon size={16} />}
                     </button>
                   </td>

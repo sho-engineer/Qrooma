@@ -8,6 +8,7 @@ import feedbackRouter    from "./feedback";
 import adminRouter       from "./admin";
 import waitlistRouter    from "./waitlist";
 import earlyAccessRouter from "./earlyAccess";
+import couponsRouter     from "./coupons";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(feedbackRouter);
 router.use(adminRouter);
 router.use(waitlistRouter);
 router.use(earlyAccessRouter);
+router.use(couponsRouter);
 
 export default router;

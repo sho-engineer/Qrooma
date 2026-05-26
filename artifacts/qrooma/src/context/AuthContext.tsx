@@ -13,7 +13,7 @@ import {
   type FirebaseError,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
-import { clearEarlyAccess } from "../services/earlyAccess";
+import { clearEarlyAccess, setEarlyAccess } from "../services/earlyAccess";
 
 const ADMIN_EMAILS  = new Set(["admin@adjudo.com"]);
 const TESTER_EMAILS = new Set(["dev@adjudo.com"]);
@@ -76,6 +76,26 @@ async function upsertUserInDb(u: { id: string; email: string; name: string }): P
   }
 }
 
+/** Applies a pending coupon code stored in sessionStorage after login. */
+async function applyPendingCoupon(userId: string): Promise<void> {
+  const pendingCode = sessionStorage.getItem("pendingCouponCode");
+  if (!pendingCode) return;
+  try {
+    const res = await fetch("/api/coupons/redeem", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json", "x-user-id": userId },
+      body:    JSON.stringify({ code: pendingCode }),
+    });
+    if (res.ok) {
+      const data = await res.json() as { accessDays?: number };
+      if (data.accessDays) setEarlyAccess(pendingCode, "early_access", data.accessDays);
+    }
+  } catch {
+    // silent — don't block login
+  }
+  sessionStorage.removeItem("pendingCouponCode");
+}
+
 export function mapFirebaseError(err: unknown): string {
   const code = (err as FirebaseError)?.code ?? "";
   console.error("[Adjudo] Firebase auth error code:", code, err);
@@ -124,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const email = fbUser.email ?? "";
         const name  = fbUser.displayName ?? email.split("@")[0];
         const { role, status } = await upsertUserInDb({ id: fbUser.uid, email, name });
+        await applyPendingCoupon(fbUser.uid);
         setUser({ id: fbUser.uid, email, name, role, status });
       } else {
         setUser(null);

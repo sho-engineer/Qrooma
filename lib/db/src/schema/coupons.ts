@@ -19,14 +19,22 @@ export const couponsTable = pgTable("coupons", {
   createdBy:             text("created_by").notNull(),
   createdAt:             timestamp("created_at").notNull().defaultNow(),
   updatedAt:             timestamp("updated_at").notNull().defaultNow(),
+  // Access-coupon fields
+  accessDays:            integer("access_days").notNull().default(14),
+  couponType:            text("coupon_type").notNull().default("beta_14d"),
+  note:                  text("note"),
 });
 
 export const couponRedemptionsTable = pgTable("coupon_redemptions", {
-  id:         uuid("id").primaryKey().defaultRandom(),
-  couponId:   uuid("coupon_id").notNull().references(() => couponsTable.id),
-  userId:     text("user_id").notNull(),
-  redeemedAt: timestamp("redeemed_at").notNull().defaultNow(),
-  metadata:   jsonb("metadata"),
+  id:                      uuid("id").primaryKey().defaultRandom(),
+  couponId:                uuid("coupon_id").notNull().references(() => couponsTable.id),
+  userId:                  text("user_id").notNull(),
+  redeemedAt:              timestamp("redeemed_at").notNull().defaultNow(),
+  metadata:                jsonb("metadata"),
+  userEmail:               text("user_email"),
+  accessDaysGranted:       integer("access_days_granted"),
+  previousAccessExpiresAt: timestamp("previous_access_expires_at"),
+  newAccessExpiresAt:      timestamp("new_access_expires_at"),
 });
 
 export type InsertCoupon     = typeof couponsTable.$inferInsert;
