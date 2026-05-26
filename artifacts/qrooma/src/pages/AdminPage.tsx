@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Redirect } from "wouter";
 import {
@@ -26,12 +26,18 @@ interface Metrics {
 }
 
 interface DBUser {
-  id: string;
-  email: string;
-  name: string;
-  role: "user" | "tester" | "admin";
-  createdAt: string;
-  lastActiveAt: string;
+  id:                  string;
+  email:               string;
+  name:                string;
+  role:                "user" | "tester" | "admin";
+  status:              "active" | "waitlist" | "blocked" | "deleted";
+  createdAt:           string;
+  lastActiveAt:        string;
+  fullAccessExpiresAt: string | null;
+  blockedAt:           string | null;
+  blockedReason:       string | null;
+  deletedAt:           string | null;
+  adminNote:           string | null;
 }
 
 interface Coupon {
@@ -155,80 +161,294 @@ function OverviewTab({ headers }: { headers: Record<string, string> }) {
 
 // ── Tab: Users ─────────────────────────────────────────────────────────────
 
-function UsersTab({ headers }: { headers: Record<string, string> }) {
-  const [users, setUsers]   = useState<DBUser[]>([]);
-  const [loading, setLoad]  = useState(true);
-  const [updating, setUpd]  = useState<string | null>(null);
+const STATUS_COLORS: Record<string, string> = {
+  active:   "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  waitlist: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  blocked:  "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  deleted:  "bg-muted text-muted-foreground",
+};
+const ROLE_COLORS: Record<string, string> = {
+  admin:  "bg-primary/10 text-primary",
+  tester: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  user:   "bg-muted text-muted-foreground",
+};
+
+function UsersTab({ headers, currentUserId }: { headers: Record<string, string>; currentUserId: string }) {
+  const [users, setUsers]       = useState<DBUser[]>([]);
+  const [loading, setLoad]      = useState(true);
+  const [search, setSearch]     = useState("");
+  const [roleFilter, setRF]     = useState("");
+  const [statusFilter, setSF]   = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [saving, setSaving]     = useState<string | null>(null);
+  const [blockReason,  setBlockReason]  = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [extendDays,   setExtendDays]   = useState("7");
+  const [noteInput,    setNoteInput]    = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/users", { headers }).then((r) => r.json()).then((d) => { setUsers(Array.isArray(d) ? d as DBUser[] : []); setLoad(false); });
+    fetch("/api/admin/users", { headers })
+      .then(r => r.json())
+      .then(d => { setUsers(Array.isArray(d) ? d as DBUser[] : []); setLoad(false); });
   }, []);
 
-  function nextRole(current: DBUser["role"]): DBUser["role"] {
-    if (current === "user")   return "tester";
-    if (current === "tester") return "admin";
-    return "user";
+  const filtered = users.filter(u => {
+    const q = search.toLowerCase();
+    if (q && !u.email.toLowerCase().includes(q) && !u.name.toLowerCase().includes(q)) return false;
+    if (roleFilter   && u.role   !== roleFilter)   return false;
+    if (statusFilter && u.status !== statusFilter) return false;
+    return true;
+  });
+
+  function toggleExpand(id: string, u: DBUser) {
+    if (expanded === id) { setExpanded(null); return; }
+    setExpanded(id);
+    setBlockReason(u.blockedReason ?? "");
+    setDeleteReason("");
+    setExtendDays("7");
+    setNoteInput(u.adminNote ?? "");
   }
 
-  async function cycleRole(u: DBUser) {
-    const newRole = nextRole(u.role);
-    setUpd(u.id);
-    const res = await fetch(`/api/admin/users/${u.id}/role`, {
-      method:  "PATCH",
-      headers: { ...headers, "Content-Type": "application/json" },
-      body:    JSON.stringify({ role: newRole }),
-    });
-    if (res.ok) setUsers((prev) => prev.map((x) => x.id === u.id ? { ...x, role: newRole } : x));
-    setUpd(null);
+  async function doAction(id: string, endpoint: string, body: object, method = "PATCH") {
+    setSaving(id);
+    try {
+      const res = await fetch(endpoint, {
+        method,
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const updated = await res.json() as Partial<DBUser>;
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updated } : u));
+      }
+    } finally {
+      setSaving(null);
+    }
   }
 
   if (loading) return <Spinner />;
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/30">
-              <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">User</th>
-              <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Role</th>
-              <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Joined</th>
-              <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Last active</th>
-              <th className="px-4 py-2.5" />
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u, i) => (
-              <tr key={u.id} className={`${i < users.length - 1 ? "border-b border-border" : ""}`}>
-                <td className="px-4 py-3">
-                  <p className="font-medium text-foreground">{u.name}</p>
-                  <p className="text-[12px] text-muted-foreground">{u.email}</p>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium
-                    ${u.role === "admin"  ? "bg-primary/10 text-primary" :
-                      u.role === "tester" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
-                      "bg-muted text-muted-foreground"}`}>
-                    {u.role === "admin"  ? <ShieldIcon size={10} /> : <UserIcon size={10} />}
-                    {u.role}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-[12px] text-muted-foreground">{relDate(u.createdAt)}</td>
-                <td className="px-4 py-3 text-[12px] text-muted-foreground">{relDate(u.lastActiveAt)}</td>
-                <td className="px-4 py-3 text-right">
-                  <button
-                    onClick={() => cycleRole(u)}
-                    disabled={updating === u.id}
-                    className="text-[12px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-                  >
-                    {u.role === "user" ? "→ tester" : u.role === "tester" ? "→ admin" : "→ user"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {users.length === 0 && <EmptyRow label="No users yet." />}
+    <div className="space-y-3">
+      {/* Search + count */}
+      <div className="flex gap-2 items-center">
+        <input
+          type="text" value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search email or name…"
+          className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-border"
+        />
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {filtered.length} user{filtered.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-1.5 items-center">
+        {(["", "user", "tester", "admin"] as const).map(r => (
+          <button key={r || "all-role"} onClick={() => setRF(r)}
+            className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${roleFilter === r ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
+            {r || "All roles"}
+          </button>
+        ))}
+        <span className="text-muted-foreground text-[11px] mx-0.5">|</span>
+        {(["", "active", "waitlist", "blocked", "deleted"] as const).map(s => (
+          <button key={s || "all-status"} onClick={() => setSF(s)}
+            className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${statusFilter === s ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
+            {s || "All statuses"}
+          </button>
+        ))}
+      </div>
+
+      {/* User list */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        {filtered.map((u, i) => {
+          const isSelf = u.id === currentUserId;
+          const isExp  = expanded === u.id;
+          const isUnlimited = u.fullAccessExpiresAt && new Date(u.fullAccessExpiresAt) > new Date("2099-01-01");
+          const accessExpired = u.fullAccessExpiresAt && !isUnlimited && new Date(u.fullAccessExpiresAt) <= new Date();
+          return (
+            <Fragment key={u.id}>
+              {/* Row */}
+              <div
+                onClick={() => toggleExpand(u.id, u)}
+                className={`px-4 py-3 cursor-pointer hover:bg-muted/20 transition-colors select-none
+                  ${i > 0 ? "border-t border-border" : ""}
+                  ${isExp ? "bg-muted/10" : ""}`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium text-foreground truncate">{u.email}</span>
+                      {isSelf && <span className="text-[10px] bg-blue-500/15 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium">You</span>}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">{u.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${ROLE_COLORS[u.role] ?? ""}`}>{u.role}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[u.status] ?? ""} ${u.status === "deleted" ? "line-through" : ""}`}>{u.status}</span>
+                    <span className={`text-muted-foreground text-[10px] ml-1 inline-block transition-transform duration-200 ${isExp ? "-rotate-180" : ""}`}>▾</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3 mt-1 text-[11px] text-muted-foreground">
+                  <span>Joined {relDate(u.createdAt)}</span>
+                  <span>Active {relDate(u.lastActiveAt)}</span>
+                  {isUnlimited && <span className="text-emerald-600 dark:text-emerald-400">Unlimited access</span>}
+                  {!isUnlimited && u.fullAccessExpiresAt && (
+                    <span className={accessExpired ? "text-red-500" : "text-emerald-600 dark:text-emerald-400"}>
+                      {accessExpired ? "Access expired" : `Until ${new Date(u.fullAccessExpiresAt).toLocaleDateString()}`}
+                    </span>
+                  )}
+                  {u.adminNote && <span title={u.adminNote} className="opacity-70">📝 note</span>}
+                  {u.status === "blocked" && u.blockedReason && <span className="text-red-400">⚠ {u.blockedReason}</span>}
+                </div>
+              </div>
+
+              {/* Expanded panel */}
+              {isExp && (
+                <div className={`border-t border-border bg-muted/5 ${isSelf ? "px-4 py-3" : "px-4 py-4 space-y-4"}`}>
+                  {isSelf ? (
+                    <p className="text-[12px] text-muted-foreground">自分のアカウントはここから変更できません。</p>
+                  ) : (
+                    <>
+                      {/* ── Role ── */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-20">Role</span>
+                        <div className="flex gap-1">
+                          {(["user", "tester", "admin"] as const).map(r => (
+                            <button key={r} disabled={saving === u.id || u.role === r}
+                              onClick={e => { e.stopPropagation(); void doAction(u.id, `/api/admin/users/${u.id}/role`, { role: r }); }}
+                              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors disabled:opacity-40
+                                ${u.role === r ? "bg-foreground text-background" : "border border-border text-muted-foreground hover:text-foreground hover:border-foreground"}`}>
+                              {r}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* ── Status ── */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-20">Status</span>
+                        <div className="flex gap-1">
+                          {(["active", "waitlist", "blocked", "deleted"] as const).map(s => (
+                            <button key={s} disabled={saving === u.id || u.status === s}
+                              onClick={e => { e.stopPropagation(); void doAction(u.id, `/api/admin/users/${u.id}/status`, { status: s }); }}
+                              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors disabled:opacity-40
+                                ${u.status === s ? "bg-foreground text-background" : "border border-border text-muted-foreground hover:text-foreground hover:border-foreground"}`}>
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* ── Block / Unblock ── */}
+                      {u.status !== "blocked" ? (
+                        <div className="flex items-start gap-3">
+                          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-20 pt-1.5">Block</span>
+                          <div className="flex gap-1.5 flex-1" onClick={e => e.stopPropagation()}>
+                            <input type="text" value={blockReason} onChange={e => setBlockReason(e.target.value)}
+                              placeholder="Reason (optional)"
+                              className="flex-1 px-2 py-1 text-xs rounded border border-border bg-background" />
+                            <button disabled={saving === u.id}
+                              onClick={() => void doAction(u.id, `/api/admin/users/${u.id}/block`, { reason: blockReason }, "POST")}
+                              className="px-3 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 font-medium whitespace-nowrap">
+                              Block
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-20">Unblock</span>
+                          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                            <button disabled={saving === u.id}
+                              onClick={() => void doAction(u.id, `/api/admin/users/${u.id}/unblock`, {}, "POST")}
+                              className="px-3 py-1 text-xs rounded border border-border text-foreground hover:bg-accent disabled:opacity-40">
+                              Unblock
+                            </button>
+                            {u.blockedReason && <span className="text-[11px] text-muted-foreground italic">{u.blockedReason}</span>}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── Soft-delete / Restore ── */}
+                      {u.status !== "deleted" ? (
+                        <div className="flex items-start gap-3">
+                          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-20 pt-1.5">Delete</span>
+                          <div className="flex gap-1.5 flex-1" onClick={e => e.stopPropagation()}>
+                            <input type="text" value={deleteReason} onChange={e => setDeleteReason(e.target.value)}
+                              placeholder="Reason (optional)"
+                              className="flex-1 px-2 py-1 text-xs rounded border border-border bg-background" />
+                            <button disabled={saving === u.id}
+                              onClick={() => void doAction(u.id, `/api/admin/users/${u.id}/soft-delete`, { reason: deleteReason }, "POST")}
+                              className="px-3 py-1 text-xs rounded bg-foreground text-background hover:opacity-80 disabled:opacity-40 font-medium whitespace-nowrap">
+                              Soft Delete
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-20">Restore</span>
+                          <button disabled={saving === u.id} onClick={e => { e.stopPropagation(); void doAction(u.id, `/api/admin/users/${u.id}/restore`, {}, "POST"); }}
+                            className="px-3 py-1 text-xs rounded border border-border text-foreground hover:bg-accent disabled:opacity-40">
+                            Restore
+                          </button>
+                        </div>
+                      )}
+
+                      {/* ── Access ── */}
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-20">Access</span>
+                        <div className="flex gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
+                          {([3, 7, 14] as const).map(d => (
+                            <button key={d} disabled={saving === u.id}
+                              onClick={() => void doAction(u.id, `/api/admin/users/${u.id}/access`, { action: "extend", days: d })}
+                              className="px-2.5 py-1 rounded text-xs border border-border text-muted-foreground hover:text-foreground hover:border-foreground disabled:opacity-40">
+                              +{d}d
+                            </button>
+                          ))}
+                          <div className="flex gap-1">
+                            <input type="number" value={extendDays} onChange={e => setExtendDays(e.target.value)}
+                              min="1" max="365" className="w-14 px-2 py-1 text-xs rounded border border-border bg-background text-center" />
+                            <button disabled={saving === u.id}
+                              onClick={() => void doAction(u.id, `/api/admin/users/${u.id}/access`, { action: "extend", days: Number(extendDays) })}
+                              className="px-2 py-1 rounded text-xs border border-border text-muted-foreground hover:text-foreground hover:border-foreground disabled:opacity-40">
+                              +d
+                            </button>
+                          </div>
+                          <button disabled={saving === u.id}
+                            onClick={() => void doAction(u.id, `/api/admin/users/${u.id}/access`, { action: "unlimited" })}
+                            className="px-2.5 py-1 rounded text-xs bg-foreground text-background hover:opacity-80 disabled:opacity-40 font-medium">
+                            Unlimited
+                          </button>
+                          <button disabled={saving === u.id}
+                            onClick={() => void doAction(u.id, `/api/admin/users/${u.id}/access`, { action: "expire" })}
+                            className="px-2.5 py-1 rounded text-xs border border-border text-muted-foreground hover:text-foreground hover:border-foreground disabled:opacity-40">
+                            Expire
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* ── Admin note ── */}
+                      <div className="flex items-start gap-3">
+                        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-20 pt-1.5">Note</span>
+                        <div className="flex gap-1.5 flex-1" onClick={e => e.stopPropagation()}>
+                          <textarea value={noteInput} onChange={e => setNoteInput(e.target.value)} rows={2}
+                            placeholder="Internal admin note…"
+                            className="flex-1 px-2 py-1 text-xs rounded border border-border bg-background resize-none" />
+                          <button disabled={saving === u.id}
+                            onClick={() => void doAction(u.id, `/api/admin/users/${u.id}/note`, { note: noteInput })}
+                            className="px-3 py-1 text-xs rounded bg-foreground text-background hover:opacity-80 disabled:opacity-40 self-start">
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </Fragment>
+          );
+        })}
+        {filtered.length === 0 && <EmptyRow label="No users match." />}
       </div>
     </div>
   );
@@ -816,7 +1036,7 @@ export default function AdminPage() {
 
         {/* Tab content */}
         {activeTab === "overview"  && <OverviewTab      headers={headers} />}
-        {activeTab === "users"     && <UsersTab         headers={headers} />}
+        {activeTab === "users"     && <UsersTab         headers={headers} currentUserId={user.id} />}
         {activeTab === "coupons"   && <CouponsTab       headers={headers} />}
         {activeTab === "feedback"  && <FeedbackAdminTab headers={headers} />}
         {activeTab === "waitlist"  && <WaitlistTab      headers={headers} />}

@@ -39,7 +39,7 @@ function Spinner() {
  * - Logged in but early access expired (non-admin) → /early-access?expired=true
  */
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
 
   if (isLoading) return <Spinner />;
 

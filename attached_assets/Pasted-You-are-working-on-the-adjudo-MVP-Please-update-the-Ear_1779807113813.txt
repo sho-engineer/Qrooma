@@ -1,0 +1,389 @@
+You are working on the adjudo MVP.
+
+Please update the Early Access / Login flow and implement coupon issuance.
+
+Product context:
+adjudo is an AI-assisted Decision Workspace.
+The MVP uses:
+- Next.js
+- Tailwind
+- Firebase Authentication
+- Firestore
+
+Do not use Supabase.
+
+==================================================
+Goal
+==================================================
+
+Update the login flow so that users must go through the Early Access coupon page before reaching the login page.
+
+The new flow should be:
+
+Landing Page
+→ Login / Early Access Login button
+→ Early Access Coupon Page
+→ Valid coupon entered
+→ Login Page
+→ Successful login
+→ Apply coupon access to the logged-in user
+→ /projects
+
+==================================================
+Important Behavior
+==================================================
+
+1. Login button behavior
+
+When the user clicks any login / early access login button on the LP, do not send them directly to /login.
+
+Instead, send them to the Early Access Coupon Page.
+
+Suggested route:
+
+/early-access
+
+or if the app already has i18n routing:
+
+/en/early-access
+/ja/early-access
+
+2. Language behavior
+
+The coupon page language should match the LP language.
+
+If the user is on the English LP:
+- Show the coupon page in English.
+
+If the user is on the Japanese LP:
+- Show the coupon page in Japanese.
+
+Implementation options:
+- Use lang query param:
+  /early-access?lang=en
+  /early-access?lang=ja
+
+or:
+- Use localized routes if already available:
+  /en/early-access
+  /ja/early-access
+
+Choose the implementation that best fits the current codebase.
+
+3. Coupon validation before login
+
+On the Early Access Coupon Page, the user enters an access code.
+
+The app should validate the coupon against Firestore collection:
+
+coupons
+
+A valid coupon must satisfy:
+- code matches
+- active === true
+- not expired
+- redeemedCount < maxRedemptions
+- coupon type is valid
+- coupon is not already fully used
+
+If the coupon is valid:
+- Store the validated coupon code temporarily.
+- Redirect the user to /login.
+
+Important:
+At this point, the user may not be logged in yet, so do not create couponRedemptions yet unless a userId is available.
+
+Recommended temporary storage:
+- sessionStorage
+- key: pendingCouponCode
+
+Example:
+sessionStorage.setItem("pendingCouponCode", couponCode)
+
+Then redirect:
+- /login?coupon=pending
+
+4. Apply coupon after login
+
+After the user successfully logs in, check if there is a pending coupon code in sessionStorage.
+
+If pendingCouponCode exists:
+- validate the coupon again server-side or through the shared Firestore logic
+- create couponRedemptions record
+- extend the logged-in user's access
+- update users/{uid}
+- remove pendingCouponCode from sessionStorage
+- redirect to /projects
+
+Important:
+Coupon validation must happen again after login to prevent stale or manipulated pending coupon states.
+
+5. If user already logged in
+
+If the user is already authenticated and opens /early-access:
+- allow them to enter a coupon
+- apply it directly to their account after validation
+- redirect to /projects after success
+
+6. Invalid coupon behavior
+
+If the code is invalid, expired, inactive, or fully redeemed, show an error.
+
+English message:
+"This access code is invalid or no longer available."
+
+Japanese message:
+"このアクセスコードは無効、または現在利用できません。"
+
+Keep the user on the coupon page.
+
+7. Waitlist behavior
+
+Users without a coupon should still be able to join the waitlist.
+
+On the coupon page, include a secondary link or section:
+
+English:
+"Don't have an access code? Join the waitlist."
+
+Japanese:
+"アクセスコードをお持ちでない方は、Waitlistに登録してください。"
+
+This should link to the waitlist form or LP waitlist section.
+
+==================================================
+Coupon Page Copy
+==================================================
+
+English:
+
+Title:
+Enter your Early Access code
+
+Subtitle:
+adjudo is currently available to invited early users only.
+
+Input placeholder:
+Access code
+
+Primary button:
+Continue to login
+
+Secondary text:
+Don't have an access code? Join the waitlist.
+
+Error:
+This access code is invalid or no longer available.
+
+Success:
+Access code confirmed. Please log in to continue.
+
+Japanese:
+
+Title:
+先行利用コードを入力
+
+Subtitle:
+adjudoは現在、招待された先行ユーザー向けに公開しています。
+
+Input placeholder:
+アクセスコード
+
+Primary button:
+ログインへ進む
+
+Secondary text:
+アクセスコードをお持ちでない方は、Waitlistに登録してください。
+
+Error:
+このアクセスコードは無効、または現在利用できません。
+
+Success:
+アクセスコードを確認しました。ログインして続行してください。
+
+==================================================
+Coupon Issuance
+==================================================
+
+Please also implement or update Admin > Coupons so admins can issue coupons.
+
+Route:
+
+/admin/coupons
+
+Admin only:
+Only users with users/{uid}.role === "admin" can access this page.
+
+Coupon collection:
+
+coupons
+
+Coupon fields:
+
+{
+  code: string,
+  type: "questionnaire_3d" | "payment_commitment_7d" | "beta_14d" | "custom",
+  accessDays: number,
+  maxRedemptions: number,
+  redeemedCount: number,
+  active: boolean,
+  createdBy: string,
+  createdAt: Timestamp,
+  expiresAt: Timestamp | null,
+  note: string | null
+}
+
+Coupon types:
+
+1. questionnaire_3d
+- accessDays: 3
+- maxRedemptions: 1
+- active: true
+
+2. payment_commitment_7d
+- accessDays: 7
+- maxRedemptions: 1
+- active: true
+
+3. beta_14d
+- accessDays: 14
+- maxRedemptions: 1
+- active: true
+
+4. custom
+- admin can set accessDays
+- admin can set maxRedemptions
+- active: true by default
+
+Coupon code format:
+Use a readable random format, for example:
+
+ADJUDO-3D-XXXX
+ADJUDO-7D-XXXX
+ADJUDO-14D-XXXX
+
+or:
+
+ADJUDO-2W-BETA-7KQ9
+
+Admin coupon actions:
+- create coupon
+- copy coupon code
+- deactivate coupon
+- view redeemed count
+- view createdAt
+- view expiresAt
+- view note
+- view redemption history if already available
+
+==================================================
+Coupon Redemption
+==================================================
+
+Use collection:
+
+couponRedemptions
+
+Fields:
+
+{
+  couponCode: string,
+  couponId: string,
+  userId: string,
+  userEmail: string,
+  redeemedAt: Timestamp,
+  accessDaysGranted: number,
+  previousAccessExpiresAt: Timestamp | null,
+  newAccessExpiresAt: Timestamp | null
+}
+
+Rules:
+- coupon stacking is allowed
+- access period should be extended from the later of:
+  - current accessExpiresAt
+  - now
+- total extension should not exceed 30 days from now
+- if user role is admin or tester, accessStatus should remain unlimited
+
+==================================================
+User Access Update
+==================================================
+
+When a coupon is redeemed by a normal user:
+
+Update users/{uid}:
+
+- accessStatus: "active"
+- accessExpiresAt: calculated new expiry date
+- updatedAt: now
+
+If user document does not exist:
+- create it first
+- default role: "user"
+- status: "active"
+- accessStatus: "active"
+
+Special users:
+- admin users remain unlimited
+- tester users remain unlimited
+
+==================================================
+Security
+==================================================
+
+Do not rely only on UI hiding.
+
+Please ensure:
+- only admins can create/update coupons
+- normal users can validate and redeem active coupons only through allowed logic
+- normal users cannot change redeemedCount directly
+- normal users cannot update their own role
+- normal users cannot set their own accessStatus manually except through coupon redemption flow
+
+If full Firestore security rule updates are difficult in this pass, add clear TODOs and centralize all coupon logic in one service file.
+
+==================================================
+Design
+==================================================
+
+Keep adjudo's design direction:
+
+- black/minimal
+- decision-focused
+- avoid blue accents
+- selected/active = black background + white text
+- primary button = black background + white text
+- Google login button remains official-style white
+
+Coupon page should feel like an Early Access gate, not a heavy enterprise auth screen.
+
+==================================================
+Do Not Implement
+==================================================
+
+Do not implement:
+- payment
+- Stripe
+- subscription billing
+- Teams/Slack integration
+- BYOK
+- API key settings
+- model selection
+- Side A/B/C
+- default mode
+- organization permissions
+
+==================================================
+Expected Output
+==================================================
+
+After implementation, report:
+
+1. Files changed
+2. New or updated routes
+3. Coupon validation flow
+4. Coupon redemption flow
+5. Admin coupon issuance behavior
+6. Language handling
+7. Manual QA checklist
+8. Remaining risks / TODOs
