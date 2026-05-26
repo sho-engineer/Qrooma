@@ -4,7 +4,7 @@ import { Redirect } from "wouter";
 import {
   UsersIcon, TagIcon, MessageSquareIcon, BarChart2Icon,
   PlusIcon, ToggleLeftIcon, ToggleRightIcon, ShieldIcon, UserIcon,
-  TrendingUpIcon, CalendarIcon, ArrowUpIcon, MapPinIcon,
+  TrendingUpIcon, CalendarIcon, ArrowUpIcon, MapPinIcon, MailIcon,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -673,15 +673,100 @@ function DevToolsSection({ headers }: { headers: Record<string, string> }) {
   );
 }
 
+// ── Tab: Waitlist ───────────────────────────────────────────────────────────
+
+interface WaitlistEntry {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string | null;
+  useCase: string | null;
+  source: string | null;
+  createdAt: string;
+}
+
+function WaitlistTab({ headers }: { headers: Record<string, string> }) {
+  const [entries, setEntries] = useState<WaitlistEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/admin/waitlist", { headers })
+      .then((r) => r.json())
+      .then((d) => { setEntries(d as WaitlistEntry[]); setLoading(false); });
+  }, []);
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{entries.length} registered</p>
+        <a
+          href={`data:text/csv;charset=utf-8,${encodeURIComponent(
+            ["Email,Name,Role,Use Case,Source,Registered At",
+              ...entries.map((e) =>
+                [e.email, e.name ?? "", e.role ?? "", e.useCase ?? "", e.source ?? "", e.createdAt].join(",")
+              )
+            ].join("\n")
+          )}`}
+          download="waitlist.csv"
+          className="text-[11px] px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+        >
+          Export CSV
+        </a>
+      </div>
+
+      {entries.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card px-6 py-10 text-center">
+          <MailIcon size={24} className="mx-auto mb-3 text-muted-foreground/30" />
+          <p className="text-sm text-muted-foreground">No waitlist entries yet.</p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Email</th>
+                  <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Name</th>
+                  <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Role</th>
+                  <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Source</th>
+                  <th className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Registered</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((e, i) => (
+                  <tr key={e.id} className={i < entries.length - 1 ? "border-b border-border" : ""}>
+                    <td className="px-4 py-3 font-medium text-foreground">{e.email}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{e.name ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{e.role ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
+                        {e.source ?? "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-muted-foreground whitespace-nowrap">{relDate(e.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Tabs config ────────────────────────────────────────────────────────────
 
-type TabId = "overview" | "users" | "coupons" | "feedback";
+type TabId = "overview" | "users" | "coupons" | "feedback" | "waitlist";
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "overview",  label: "Overview",  icon: <BarChart2Icon size={13} /> },
   { id: "users",     label: "Users",     icon: <UsersIcon size={13} /> },
   { id: "coupons",   label: "Coupons",   icon: <TagIcon size={13} /> },
   { id: "feedback",  label: "Feedback",  icon: <MessageSquareIcon size={13} /> },
+  { id: "waitlist",  label: "Waitlist",  icon: <MailIcon size={13} /> },
 ];
 
 // ── Main Page ──────────────────────────────────────────────────────────────
@@ -724,6 +809,7 @@ export default function AdminPage() {
         {activeTab === "users"     && <UsersTab         headers={headers} />}
         {activeTab === "coupons"   && <CouponsTab       headers={headers} />}
         {activeTab === "feedback"  && <FeedbackAdminTab headers={headers} />}
+        {activeTab === "waitlist"  && <WaitlistTab      headers={headers} />}
       </div>
     </div>
   );

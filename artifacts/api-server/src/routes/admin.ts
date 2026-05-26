@@ -1,5 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { db, usersTable, analyticsEventsTable, couponsTable, couponRedemptionsTable, feedbackPostsTable, feedbackVotesTable } from "@workspace/db";
+import { db, usersTable, analyticsEventsTable, couponsTable, couponRedemptionsTable, feedbackPostsTable, feedbackVotesTable, waitlistEntriesTable } from "@workspace/db";
 import { eq, gte, count, sql, desc } from "drizzle-orm";
 
 const router = Router();
@@ -279,6 +279,20 @@ router.post("/admin/seed-test-account", async (req, res) => {
   } catch (e) {
     req.log.error(e);
     res.status(500).json({ error: "Seed failed" });
+  }
+});
+
+// ── Waitlist ─────────────────────────────────────────────────────────────────
+router.get("/admin/waitlist", async (req, res) => {
+  try {
+    const entries = await db
+      .select()
+      .from(waitlistEntriesTable)
+      .orderBy(desc(waitlistEntriesTable.createdAt));
+    res.json(entries);
+  } catch (e) {
+    req.log.error(e);
+    res.status(500).json({ error: "db error" });
   }
 });
 
