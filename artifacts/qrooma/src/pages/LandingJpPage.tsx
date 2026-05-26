@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
 import { ArrowRightIcon } from "lucide-react";
 const logoA = "/brand/adjudo-wordmark.png";
 const logoB = "/brand/adjudo-symbol.png";
@@ -286,6 +287,8 @@ function PositioningGridJp() {
 // ─── Japanese Landing Page (/jp) ──────────────────────────────────────────────
 export default function LandingJpPage() {
   const { user } = useAuth();
+  const { setLocale } = useLocale();
+  useEffect(() => { setLocale("ja"); }, []);
 
   const secProblem   = useFadeSection();
   const secHow       = useFadeSection();
