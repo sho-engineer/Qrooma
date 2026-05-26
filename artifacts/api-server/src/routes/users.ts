@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -39,8 +39,23 @@ router.post("/users/upsert", async (req, res) => {
 
     if (existing.length === 0) {
       const role = resolvedRole(email);
-      await db.insert(usersTable).values({ id, email, name, role });
-      res.json({ role });
+      // Check for a seed/migrated record with the same email but different UID
+      const byEmail = await db
+        .select({ id: usersTable.id, role: usersTable.role })
+        .from(usersTable)
+        .where(eq(usersTable.email, email));
+
+      if (byEmail.length > 0) {
+        // Migrate: update the old record's ID to the real Firebase UID
+        const migratedRole = resolvedRole(email) !== "user" ? resolvedRole(email) : byEmail[0].role;
+        await db.execute(
+          sql`UPDATE users SET id = ${id}, name = ${name}, last_active_at = NOW(), role = ${migratedRole}::user_role WHERE email = ${email}`
+        );
+        res.json({ role: migratedRole });
+      } else {
+        await db.insert(usersTable).values({ id, email, name, role });
+        res.json({ role });
+      }
     } else {
       const currentRole = existing[0].role;
       // Always enforce admin/tester for known emails; preserve existing role for others

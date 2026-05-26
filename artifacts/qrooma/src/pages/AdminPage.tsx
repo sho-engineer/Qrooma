@@ -161,7 +161,7 @@ function UsersTab({ headers }: { headers: Record<string, string> }) {
   const [updating, setUpd]  = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/admin/users", { headers }).then((r) => r.json()).then((d) => { setUsers(d as DBUser[]); setLoad(false); });
+    fetch("/api/admin/users", { headers }).then((r) => r.json()).then((d) => { setUsers(Array.isArray(d) ? d as DBUser[] : []); setLoad(false); });
   }, []);
 
   function nextRole(current: DBUser["role"]): DBUser["role"] {
@@ -257,7 +257,7 @@ function CouponsTab({ headers }: { headers: Record<string, string> }) {
   }
 
   useEffect(() => {
-    fetch("/api/admin/coupons", { headers }).then((r) => r.json()).then((d) => { setCoupons(d as Coupon[]); setLoad(false); });
+    fetch("/api/admin/coupons", { headers }).then((r) => r.json()).then((d) => { setCoupons(Array.isArray(d) ? d as Coupon[] : []); setLoad(false); });
   }, []);
 
   async function handleCreate() {
@@ -439,8 +439,8 @@ function FeedbackAdminTab({ headers }: { headers: Record<string, string> }) {
       fetch("/api/admin/feedback",         { headers }).then((r) => r.json()),
       fetch("/api/admin/feedback/regions", { headers }).then((r) => r.json()),
     ]).then(([p, reg]) => {
-      setPosts(p as FeedbackPost[]);
-      setRegions(reg as RegionRow[]);
+      setPosts(Array.isArray(p)   ? p   as FeedbackPost[] : []);
+      setRegions(Array.isArray(reg) ? reg as RegionRow[]  : []);
       setLoad(false);
     });
   }, []);
@@ -702,7 +702,7 @@ function WaitlistTab({ headers }: { headers: Record<string, string> }) {
   useEffect(() => {
     fetch("/api/admin/waitlist", { headers })
       .then((r) => r.json())
-      .then((d) => { setEntries(d as WaitlistEntry[]); setLoading(false); });
+      .then((d) => { setEntries(Array.isArray(d) ? d as WaitlistEntry[] : []); setLoading(false); });
   }, []);
 
   if (loading) return <Spinner />;
