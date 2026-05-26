@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
+import { verifyFirebaseToken } from "../lib/verifyToken";
 
 const router = Router();
 
@@ -26,9 +27,29 @@ function resolvedRole(email: string): "user" | "tester" | "admin" {
 }
 
 router.post("/users/upsert", async (req, res) => {
+  // ── Verify Firebase Bearer token and enforce UID ownership ──────────────
+  const authHeader = req.headers["authorization"] as string | undefined;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : undefined;
+  if (!token) {
+    res.status(401).json({ error: "Unauthorized: missing Bearer token" });
+    return;
+  }
+  let verifiedUid: string;
+  try {
+    verifiedUid = await verifyFirebaseToken(token);
+  } catch {
+    res.status(401).json({ error: "Unauthorized: invalid or expired token" });
+    return;
+  }
+
   const { id, email, name } = req.body as { id: string; email: string; name: string };
   if (!id || !email || !name) {
     res.status(400).json({ error: "id, email, name required" });
+    return;
+  }
+  // Ensure caller cannot upsert for a different UID
+  if (id !== verifiedUid) {
+    res.status(403).json({ error: "Forbidden: token UID does not match body id" });
     return;
   }
   try {

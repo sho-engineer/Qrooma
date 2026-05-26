@@ -54,11 +54,17 @@ export function isTesterEmail(email: string): boolean {
   return TESTER_EMAILS.has(email.trim().toLowerCase());
 }
 
-async function upsertUserInDb(u: { id: string; email: string; name: string }): Promise<{ role: UserRole; status: UserStatus }> {
+async function upsertUserInDb(
+  u: { id: string; email: string; name: string },
+  token: string,
+): Promise<{ role: UserRole; status: UserStatus }> {
   try {
     const res = await fetch("/api/users/upsert", {
       method:  "POST",
-      headers: { "Content-Type": "application/json", "x-user-id": u.id },
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
       body:    JSON.stringify(u),
     });
     if (!res.ok) {
@@ -132,7 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const fbUser = result.user;
         const email  = fbUser.email ?? "";
         const name   = fbUser.displayName ?? email.split("@")[0];
-        const { role, status } = await upsertUserInDb({ id: fbUser.uid, email, name });
+        const token  = await fbUser.getIdToken();
+        const { role, status } = await upsertUserInDb({ id: fbUser.uid, email, name }, token);
         setUser({ id: fbUser.uid, email, name, role, status });
       }
     }).catch((err) => {
@@ -143,7 +150,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (fbUser) {
         const email = fbUser.email ?? "";
         const name  = fbUser.displayName ?? email.split("@")[0];
-        const { role, status } = await upsertUserInDb({ id: fbUser.uid, email, name });
+        const token = await fbUser.getIdToken();
+        const { role, status } = await upsertUserInDb({ id: fbUser.uid, email, name }, token);
         await applyPendingCoupon(fbUser.uid);
         setUser({ id: fbUser.uid, email, name, role, status });
       } else {

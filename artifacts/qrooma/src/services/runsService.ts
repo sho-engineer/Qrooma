@@ -18,6 +18,7 @@
 
 import type { AgentId, ConclusionData, DecisionMemo, Message, PromptConfig, RunStatus, WritingStyle } from "../types";
 import { AGENTS, DEBATE_POOL, FREETALK_POOL } from "../data/dummy";
+import { auth } from "../lib/firebase";
 
 // ─── Error sanitization ───────────────────────────────────────────────────────
 
@@ -197,11 +198,12 @@ export const runsService = {
 
     (async () => {
       try {
+        const idToken = await auth?.currentUser?.getIdToken().catch(() => undefined);
         const response = await fetch("/api/discuss", {
           method:  "POST",
           headers: {
-            "Content-Type": "application/json",
-            ...(params.userId ? { "x-user-id": params.userId } : {}),
+            "Content-Type":  "application/json",
+            ...(idToken ? { "Authorization": `Bearer ${idToken}` } : {}),
           },
           body:    JSON.stringify(params),
           signal:  controller.signal,

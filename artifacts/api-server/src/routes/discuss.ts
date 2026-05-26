@@ -1558,6 +1558,7 @@ RULES:
 
       let conclusionText: string | null = null;
       for (const conf of agentConfig) {
+        if (controller.signal.aborted) break;
         const key = apiKeys[conf.provider as keyof typeof apiKeys];
         if (!key) continue;
         try {
@@ -1567,6 +1568,7 @@ RULES:
             systemPrompt: conclusionSystemPrompt,
             messages:     [{ role: "user", content: conclusionContext }],
             apiKey:       key,
+            signal:       controller.signal,
           });
           if (conclusionText) break;
         } catch {

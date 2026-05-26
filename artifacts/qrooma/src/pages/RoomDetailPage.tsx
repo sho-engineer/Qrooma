@@ -468,11 +468,13 @@ export default function RoomDetailPage() {
 
     setIsCheckingAmbiguity(true);
     try {
+      const { auth: firebaseAuth } = await import("../lib/firebase");
+      const idToken = await firebaseAuth?.currentUser?.getIdToken().catch(() => undefined);
       const res = await fetch("/api/check-ambiguity", {
         method:  "POST",
         headers: {
-          "Content-Type": "application/json",
-          ...(user?.id ? { "x-user-id": user.id } : {}),
+          "Content-Type":  "application/json",
+          ...(idToken ? { "Authorization": `Bearer ${idToken}` } : {}),
         },
         body:    JSON.stringify({ message: text, apiKeys: apiKeyPayload }),
       });
