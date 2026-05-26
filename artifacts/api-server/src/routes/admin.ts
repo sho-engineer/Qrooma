@@ -1,6 +1,32 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { db, usersTable, analyticsEventsTable, couponsTable, couponRedemptionsTable, feedbackPostsTable, feedbackVotesTable, waitlistEntriesTable } from "@workspace/db";
+import { db, usersTable, analyticsEventsTable, couponsTable, couponRedemptionsTable, feedbackPostsTable, feedbackVotesTable, waitlistEntriesTable, adminAuditLogsTable } from "@workspace/db";
 import { eq, gte, count, sql, desc } from "drizzle-orm";
+
+async function writeAuditLog(fields: {
+  actorUid:   string;
+  actorEmail: string;
+  action:     string;
+  targetType: string;
+  targetId?:  string;
+  beforeVal?: string;
+  afterVal?:  string;
+  note?:      string;
+}) {
+  try {
+    await db.insert(adminAuditLogsTable).values({
+      actorUid:   fields.actorUid,
+      actorEmail: fields.actorEmail,
+      action:     fields.action,
+      targetType: fields.targetType,
+      targetId:   fields.targetId ?? null,
+      beforeVal:  fields.beforeVal ?? null,
+      afterVal:   fields.afterVal ?? null,
+      note:       fields.note ?? null,
+    });
+  } catch {
+    // audit log write is non-blocking
+  }
+}
 
 const router = Router();
 
@@ -37,6 +63,7 @@ router.get("/admin/metrics", async (req, res) => {
       [totalVotes],
       [totalCoupons],
       [totalRedemptions],
+      [totalWaitlist],
     ] = await Promise.all([
       db.select({ c: count() }).from(usersTable),
       db.select({ c: count() }).from(usersTable).where(gte(usersTable.createdAt, today)),
@@ -50,6 +77,7 @@ router.get("/admin/metrics", async (req, res) => {
       db.select({ c: count() }).from(feedbackVotesTable),
       db.select({ c: count() }).from(couponsTable),
       db.select({ c: count() }).from(couponRedemptionsTable),
+      db.select({ c: count() }).from(waitlistEntriesTable),
     ]);
 
     res.json({
@@ -65,6 +93,7 @@ router.get("/admin/metrics", async (req, res) => {
       totalFeedbackVotes:  totalVotes.c,
       totalCoupons:        totalCoupons.c,
       totalRedemptions:    totalRedemptions.c,
+      totalWaitlist:       totalWaitlist.c,
     });
   } catch (e) {
     req.log.error(e);
@@ -84,11 +113,31 @@ router.get("/admin/users", async (req, res) => {
 });
 
 router.patch("/admin/users/:id/role", async (req, res) => {
-  const { id } = req.params;
-  const { role } = req.body as { role: "user" | "admin" };
-  if (role !== "user" && role !== "admin") { res.status(400).json({ error: "invalid role" }); return; }
+  const actorUid = req.headers["x-user-id"] as string;
+  const { id }   = req.params;
+  const { role } = req.body as { role: "user" | "tester" | "admin" };
+  if (role !== "user" && role !== "tester" && role !== "admin") {
+    res.status(400).json({ error: "invalid role" });
+    return;
+  }
+  if (actorUid === id) {
+    res.status(403).json({ error: "Cannot change your own role" });
+    return;
+  }
   try {
-    const rows = await db.update(usersTable).set({ role }).where(eq(usersTable.id, id)).returning();
+    const before = await db.select({ role: usersTable.role, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, id));
+    const rows   = await db.update(usersTable).set({ role }).where(eq(usersTable.id, id)).returning();
+    const actor  = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, actorUid));
+    await writeAuditLog({
+      actorUid,
+      actorEmail: actor[0]?.email ?? actorUid,
+      action:     "user.role_changed",
+      targetType: "user",
+      targetId:   id,
+      beforeVal:  before[0]?.role ?? "unknown",
+      afterVal:   role,
+      note:       `Target: ${before[0]?.email ?? id}`,
+    });
     res.json(rows[0]);
   } catch (e) {
     req.log.error(e);
@@ -108,7 +157,7 @@ router.get("/admin/coupons", async (req, res) => {
 });
 
 router.post("/admin/coupons", async (req, res) => {
-  const userId = req.headers["x-user-id"] as string;
+  const actorUid = req.headers["x-user-id"] as string;
   const { code, name, description, discountType, discountValue, currency, startsAt, expiresAt, maxRedemptions, maxRedemptionsPerUser } = req.body;
   if (!code || !name || !discountType || discountValue === undefined) {
     res.status(400).json({ error: "code, name, discountType, discountValue required" });
@@ -126,9 +175,19 @@ router.post("/admin/coupons", async (req, res) => {
       expiresAt: expiresAt ? new Date(expiresAt) : null,
       maxRedemptions: maxRedemptions ? Number(maxRedemptions) : null,
       maxRedemptionsPerUser: maxRedemptionsPerUser ? Number(maxRedemptionsPerUser) : 1,
-      createdBy: userId,
+      createdBy: actorUid,
       isActive: true,
     }).returning();
+    const actor = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, actorUid));
+    await writeAuditLog({
+      actorUid,
+      actorEmail: actor[0]?.email ?? actorUid,
+      action:     "coupon.created",
+      targetType: "coupon",
+      targetId:   rows[0]?.id,
+      afterVal:   code.toUpperCase(),
+      note:       name,
+    });
     res.json(rows[0]);
   } catch (e: unknown) {
     req.log.error(e);
@@ -139,10 +198,23 @@ router.post("/admin/coupons", async (req, res) => {
 });
 
 router.patch("/admin/coupons/:id", async (req, res) => {
-  const { id } = req.params;
+  const actorUid = req.headers["x-user-id"] as string;
+  const { id }   = req.params;
   const { isActive } = req.body as { isActive: boolean };
   try {
-    const rows = await db.update(couponsTable).set({ isActive, updatedAt: new Date() }).where(eq(couponsTable.id, id)).returning();
+    const before = await db.select({ isActive: couponsTable.isActive, code: couponsTable.code }).from(couponsTable).where(eq(couponsTable.id, id));
+    const rows   = await db.update(couponsTable).set({ isActive, updatedAt: new Date() }).where(eq(couponsTable.id, id)).returning();
+    const actor  = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, actorUid));
+    await writeAuditLog({
+      actorUid,
+      actorEmail: actor[0]?.email ?? actorUid,
+      action:     isActive ? "coupon.activated" : "coupon.deactivated",
+      targetType: "coupon",
+      targetId:   id,
+      beforeVal:  before[0]?.isActive ? "active" : "inactive",
+      afterVal:   isActive ? "active" : "inactive",
+      note:       before[0]?.code,
+    });
     res.json(rows[0]);
   } catch (e) {
     req.log.error(e);

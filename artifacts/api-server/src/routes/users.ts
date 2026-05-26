@@ -4,11 +4,6 @@ import { eq } from "drizzle-orm";
 
 const router = Router();
 
-/**
- * Emails that always receive the admin role.
- * Set ADMIN_EMAILS env var (comma-separated) to configure.
- * Example: ADMIN_EMAILS=alice@example.com,bob@example.com
- */
 const ADMIN_EMAILS: Set<string> = new Set(
   (process.env.ADMIN_EMAILS ?? "")
     .split(",")
@@ -16,8 +11,18 @@ const ADMIN_EMAILS: Set<string> = new Set(
     .filter(Boolean)
 );
 
-function isAdminEmail(email: string): boolean {
-  return ADMIN_EMAILS.has(email.trim().toLowerCase());
+const TESTER_EMAILS: Set<string> = new Set(
+  (process.env.TESTER_EMAILS ?? "dev@adjudo.com")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+);
+
+function resolvedRole(email: string): "user" | "tester" | "admin" {
+  const e = email.trim().toLowerCase();
+  if (ADMIN_EMAILS.has(e))  return "admin";
+  if (TESTER_EMAILS.has(e)) return "tester";
+  return "user";
 }
 
 router.post("/users/upsert", async (req, res) => {
@@ -33,12 +38,14 @@ router.post("/users/upsert", async (req, res) => {
       .where(eq(usersTable.id, id));
 
     if (existing.length === 0) {
-      const role = isAdminEmail(email) ? ("admin" as const) : ("user" as const);
+      const role = resolvedRole(email);
       await db.insert(usersTable).values({ id, email, name, role });
       res.json({ role });
     } else {
       const currentRole = existing[0].role;
-      const newRole = isAdminEmail(email) ? ("admin" as const) : currentRole;
+      // Always enforce admin/tester for known emails; preserve existing role for others
+      const forcedRole = resolvedRole(email);
+      const newRole = forcedRole !== "user" ? forcedRole : currentRole;
       await db
         .update(usersTable)
         .set({ lastActiveAt: new Date(), email, name, role: newRole })

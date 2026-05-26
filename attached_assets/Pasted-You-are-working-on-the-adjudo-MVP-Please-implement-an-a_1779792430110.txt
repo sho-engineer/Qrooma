@@ -1,0 +1,347 @@
+You are working on the adjudo MVP.
+
+Please implement an admin role system and a minimal Admin Dashboard.
+
+Product context:
+adjudo is an AI-assisted Decision Workspace.
+The MVP currently uses:
+- Next.js
+- Tailwind
+- Firebase Authentication
+- Firestore
+
+Important:
+- Do not use Supabase.
+- Do not add complex organization/team permissions.
+- Do not reintroduce BYOK UI, API key settings, Side A/B/C, model selection, or default mode.
+- Keep the UI black/minimal and decision-focused.
+
+==================================================
+Goal
+==================================================
+
+Replace the current hardcoded admin email approach with a Firestore-based role system.
+
+Users with admin role should:
+1. See an Admin menu item in the logged-in navigation/sidebar.
+2. Access /admin.
+3. View registered data.
+4. Issue coupons.
+5. Manage feedback resolution.
+6. Manage user access/roles.
+7. View basic admin metrics.
+
+==================================================
+Role Model
+==================================================
+
+Use the following role values:
+
+- user
+- tester
+- admin
+
+Meaning:
+
+user:
+- normal user
+- requires waitlist/coupon/access rules
+
+tester:
+- unlimited access
+- not admin
+- cannot access /admin
+
+admin:
+- unlimited access
+- can access /admin
+- can manage waitlist, coupons, feedback, users, and admin dashboard
+
+Initial expected roles:
+
+admin@adjudo.com:
+- role: admin
+
+dev@adjudo.com:
+- role: tester
+- unlimited access
+- not admin
+
+==================================================
+Firestore User Structure
+==================================================
+
+Use or update the users collection.
+
+Expected document:
+
+users/{uid}
+
+Fields:
+- uid: string
+- email: string
+- role: "user" | "tester" | "admin"
+- accessStatus: "waitlist" | "active" | "expired" | "unlimited"
+- accessExpiresAt: Timestamp | null
+- createdAt: Timestamp
+- updatedAt: Timestamp
+- lastLoginAt: Timestamp | null
+
+If user document does not exist after login:
+- create it automatically
+- default role = "user"
+- if email is admin@adjudo.com, initialize role = "admin"
+- if email is dev@adjudo.com, initialize role = "tester" and accessStatus = "unlimited"
+
+Important:
+- Do not hardcode admin access only in UI.
+- Centralize role/access logic in reusable utilities.
+
+==================================================
+Admin Access Rules
+==================================================
+
+A user can access /admin only if:
+
+current user is authenticated
+AND users/{uid}.role === "admin"
+
+If not admin:
+- redirect to /projects
+or
+- show a minimal Access Denied page
+
+Admin menu item:
+- Show only when the logged-in user's role is "admin"
+- Hide for user and tester
+
+==================================================
+Admin Page Structure
+==================================================
+
+Create or update /admin with the following sections.
+
+1. Admin Dashboard
+
+Show summary cards:
+
+- Total waitlist entries
+- Total users
+- Active users
+- Active coupons
+- Redeemed coupons
+- Open feedback count
+
+Keep it minimal.
+
+2. Waitlist / Registration Data
+
+Read from Firestore collection:
+
+waitlist
+
+Display:
+- email
+- createdAt
+- source
+- status
+- contacted if available
+- couponRedeemed if available
+
+Actions:
+- copy email
+- mark as contacted
+- CSV export
+
+Sort:
+- createdAt descending
+
+3. Coupon Management
+
+Use collections:
+- coupons
+- couponRedemptions
+
+Admin should be able to create coupons.
+
+Coupon fields:
+- code: string
+- type: "questionnaire_3d" | "payment_commitment_7d" | "beta_14d" | "custom"
+- accessDays: number
+- maxRedemptions: number
+- redeemedCount: number
+- active: boolean
+- createdBy: uid
+- createdAt: Timestamp
+- expiresAt: Timestamp | null
+- note: string | null
+
+Coupon rules:
+- questionnaire coupon: 3 days full access
+- payment commitment coupon: 7 days full access
+- beta coupon: 14 days full access
+- custom: admin can set accessDays
+- each coupon can be one-time use by default
+- coupon stacking is allowed
+- total access extension should not exceed 30 days
+
+Admin actions:
+- create coupon
+- copy coupon code
+- deactivate coupon
+- view redeemed count
+- view coupon redemption history
+
+4. Feedback Management
+
+Create or use Firestore collection:
+
+feedback
+
+Feedback fields:
+- userId: string | null
+- userEmail: string | null
+- category: "bug" | "ux" | "feature_request" | "other"
+- message: string
+- status: "open" | "in_progress" | "resolved" | "closed"
+- priority: "low" | "medium" | "high"
+- adminNote: string | null
+- createdAt: Timestamp
+- updatedAt: Timestamp
+- resolvedAt: Timestamp | null
+- resolvedBy: uid | null
+
+Admin actions:
+- view feedback list
+- filter by status
+- update status
+- add admin note
+- mark as resolved
+- mark as closed
+
+5. User / Access Management
+
+Read from users collection.
+
+Display:
+- email
+- role
+- accessStatus
+- accessExpiresAt
+- createdAt
+- lastLoginAt
+
+Admin actions:
+- change role between user / tester / admin
+- extend access
+- set accessStatus
+- revoke access
+
+Important:
+- If possible, restrict admin role assignment to existing admin users.
+- Prevent users from assigning roles to themselves unless already admin.
+- dev@adjudo.com should remain tester unless explicitly changed.
+
+6. Admin Audit Log
+
+Create collection:
+
+adminAuditLogs
+
+When admin performs important actions, write a log.
+
+Log fields:
+- actorUid
+- actorEmail
+- action
+- targetType
+- targetId
+- before
+- after
+- createdAt
+
+Log these actions:
+- coupon created
+- coupon deactivated
+- feedback status changed
+- user role changed
+- access extended
+- waitlist marked contacted
+
+==================================================
+Security Requirements
+==================================================
+
+Important:
+Do not rely only on hiding UI.
+
+Please update Firestore security rules or server-side logic so that:
+- only authenticated admins can read admin data
+- only authenticated admins can create/update coupons
+- only authenticated admins can update feedback status
+- only authenticated admins can update user roles/access
+- normal users cannot read other users' data
+- normal users cannot modify their own role
+
+If the current project does not yet have secure rules, add a clear TODO and implement the safest possible MVP version.
+
+==================================================
+Navigation
+==================================================
+
+Logged-in navigation should include:
+
+- Projects
+- Settings
+- Admin only if role === "admin"
+
+Logo click after login:
+- go to /projects
+- do not go to LP top
+
+==================================================
+Design Rules
+==================================================
+
+Keep adjudo's current design direction:
+
+- black/minimal
+- decision-focused
+- avoid blue accents
+- selected/active = black background + white text
+- primary button = black background + white text
+- Google login button remains official-style white
+
+Admin UI should be functional and minimal.
+No heavy dashboard design is needed.
+
+==================================================
+Do Not Implement
+==================================================
+
+Do not implement:
+- complex organization permissions
+- team workspace permissions
+- Slack integration
+- Teams integration
+- Zendesk
+- Intercom
+- external ticketing system
+- BYOK
+- API key settings
+- model selection
+- Side A/B/C settings
+- default mode
+
+==================================================
+Expected Output
+==================================================
+
+After implementation, please report:
+
+1. Files changed
+2. New Firestore collections/fields
+3. Admin access logic
+4. How to assign admin role
+5. Manual QA checklist
+6. Remaining risks / TODOs

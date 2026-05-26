@@ -22,13 +22,14 @@ interface Metrics {
   totalFeedbackVotes: number;
   totalCoupons:       number;
   totalRedemptions:   number;
+  totalWaitlist:      number;
 }
 
 interface DBUser {
   id: string;
   email: string;
   name: string;
-  role: "user" | "admin";
+  role: "user" | "tester" | "admin";
   createdAt: string;
   lastActiveAt: string;
 }
@@ -128,6 +129,7 @@ function OverviewTab({ headers }: { headers: Record<string, string> }) {
           <MetricCard label="Feedback Votes"    value={metrics?.totalFeedbackVotes ?? 0} />
           <MetricCard label="Coupons"           value={metrics?.totalCoupons ?? 0} />
           <MetricCard label="Redemptions"       value={metrics?.totalRedemptions ?? 0} />
+          <MetricCard label="Waitlist"          value={metrics?.totalWaitlist ?? 0} />
         </div>
       </section>
 
@@ -162,8 +164,14 @@ function UsersTab({ headers }: { headers: Record<string, string> }) {
     fetch("/api/admin/users", { headers }).then((r) => r.json()).then((d) => { setUsers(d as DBUser[]); setLoad(false); });
   }, []);
 
-  async function toggleRole(u: DBUser) {
-    const newRole = u.role === "admin" ? "user" : "admin";
+  function nextRole(current: DBUser["role"]): DBUser["role"] {
+    if (current === "user")   return "tester";
+    if (current === "tester") return "admin";
+    return "user";
+  }
+
+  async function cycleRole(u: DBUser) {
+    const newRole = nextRole(u.role);
     setUpd(u.id);
     const res = await fetch(`/api/admin/users/${u.id}/role`, {
       method:  "PATCH",
@@ -198,8 +206,10 @@ function UsersTab({ headers }: { headers: Record<string, string> }) {
                 </td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium
-                    ${u.role === "admin" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                    {u.role === "admin" ? <ShieldIcon size={10} /> : <UserIcon size={10} />}
+                    ${u.role === "admin"  ? "bg-primary/10 text-primary" :
+                      u.role === "tester" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                      "bg-muted text-muted-foreground"}`}>
+                    {u.role === "admin"  ? <ShieldIcon size={10} /> : <UserIcon size={10} />}
                     {u.role}
                   </span>
                 </td>
@@ -207,11 +217,11 @@ function UsersTab({ headers }: { headers: Record<string, string> }) {
                 <td className="px-4 py-3 text-[12px] text-muted-foreground">{relDate(u.lastActiveAt)}</td>
                 <td className="px-4 py-3 text-right">
                   <button
-                    onClick={() => toggleRole(u)}
+                    onClick={() => cycleRole(u)}
                     disabled={updating === u.id}
                     className="text-[12px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                   >
-                    {u.role === "admin" ? "Make user" : "Make admin"}
+                    {u.role === "user" ? "→ tester" : u.role === "tester" ? "→ admin" : "→ user"}
                   </button>
                 </td>
               </tr>

@@ -22,7 +22,7 @@ export interface User {
   id:    string;
   email: string;
   name:  string;
-  role:  "user" | "admin";
+  role:  "user" | "tester" | "admin";
 }
 
 interface AuthContextValue {
@@ -50,18 +50,24 @@ export function isTesterEmail(email: string): boolean {
   return TESTER_EMAILS.has(email.trim().toLowerCase());
 }
 
-async function upsertUserInDb(u: { id: string; email: string; name: string }): Promise<"user" | "admin"> {
+async function upsertUserInDb(u: { id: string; email: string; name: string }): Promise<"user" | "tester" | "admin"> {
   try {
     const res = await fetch("/api/users/upsert", {
       method:  "POST",
       headers: { "Content-Type": "application/json", "x-user-id": u.id },
       body:    JSON.stringify(u),
     });
-    if (!res.ok) return isAdminEmail(u.email) ? "admin" : "user";
-    const data = await res.json() as { role: "user" | "admin" };
+    if (!res.ok) {
+      if (isAdminEmail(u.email))  return "admin";
+      if (isTesterEmail(u.email)) return "tester";
+      return "user";
+    }
+    const data = await res.json() as { role: "user" | "tester" | "admin" };
     return data.role ?? "user";
   } catch {
-    return isAdminEmail(u.email) ? "admin" : "user";
+    if (isAdminEmail(u.email))  return "admin";
+    if (isTesterEmail(u.email)) return "tester";
+    return "user";
   }
 }
 

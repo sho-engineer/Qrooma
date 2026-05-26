@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { useAuth, isTesterEmail } from "./AuthContext";
+import { useAuth } from "./AuthContext";
 import { db as firestoreDb } from "../lib/firebase";
 
 export type AccessType = "normal" | "tester" | "early_access" | "special";
-export type UserRole   = "user" | "admin";
+export type UserRole   = "user" | "tester" | "admin";
 
 export interface UserProfile {
   role:                UserRole;
@@ -40,7 +40,7 @@ const ADMIN_PROFILE_OVERRIDE: Partial<UserProfile> = {
 };
 
 const TESTER_PROFILE_OVERRIDE: Partial<UserProfile> = {
-  role:              "user",
+  role:              "tester",
   accessType:        "tester",
   isUnlimitedUser:   true,
   dailyRunLimit:     null,
@@ -91,14 +91,15 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
   }
 
   const isAdmin  = user?.role === "admin";
-  const isTester = isTesterEmail(user?.email ?? "");
+  const isTester = user?.role === "tester";
+
   const profile: UserProfile = isAdmin
     ? { ...storedProfile, ...ADMIN_PROFILE_OVERRIDE }
     : isTester
       ? { ...storedProfile, ...TESTER_PROFILE_OVERRIDE }
       : storedProfile;
 
-  // Sync fullAccessExpiresAt from DB on login
+  // Sync fullAccessExpiresAt from DB on login (regular users only)
   useEffect(() => {
     if (!user || isAdmin || isTester) return;
     void (async () => {
@@ -121,37 +122,41 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     })();
   }, [user?.id, isAdmin, isTester]);
 
-  // Write / refresh Firestore profile for tester account on every login
+  // Write / refresh Firestore user document for ALL logged-in users on login
   useEffect(() => {
-    if (!user || !isTester || !firestoreDb) return;
+    if (!user || !firestoreDb) return;
     const ref = doc(firestoreDb, "users", user.id);
+    const roleForFirestore: UserRole = isAdmin ? "admin" : isTester ? "tester" : "user";
+    const accessStatus = isAdmin || isTester ? "unlimited" : "active";
+
     void (async () => {
       try {
         const snap = await getDoc(ref);
         if (!snap.exists()) {
           await setDoc(ref, {
-            email:            user.email,
-            role:             "user",
-            plan:             "free",
-            accessType:       "tester",
-            isUnlimitedUser:  true,
-            dailyRunLimit:    999999,
-            monthlyRunLimit:  999999,
-            createdAt:        serverTimestamp(),
-            updatedAt:        serverTimestamp(),
-            lastLoginAt:      serverTimestamp(),
+            uid:             user.id,
+            email:           user.email,
+            role:            roleForFirestore,
+            accessStatus,
+            accessExpiresAt: null,
+            createdAt:       serverTimestamp(),
+            updatedAt:       serverTimestamp(),
+            lastLoginAt:     serverTimestamp(),
           });
         } else {
           await updateDoc(ref, {
+            email:       user.email,
+            role:        roleForFirestore,
+            accessStatus,
             updatedAt:   serverTimestamp(),
             lastLoginAt: serverTimestamp(),
           });
         }
       } catch (e) {
-        console.warn("[Adjudo] Firestore tester profile write failed:", e);
+        console.warn("[Adjudo] Firestore user doc write failed:", e);
       }
     })();
-  }, [user?.id, isTester]);
+  }, [user?.id, isAdmin, isTester]);
 
   async function applyCode(code: string): Promise<{ success: boolean; message: string }> {
     if (!user) return { success: false, message: "not_logged_in" };
@@ -183,7 +188,6 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.type === "full_access" && data.fullAccessExpiresAt) {
-        // Stacking coupon — update fullAccessExpiresAt
         const updated: UserProfile = {
           ...storedProfile,
           fullAccessExpiresAt: data.fullAccessExpiresAt,
@@ -194,7 +198,6 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.type === "invite") {
-        // Built-in unlimited invite code
         const updated: UserProfile = {
           ...storedProfile,
           accessType:          (data.accessType as AccessType) ?? "normal",
@@ -208,7 +211,6 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
         return { success: true, message: "ok" };
       }
 
-      // discount or other
       return { success: true, message: "ok" };
     } catch {
       return { success: false, message: "network_error" };
