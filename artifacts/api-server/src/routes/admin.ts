@@ -145,6 +145,112 @@ router.patch("/admin/users/:id/role", async (req, res) => {
   }
 });
 
+// ── User status / block / delete / access / note ─────────────────────────────
+
+router.patch("/admin/users/:id/status", async (req, res) => {
+  const actorUid = req.headers["x-user-id"] as string;
+  const { id }   = req.params;
+  const { status } = req.body as { status: "active" | "waitlist" | "blocked" | "deleted" };
+  if (!["active", "waitlist", "blocked", "deleted"].includes(status)) { res.status(400).json({ error: "invalid status" }); return; }
+  if (actorUid === id) { res.status(403).json({ error: "Cannot change your own status" }); return; }
+  try {
+    const before = await db.select({ status: usersTable.status, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, id));
+    const rows   = await db.update(usersTable).set({ status }).where(eq(usersTable.id, id)).returning();
+    const actor  = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, actorUid));
+    await writeAuditLog({ actorUid, actorEmail: actor[0]?.email ?? actorUid, action: "user.status_changed", targetType: "user", targetId: id, beforeVal: before[0]?.status ?? undefined, afterVal: status, note: `Target: ${before[0]?.email ?? id}` });
+    res.json(rows[0]);
+  } catch (e) { req.log.error(e); res.status(500).json({ error: "db error" }); }
+});
+
+router.post("/admin/users/:id/block", async (req, res) => {
+  const actorUid = req.headers["x-user-id"] as string;
+  const { id }   = req.params;
+  const { reason } = req.body as { reason?: string };
+  if (actorUid === id) { res.status(403).json({ error: "Cannot block yourself" }); return; }
+  try {
+    const before = await db.select({ status: usersTable.status, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, id));
+    const rows   = await db.update(usersTable).set({ status: "blocked", blockedAt: new Date(), blockedBy: actorUid, blockedReason: reason ?? null }).where(eq(usersTable.id, id)).returning();
+    const actor  = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, actorUid));
+    await writeAuditLog({ actorUid, actorEmail: actor[0]?.email ?? actorUid, action: "user.blocked", targetType: "user", targetId: id, beforeVal: before[0]?.status ?? undefined, afterVal: "blocked", note: reason });
+    res.json(rows[0]);
+  } catch (e) { req.log.error(e); res.status(500).json({ error: "db error" }); }
+});
+
+router.post("/admin/users/:id/unblock", async (req, res) => {
+  const actorUid = req.headers["x-user-id"] as string;
+  const { id }   = req.params;
+  try {
+    const rows  = await db.update(usersTable).set({ status: "active" }).where(eq(usersTable.id, id)).returning();
+    const actor = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, actorUid));
+    await writeAuditLog({ actorUid, actorEmail: actor[0]?.email ?? actorUid, action: "user.unblocked", targetType: "user", targetId: id, afterVal: "active" });
+    res.json(rows[0]);
+  } catch (e) { req.log.error(e); res.status(500).json({ error: "db error" }); }
+});
+
+router.post("/admin/users/:id/soft-delete", async (req, res) => {
+  const actorUid = req.headers["x-user-id"] as string;
+  const { id }   = req.params;
+  const { reason } = req.body as { reason?: string };
+  if (actorUid === id) { res.status(403).json({ error: "Cannot delete yourself" }); return; }
+  try {
+    const before = await db.select({ status: usersTable.status, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, id));
+    const rows   = await db.update(usersTable).set({ status: "deleted", deletedAt: new Date(), deletedBy: actorUid, deleteReason: reason ?? null }).where(eq(usersTable.id, id)).returning();
+    const actor  = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, actorUid));
+    await writeAuditLog({ actorUid, actorEmail: actor[0]?.email ?? actorUid, action: "user.soft_deleted", targetType: "user", targetId: id, beforeVal: before[0]?.status ?? undefined, afterVal: "deleted", note: reason });
+    res.json(rows[0]);
+  } catch (e) { req.log.error(e); res.status(500).json({ error: "db error" }); }
+});
+
+router.post("/admin/users/:id/restore", async (req, res) => {
+  const actorUid = req.headers["x-user-id"] as string;
+  const { id }   = req.params;
+  try {
+    const rows  = await db.update(usersTable).set({ status: "active", deletedAt: null, deletedBy: null, deleteReason: null }).where(eq(usersTable.id, id)).returning();
+    const actor = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, actorUid));
+    await writeAuditLog({ actorUid, actorEmail: actor[0]?.email ?? actorUid, action: "user.restored", targetType: "user", targetId: id, afterVal: "active" });
+    res.json(rows[0]);
+  } catch (e) { req.log.error(e); res.status(500).json({ error: "db error" }); }
+});
+
+router.patch("/admin/users/:id/access", async (req, res) => {
+  const actorUid = req.headers["x-user-id"] as string;
+  const { id }   = req.params;
+  const { action, days } = req.body as { action: "extend" | "unlimited" | "expire"; days?: number };
+  try {
+    let setVal: Record<string, unknown> = {};
+    let auditAfter = "";
+    if (action === "extend" && days) {
+      const cur  = await db.select({ fullAccessExpiresAt: usersTable.fullAccessExpiresAt }).from(usersTable).where(eq(usersTable.id, id));
+      const base = cur[0]?.fullAccessExpiresAt && cur[0].fullAccessExpiresAt > new Date() ? cur[0].fullAccessExpiresAt : new Date();
+      const nd   = new Date(base.getTime() + days * 86_400_000);
+      setVal     = { fullAccessExpiresAt: nd };
+      auditAfter = `+${days}d until ${nd.toISOString()}`;
+    } else if (action === "unlimited") {
+      setVal     = { fullAccessExpiresAt: new Date("2099-12-31") };
+      auditAfter = "unlimited";
+    } else if (action === "expire") {
+      setVal     = { fullAccessExpiresAt: new Date(0) };
+      auditAfter = "expired";
+    }
+    const rows  = await db.update(usersTable).set(setVal as Parameters<typeof usersTable.$inferInsert>[0]).where(eq(usersTable.id, id)).returning();
+    const actor = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, actorUid));
+    await writeAuditLog({ actorUid, actorEmail: actor[0]?.email ?? actorUid, action: `user.access_${action}`, targetType: "user", targetId: id, afterVal: auditAfter });
+    res.json(rows[0]);
+  } catch (e) { req.log.error(e); res.status(500).json({ error: "db error" }); }
+});
+
+router.patch("/admin/users/:id/note", async (req, res) => {
+  const actorUid = req.headers["x-user-id"] as string;
+  const { id }   = req.params;
+  const { note } = req.body as { note: string };
+  try {
+    const rows  = await db.update(usersTable).set({ adminNote: note ?? null }).where(eq(usersTable.id, id)).returning();
+    const actor = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, actorUid));
+    await writeAuditLog({ actorUid, actorEmail: actor[0]?.email ?? actorUid, action: "user.admin_note_updated", targetType: "user", targetId: id });
+    res.json(rows[0]);
+  } catch (e) { req.log.error(e); res.status(500).json({ error: "db error" }); }
+});
+
 // ── Coupons ─────────────────────────────────────────────────────────────────
 router.get("/admin/coupons", async (req, res) => {
   try {

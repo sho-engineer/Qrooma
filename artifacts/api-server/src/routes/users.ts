@@ -33,39 +33,40 @@ router.post("/users/upsert", async (req, res) => {
   }
   try {
     const existing = await db
-      .select({ role: usersTable.role })
+      .select({ role: usersTable.role, status: usersTable.status })
       .from(usersTable)
       .where(eq(usersTable.id, id));
 
     if (existing.length === 0) {
       const role = resolvedRole(email);
+
       // Check for a seed/migrated record with the same email but different UID
       const byEmail = await db
-        .select({ id: usersTable.id, role: usersTable.role })
+        .select({ id: usersTable.id, role: usersTable.role, status: usersTable.status })
         .from(usersTable)
         .where(eq(usersTable.email, email));
 
       if (byEmail.length > 0) {
-        // Migrate: update the old record's ID to the real Firebase UID
-        const migratedRole = resolvedRole(email) !== "user" ? resolvedRole(email) : byEmail[0].role;
+        const migratedRole   = resolvedRole(email) !== "user" ? resolvedRole(email) : byEmail[0].role;
+        const migratedStatus = byEmail[0].status ?? "active";
         await db.execute(
           sql`UPDATE users SET id = ${id}, name = ${name}, last_active_at = NOW(), role = ${migratedRole}::user_role WHERE email = ${email}`
         );
-        res.json({ role: migratedRole });
+        res.json({ role: migratedRole, status: migratedStatus });
       } else {
         await db.insert(usersTable).values({ id, email, name, role });
-        res.json({ role });
+        res.json({ role, status: "active" });
       }
     } else {
-      const currentRole = existing[0].role;
-      // Always enforce admin/tester for known emails; preserve existing role for others
-      const forcedRole = resolvedRole(email);
-      const newRole = forcedRole !== "user" ? forcedRole : currentRole;
+      const currentRole   = existing[0].role;
+      const currentStatus = existing[0].status ?? "active";
+      const forcedRole    = resolvedRole(email);
+      const newRole       = forcedRole !== "user" ? forcedRole : currentRole;
       await db
         .update(usersTable)
         .set({ lastActiveAt: new Date(), email, name, role: newRole })
         .where(eq(usersTable.id, id));
-      res.json({ role: newRole });
+      res.json({ role: newRole, status: currentStatus });
     }
   } catch (e) {
     req.log.error(e);

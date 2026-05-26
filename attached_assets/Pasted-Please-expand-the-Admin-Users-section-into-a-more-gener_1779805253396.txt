@@ -1,0 +1,319 @@
+Please expand the Admin > Users section into a more general user management feature.
+
+Context:
+adjudo MVP uses:
+- Next.js
+- Tailwind
+- Firebase Authentication
+- Firestore
+
+We want a practical admin user management system, but not complex organization/team permissions.
+
+==================================================
+Goal
+==================================================
+
+Admin users should be able to manage users from /admin/users.
+
+This should include:
+- user list
+- role management
+- status management
+- access management
+- blocking users
+- soft-deleting users
+- admin notes
+- basic usage stats
+- filtering/search
+- CSV export if simple to implement
+
+==================================================
+User Role
+==================================================
+
+Keep role separate from status.
+
+role:
+- user
+- tester
+- admin
+
+Meaning:
+- user: normal user
+- tester: unlimited access, not admin
+- admin: unlimited access and can access /admin
+
+==================================================
+User Status
+==================================================
+
+Add user status.
+
+status:
+- active
+- waitlist
+- blocked
+- deleted
+
+Meaning:
+- active: can use the app if accessStatus allows it
+- waitlist: registered but not yet granted access
+- blocked: cannot use the app
+- deleted: soft-deleted, cannot use the app
+
+Do not physically delete Firebase Auth users in MVP.
+Use soft delete only.
+
+==================================================
+Access Status
+==================================================
+
+Keep accessStatus.
+
+accessStatus:
+- waitlist
+- active
+- expired
+- unlimited
+
+Rules:
+- admin: unlimited
+- tester: unlimited
+- blocked/deleted users cannot access the app even if accessStatus is unlimited
+- active users can access if accessExpiresAt is valid
+- expired users should be blocked from app usage and prompted to request access/contact
+
+==================================================
+Firestore User Structure
+==================================================
+
+Update users/{uid} documents to support:
+
+{
+  uid: string,
+  email: string,
+  displayName: string | null,
+  photoURL: string | null,
+
+  role: "user" | "tester" | "admin",
+
+  status: "active" | "waitlist" | "blocked" | "deleted",
+
+  accessStatus: "waitlist" | "active" | "expired" | "unlimited",
+  accessExpiresAt: Timestamp | null,
+
+  loginProvider: "google" | "email_password" | "email_link" | "unknown",
+
+  createdAt: Timestamp,
+  updatedAt: Timestamp,
+  lastLoginAt: Timestamp | null,
+
+  blockedAt: Timestamp | null,
+  blockedBy: string | null,
+  blockedReason: string | null,
+
+  deletedAt: Timestamp | null,
+  deletedBy: string | null,
+  deleteReason: string | null,
+
+  adminNote: string | null,
+
+  stats: {
+    projectCount: number,
+    roomCount: number,
+    memoCount: number,
+    feedbackCount: number
+  }
+}
+
+If some fields are missing for existing users, handle them gracefully with defaults.
+
+==================================================
+Admin Users Page
+==================================================
+
+Create or update:
+
+/admin/users
+
+Display a user table with:
+
+- email
+- displayName
+- role
+- status
+- accessStatus
+- accessExpiresAt
+- loginProvider
+- createdAt
+- lastLoginAt
+- projectCount
+- roomCount
+- memoCount
+- feedbackCount
+
+Sort:
+- createdAt descending by default
+
+Search:
+- by email
+- by displayName
+
+Filters:
+- role
+- status
+- accessStatus
+- blocked users
+- deleted users
+- active users
+
+==================================================
+User Actions
+==================================================
+
+Admin should be able to:
+
+1. Change role
+- user / tester / admin
+
+2. Change status
+- active / waitlist / blocked / deleted
+
+3. Block user
+- set status = "blocked"
+- set blockedAt
+- set blockedBy
+- set blockedReason
+
+4. Unblock user
+- set status = "active"
+- clear blocked fields or keep blocked history if easier
+
+5. Soft-delete user
+- set status = "deleted"
+- set deletedAt
+- set deletedBy
+- set deleteReason
+
+6. Restore deleted user
+- set status = "active"
+
+7. Extend access
+- +3 days
+- +7 days
+- +14 days
+- custom days
+
+8. Set unlimited access
+- set accessStatus = "unlimited"
+- set accessExpiresAt = null
+
+9. Expire access
+- set accessStatus = "expired"
+
+10. Edit admin note
+- update adminNote
+
+==================================================
+Safety Rules
+==================================================
+
+Important:
+- Do not allow non-admin users to access /admin/users.
+- Do not allow normal users to update their own role/status/accessStatus.
+- Do not allow an admin to remove their own admin role.
+- Do not allow an admin to block or delete themselves.
+- If possible, prevent removing the last remaining admin.
+- dev@adjudo.com should default to tester unless explicitly changed by an admin.
+- admin@adjudo.com should default to admin.
+
+==================================================
+Access Check Logic
+==================================================
+
+Update app access logic:
+
+A user should be blocked from using the app if:
+- status === "blocked"
+- status === "deleted"
+
+A user should be allowed unlimited access if:
+- role === "admin"
+- role === "tester"
+- accessStatus === "unlimited"
+
+A user should be allowed normal access if:
+- status === "active"
+- accessStatus === "active"
+- accessExpiresAt is in the future
+
+Otherwise:
+- redirect to access/waitlist screen or show access required message
+
+==================================================
+Audit Log
+==================================================
+
+For admin actions, write to:
+
+adminAuditLogs
+
+Log:
+- actorUid
+- actorEmail
+- action
+- targetType: "user"
+- targetId
+- before
+- after
+- createdAt
+
+Actions to log:
+- role_changed
+- status_changed
+- user_blocked
+- user_unblocked
+- user_soft_deleted
+- user_restored
+- access_extended
+- access_set_unlimited
+- access_expired
+- admin_note_updated
+
+==================================================
+Design
+==================================================
+
+Keep the UI consistent with adjudo:
+- black/minimal
+- selected/active = black background + white text
+- primary buttons = black background + white text
+- avoid blue accents
+- no complex enterprise admin design
+
+==================================================
+Do Not Implement
+==================================================
+
+Do not implement:
+- physical deletion of Firebase Auth users
+- complex organization permissions
+- team permissions
+- billing integration
+- external CRM
+- Zendesk/Intercom
+- admin impersonation
+- password reset management in MVP unless already trivial
+
+==================================================
+Expected Output
+==================================================
+
+After implementation, report:
+
+1. Files changed
+2. Firestore fields added
+3. Admin user management behavior
+4. Security/access logic
+5. Manual QA checklist
+6. Known limitations

@@ -47,6 +47,25 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     return <Redirect to={isEarlyAccessValid() ? "/login" : "/early-access"} />;
   }
 
+  if (user.status === "blocked" || user.status === "deleted") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center space-y-4 p-8 max-w-sm">
+          <p className="text-lg font-semibold text-foreground">
+            {user.status === "blocked" ? "アカウントがブロックされています" : "アカウントが削除されています"}
+          </p>
+          <p className="text-sm text-muted-foreground">ご不明な点は hello@adjudo.com までお問い合わせください。</p>
+          <button
+            onClick={() => { void signOut(); }}
+            className="px-4 py-2 text-sm font-medium bg-foreground text-background rounded-lg hover:opacity-80 transition-opacity"
+          >
+            サインアウト
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (user.role !== "admin" && !isTesterEmail(user.email) && !isEarlyAccessValid()) {
     return <Redirect to="/early-access?expired=true" />;
   }
