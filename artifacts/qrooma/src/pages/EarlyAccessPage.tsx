@@ -132,7 +132,7 @@ export default function EarlyAccessPage() {
                   type="text"
                   value={code}
                   onChange={(e) => { setCode(e.target.value.toUpperCase()); setStatus("idle"); }}
-                  placeholder={isJa ? "ADJUDO-14D-XXXX" : "ADJUDO-14D-XXXX"}
+                  placeholder={isJa ? "アクセスコードを入力" : "Enter your access code"}
                   className="w-full px-3 py-2.5 text-sm bg-background border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring transition-shadow placeholder:text-muted-foreground font-mono tracking-wider"
                   autoFocus
                   autoComplete="off"
