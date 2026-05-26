@@ -13,6 +13,7 @@ import LandingPage from "./pages/LandingPage";
 import LandingJpPage from "./pages/LandingJpPage";
 import AuthPage from "./pages/AuthPage";
 import EarlyAccessPage from "./pages/EarlyAccessPage";
+import AdminLoginPage from "./pages/AdminLoginPage";
 import RoomsPage from "./pages/RoomsPage";
 import RoomDetailPage from "./pages/RoomDetailPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -166,6 +167,9 @@ function Router() {
 
       {/* Early access coupon entry */}
       <Route path="/early-access" component={EarlyAccessPage} />
+
+      {/* Admin bypass — no coupon required; server verifies admin role via Firebase token */}
+      <Route path="/admin-login" component={AdminLoginPage} />
 
       {/* Login — requires valid early access */}
       <Route path="/login">

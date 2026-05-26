@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { verifyFirebaseToken } from "../lib/verifyToken";
+import { requireUser } from "../middleware/requireUser";
 
 const router = Router();
 
@@ -108,6 +109,38 @@ router.get("/users/me", async (req, res) => {
       return;
     }
     res.json(rows[0]);
+  } catch (e) {
+    req.log.error(e);
+    res.status(500).json({ error: "db error" });
+  }
+});
+
+/**
+ * POST /api/admin/verify
+ *
+ * Explicit server-side admin gate for the admin-login bypass flow.
+ * Requires a valid Firebase Bearer token (verified via JWKS) and confirms
+ * the resolved UID has role="admin" in our database.
+ *
+ * Returns 200 { ok: true } for admins.
+ * Returns 403 for authenticated but non-admin users.
+ * Returns 401 when the token is missing or invalid (handled by requireUser).
+ */
+router.post("/admin/verify", requireUser, async (req, res) => {
+  const uid = req.headers["x-verified-uid"] as string;
+  try {
+    const rows = await db
+      .select({ role: usersTable.role })
+      .from(usersTable)
+      .where(eq(usersTable.id, uid))
+      .limit(1);
+
+    if (rows[0]?.role !== "admin") {
+      res.status(403).json({ error: "Forbidden: not an admin" });
+      return;
+    }
+
+    res.json({ ok: true });
   } catch (e) {
     req.log.error(e);
     res.status(500).json({ error: "db error" });
