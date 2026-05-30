@@ -14,6 +14,7 @@ import LandingJpPage from "./pages/LandingJpPage";
 import AuthPage from "./pages/AuthPage";
 import EarlyAccessPage from "./pages/EarlyAccessPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
+import SampleDecisionCheckpointPage from "./pages/SampleDecisionCheckpointPage";
 import RoomsPage from "./pages/RoomsPage";
 import RoomDetailPage from "./pages/RoomDetailPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -170,6 +171,9 @@ function Router() {
 
       {/* Admin bypass — no coupon required; server verifies admin role via Firebase token */}
       <Route path="/admin-login" component={AdminLoginPage} />
+
+      {/* Public sample page — no login required */}
+      <Route path="/sample-decision-checkpoint" component={SampleDecisionCheckpointPage} />
 
       {/* Login — requires valid early access */}
       <Route path="/login">

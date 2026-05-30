@@ -296,7 +296,26 @@ export default function LandingPage() {
   const secWhy       = useFadeSection();
   const secUseCases  = useFadeSection();
   const secPricing   = useFadeSection();
-  const secFooter    = useFadeSection();
+  const secFooter     = useFadeSection();
+  const secCheckpoint = useFadeSection();
+  const secWho        = useFadeSection();
+  const secFaq        = useFadeSection();
+
+  // Source-tracking: preserve ?source= when linking to the external intake form
+  const [urlSource] = useState(() =>
+    new URLSearchParams(window.location.search).get("source") ?? ""
+  );
+
+  // Decision Checkpoint env vars — safe defaults throughout
+  const checkpointIntakeRaw = (import.meta.env.VITE_CHECKPOINT_INTAKE_URL       as string | undefined)?.trim() ?? "";
+  const checkpointEmail     = (import.meta.env.VITE_SUPPORT_EMAIL               as string | undefined)?.trim() || "hello@adjudo.com";
+  const priceLabel          = (import.meta.env.VITE_CHECKPOINT_PRICE_LABEL      as string | undefined)?.trim() || "$9 paid beta";
+  const deliveryLabel       = (import.meta.env.VITE_CHECKPOINT_DELIVERY_LABEL   as string | undefined)?.trim() || "within 48 hours after payment";
+  const checkpointCtaUrl    = checkpointIntakeRaw
+    ? (urlSource
+        ? `${checkpointIntakeRaw}${checkpointIntakeRaw.includes("?") ? "&" : "?"}source=${encodeURIComponent(urlSource)}`
+        : checkpointIntakeRaw)
+    : "#checkpoint-contact";
 
   const howSteps = [
     {
@@ -582,6 +601,219 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Decision Checkpoint offer ────────────────────────────────────────── */}
+      <section
+        ref={secCheckpoint.ref as React.RefObject<HTMLElement>}
+        style={secCheckpoint.style}
+        className="border-t border-border bg-[#F7F7F5]"
+      >
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
+          <div className="mb-12">
+            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/50 mb-4">
+              Decision Checkpoint · {priceLabel}
+            </p>
+            <h2
+              className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-5 max-w-xl"
+              style={{ fontSize: "clamp(1.65rem, 3.8vw, 2.5rem)" }}
+            >
+              Not ready for another AI chat?
+            </h2>
+            <p className="text-[15px] text-muted-foreground leading-relaxed max-w-2xl">
+              Send your messy ideas, AI outputs, options, or open questions.
+              Adjudo turns them into a structured Decision Checkpoint before you spend time building the wrong thing.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-8 max-w-4xl">
+            {/* What's included */}
+            <div className="rounded-2xl border border-border bg-background p-7">
+              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/50 mb-4">
+                What you receive
+              </p>
+              <ul className="space-y-3">
+                {[
+                  "Recommended next move",
+                  "Rejected options",
+                  "Key assumptions",
+                  "Objections / risks",
+                  "Validation steps",
+                  `Next action ${deliveryLabel}`,
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-[13px] text-foreground/80">
+                    <span className="shrink-0 mt-0.5 text-foreground/30 text-xs font-bold">→</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Trust notes + CTAs */}
+            <div className="flex flex-col justify-between gap-6">
+              <ul className="space-y-2">
+                {[
+                  "Paid beta",
+                  "Human-reviewed",
+                  `Delivered ${deliveryLabel}`,
+                  "No account required",
+                  "Your notes will not be shared publicly without permission",
+                  "We review submissions manually and send the payment link only if the decision is a good fit",
+                ].map((note) => (
+                  <li key={note} className="flex items-start gap-2 text-[12px] text-muted-foreground leading-relaxed">
+                    <span className="shrink-0 mt-0.5 text-foreground/25 text-xs">✓</span>
+                    {note}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="space-y-3">
+                <a
+                  href={checkpointCtaUrl}
+                  target={checkpointIntakeRaw ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-full bg-foreground text-background text-sm font-semibold hover:opacity-85 active:scale-[0.97] transition-all duration-150"
+                >
+                  Submit your decision <ArrowRightIcon size={14} />
+                </a>
+                <Link href="/sample-decision-checkpoint">
+                  <button className="flex items-center justify-center gap-1.5 w-full px-5 py-2.5 text-sm font-medium text-muted-foreground border border-border rounded-full bg-transparent hover:text-foreground hover:border-foreground/30 active:scale-[0.97] transition-all duration-150">
+                    See a sample
+                  </button>
+                </Link>
+                <p className="text-[11px] text-muted-foreground/50 text-center leading-relaxed">
+                  If your decision is a good fit, we'll send you a payment link.
+                  After payment, you'll receive your Decision Checkpoint {deliveryLabel}.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 pt-8 border-t border-border/60 max-w-4xl">
+            <p className="text-[11px] text-muted-foreground/40">
+              Adjudo is currently in paid beta. The Decision Checkpoint is delivered manually while we validate demand.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Who this is for + Not for ─────────────────────────────────────────── */}
+      <section
+        ref={secWho.ref as React.RefObject<HTMLElement>}
+        style={secWho.style}
+        className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-20"
+      >
+        <div className="grid sm:grid-cols-2 gap-12 items-start">
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/50 mb-4">
+              Who this is for
+            </p>
+            <h3
+              className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-4"
+              style={{ fontSize: "clamp(1.3rem, 2.8vw, 1.8rem)" }}
+            >
+              People building alone, choosing their next move.
+            </h3>
+            <p className="text-[14px] text-muted-foreground leading-relaxed mb-6">
+              This is for people building products, services, or businesses alone who are choosing between multiple next moves.
+            </p>
+            <ul className="space-y-2">
+              {[
+                "Choosing which feature to prioritize",
+                "Choosing which customer segment to test",
+                "Choosing which marketing message to use",
+                "Deciding whether to continue, pause, or reject an idea",
+                "Turning messy AI outputs into a clearer next move",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2.5 text-[13px] text-foreground/80">
+                  <span className="shrink-0 mt-0.5 text-foreground/30 text-xs font-bold">→</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/50 mb-4">
+              Not for
+            </p>
+            <h3
+              className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-4"
+              style={{ fontSize: "clamp(1.3rem, 2.8vw, 1.8rem)" }}
+            >
+              Probably not useful if you already know what to do.
+            </h3>
+            <p className="text-[14px] text-muted-foreground leading-relaxed mb-6">
+              This is probably not useful if you already know exactly what to do next, only need a generic AI summary, or are looking for a full project management tool.
+            </p>
+            <ul className="space-y-2">
+              {[
+                "Generic document summaries",
+                "Task management",
+                "Team collaboration",
+                "Legal, medical, or financial advice",
+                "Decisions where you do not have enough context to share",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2.5 text-[13px] text-muted-foreground">
+                  <span className="shrink-0 mt-0.5 text-foreground/20 text-xs font-bold">✗</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ──────────────────────────────────────────────────────────────── */}
+      <section
+        ref={secFaq.ref as React.RefObject<HTMLElement>}
+        style={secFaq.style}
+        className="border-t border-border bg-[#F7F7F5]"
+      >
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/50 mb-4">
+            FAQ
+          </p>
+          <h2
+            className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-10"
+            style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)" }}
+          >
+            Common questions
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-x-12 gap-y-8 max-w-4xl">
+            {[
+              {
+                q: "Is this a full SaaS product?",
+                a: "Not yet. Adjudo is currently in paid beta. The Decision Checkpoint is delivered manually while we validate demand.",
+              },
+              {
+                q: "Do I need an account?",
+                a: "No. Submit your decision through the intake form. If it is a good fit, we'll send a payment link manually.",
+              },
+              {
+                q: "What happens after I submit my decision?",
+                a: `We review your submission. If it is a good fit, we send a payment link. After payment, you receive a human-reviewed Decision Checkpoint ${deliveryLabel}.`,
+              },
+              {
+                q: "Is this just ChatGPT?",
+                a: "You can use ChatGPT for general brainstorming. Adjudo is focused on reviewing a specific decision before you act — including the next move, rejected options, assumptions, risks, and validation steps.",
+              },
+              {
+                q: "Will my notes be public?",
+                a: "No. Your notes will not be shared publicly without permission.",
+              },
+              {
+                q: "What if my decision is not a good fit?",
+                a: "We may decline the request or suggest a better way to frame it. You will not be asked to pay unless we believe we can provide a useful review.",
+              },
+            ].map(({ q, a }) => (
+              <div key={q}>
+                <p className="text-[14px] font-semibold text-foreground mb-1.5 leading-snug">{q}</p>
+                <p className="text-[13px] text-muted-foreground leading-relaxed">{a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Pricing note ────────────────────────────────────────────────────── */}
       <section
         ref={secPricing.ref as React.RefObject<HTMLElement>}
@@ -644,6 +876,40 @@ export default function LandingPage() {
           <Link href="/feedback">
             <GhostBtn>View feedback board <ArrowRightIcon size={13} /></GhostBtn>
           </Link>
+        </div>
+      </section>
+
+      {/* ── Fallback contact (#checkpoint-contact) ──────────────────────────── */}
+      <section id="checkpoint-contact" className="border-t border-border bg-[#F7F7F5]">
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-14 sm:py-18">
+          <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/50 mb-4">
+            Decision Checkpoint
+          </p>
+          <h2
+            className="font-black tracking-[-0.025em] leading-[1.1] text-foreground mb-4"
+            style={{ fontSize: "clamp(1.5rem, 3.5vw, 2.25rem)" }}
+          >
+            Want a Decision Checkpoint?
+          </h2>
+          <p className="text-[15px] text-muted-foreground mb-6 max-w-md leading-relaxed">
+            Submit your real decision through the intake form once it is available, or contact us directly.
+          </p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <a
+              href={checkpointCtaUrl}
+              target={checkpointIntakeRaw ? "_blank" : undefined}
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-foreground text-background font-semibold rounded-full px-5 py-2.5 text-sm whitespace-nowrap hover:opacity-85 active:scale-[0.97] transition-all duration-150"
+            >
+              Submit your decision <ArrowRightIcon size={13} />
+            </a>
+            <a
+              href={`mailto:${checkpointEmail}`}
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-muted-foreground border border-border rounded-full bg-transparent whitespace-nowrap hover:text-foreground hover:border-foreground/30 active:scale-[0.97] transition-all duration-150"
+            >
+              {checkpointEmail}
+            </a>
+          </div>
         </div>
       </section>
 

@@ -1,0 +1,462 @@
+You are working on the Adjudo public landing page.
+
+Important:
+Do not build or modify the full app experience.
+Do not create a free account flow.
+Do not create a fake usable demo.
+Do not implement Stripe API, webhook, subscription, user purchase history, or in-app checkout.
+Do not build a complex product experience.
+Do not change authentication logic.
+Do not change admin logic.
+Do not modify database schema.
+
+We are validating a paid beta offer called:
+
+$9 Decision Checkpoint
+
+This is a productized service, not a full SaaS feature yet.
+
+The goal is to update the public landing page so visitors can:
+1. Understand what Adjudo does
+2. See a sample Decision Checkpoint output
+3. Submit a real decision through an external intake form
+4. Understand that payment happens manually after intake review
+
+This is not a direct “Pay first” funnel.
+
+The validation funnel should be:
+
+1. Visitor sees what Adjudo is
+2. Visitor views a sample Decision Checkpoint
+3. Visitor submits their real decision through an external intake form
+4. We manually review the submission
+5. If it is a good fit, we send a $9 payment link manually
+6. After payment, we deliver a human-reviewed Decision Checkpoint within 48 hours
+
+This is intentional.
+We want to test whether people will submit real, current decisions first.
+Payment will happen after intake, not as the first cold action.
+
+Current positioning:
+Adjudo is a Decision Checkpoint for people building products, services, or businesses alone.
+
+Core message:
+AI gave you 10 ideas.
+Adjudo helps you choose the next move.
+
+Sub message:
+Turn messy thinking into one clear decision, key assumptions, and next actions.
+
+What Adjudo does:
+Users send messy ideas, AI outputs, options, or open questions.
+They receive a human-reviewed Decision Checkpoint within 48 hours after payment.
+
+The Decision Checkpoint includes:
+- recommended next move
+- rejected options
+- key assumptions
+- objections / risks
+- validation steps
+- next action within 48 hours
+
+Please implement the following:
+
+==================================================
+1. LANDING PAGE UPDATE
+==================================================
+
+Add a new section to the public landing page after the hero or near the main CTA.
+
+Section title:
+Decision Checkpoint
+
+Section copy:
+Not ready for another AI chat?
+Send your messy ideas, AI outputs, options, or open questions.
+Adjudo turns them into a structured Decision Checkpoint before you spend time building the wrong thing.
+
+Include bullet points:
+- Recommended next move
+- Rejected options
+- Key assumptions
+- Objections / risks
+- Validation steps
+- Next action within 48 hours
+
+Add small trust notes:
+- Paid beta
+- Human-reviewed
+- Delivered within 48 hours after payment
+- No account required
+- Your notes will not be shared publicly without permission
+- We review submissions manually and send the payment link only if the decision is a good fit
+
+CTA buttons:
+Primary:
+Submit your decision
+
+Secondary:
+See a sample
+
+The primary CTA should link to an external intake form URL.
+
+Use this environment variable:
+
+VITE_CHECKPOINT_INTAKE_URL
+
+If VITE_CHECKPOINT_INTAKE_URL is empty or not configured, the button should still render safely and link to:
+
+#checkpoint-contact
+
+Do not break the page if the environment variable is missing.
+
+The secondary CTA should link to:
+
+/sample-decision-checkpoint
+
+Do not make “Pay $9” the main CTA on the landing page.
+
+Add optional small text near the primary CTA:
+If your decision is a good fit, we’ll send you a $9 payment link. After payment, you’ll receive your Decision Checkpoint within 48 hours.
+
+==================================================
+2. WHO THIS IS FOR SECTION
+==================================================
+
+Add a lightweight section near the Decision Checkpoint offer.
+
+Title:
+Who this is for
+
+Copy:
+This is for people building products, services, or businesses alone who are choosing between multiple next moves.
+
+Include:
+- choosing which feature to prioritize
+- choosing which customer segment to test
+- choosing which marketing message to use
+- deciding whether to continue, pause, or reject an idea
+- turning messy AI outputs into a clearer next move
+
+==================================================
+3. NOT FOR SECTION
+==================================================
+
+Add a lightweight “Not for” section.
+
+Title:
+Not for
+
+Copy:
+This is probably not useful if you already know exactly what to do next, only need a generic AI summary, or are looking for a full project management tool.
+
+Include:
+- generic document summaries
+- task management
+- team collaboration
+- legal, medical, or financial advice
+- decisions where you do not have enough context to share
+
+==================================================
+4. FAQ SECTION
+==================================================
+
+Add a small FAQ section.
+
+FAQ items:
+
+Q: Is this a full SaaS product?
+A: Not yet. Adjudo is currently in paid beta. The Decision Checkpoint is delivered manually while we validate demand.
+
+Q: Do I need an account?
+A: No. Submit your decision through the intake form. If it is a good fit, we’ll send a $9 payment link manually.
+
+Q: What happens after I submit my decision?
+A: We review your submission. If it is a good fit, we send a payment link. After payment, you receive a human-reviewed Decision Checkpoint within 48 hours.
+
+Q: Is this just ChatGPT?
+A: You can use ChatGPT for general brainstorming. Adjudo is focused on reviewing a specific decision before you act, including the next move, rejected options, assumptions, risks, and validation steps.
+
+Q: Will my notes be public?
+A: No. Your notes will not be shared publicly without permission.
+
+Q: What if my decision is not a good fit?
+A: We may decline the request or suggest a better way to frame it. You will not be asked to pay unless we believe we can provide a useful review.
+
+==================================================
+5. READ-ONLY SAMPLE PAGE
+==================================================
+
+Create a new public route/page:
+
+/sample-decision-checkpoint
+
+This page is read-only.
+It is not a fake usable app.
+It should clearly say:
+
+This is a sample Decision Checkpoint.
+The $9 beta is currently delivered manually within 48 hours after payment.
+
+Page structure:
+
+Header:
+Sample Decision Checkpoint
+
+Subheader:
+See what you receive after submitting messy ideas, AI outputs, options, or open questions.
+
+Use a visitor-relevant sample, not an internal Adjudo strategy sample.
+
+Sample theme:
+Should I prioritize the onboarding improvement or the AI summary feature first?
+
+Create a Before / After layout.
+
+Before section:
+
+Title:
+Messy input
+
+Include these messy notes:
+
+- I’m building a small SaaS for solo creators.
+- I have two feature ideas.
+- Option A: improve onboarding because many users sign up but do not complete setup.
+- Option B: build an AI summary feature because it sounds more exciting and may be easier to market.
+- ChatGPT suggested both could be useful.
+- I only have one week of development time.
+- I want to choose the move that is most likely to improve activation or generate stronger user feedback.
+- I’m worried I’ll spend a week building something impressive but not actually useful.
+
+After section:
+
+Title:
+Decision Checkpoint
+
+Include these sections:
+
+1. Current decision
+
+Should the builder spend the next week improving onboarding or building the AI summary feature?
+
+2. Recommended next move
+
+Prioritize the onboarding improvement first.
+
+3. Why this move
+
+The onboarding issue is closer to an existing user behavior problem: people are signing up but not completing setup. Improving onboarding is more likely to reveal whether users understand the product and reach the first meaningful outcome.
+
+The AI summary feature may be more marketable, but it adds complexity before confirming that users can successfully activate.
+
+The sharper move is to fix the path to first value before adding another feature.
+
+4. Rejected options
+
+- Build the AI summary feature first: rejected for now because it may create a more impressive demo without solving the current activation problem.
+- Split the week between both: rejected because it would likely produce two weak tests instead of one clear result.
+- Do nothing until more users arrive: rejected because the existing signup-to-activation gap is already a useful signal.
+
+5. Key assumptions
+
+- The main current bottleneck is activation, not feature depth.
+- Users who complete onboarding are more likely to give useful feedback.
+- The AI summary feature will be more valuable after users understand the core workflow.
+- One focused improvement is better than two shallow changes this week.
+
+6. Objections / risks
+
+- The AI summary feature might attract more attention on social channels.
+- Onboarding improvements may feel less exciting and harder to market.
+- The activation issue may come from weak positioning, not onboarding UX.
+- If current traffic is too low, the onboarding test may not produce enough data quickly.
+
+7. Validation steps
+
+- Define the current onboarding completion rate.
+- Identify the exact step where users drop off.
+- Improve only that step, not the entire onboarding flow.
+- Track completion rate before and after the change.
+- Ask 3 users where they got confused.
+- If activation does not improve, revisit whether the issue is positioning rather than onboarding.
+
+8. Kill / revisit criteria
+
+Revisit the AI summary feature if:
+- onboarding completion improves but retention remains weak
+- users explicitly ask for better output summaries
+- the AI summary feature becomes necessary to reach the product’s core value
+- marketing tests show strong demand for summary-related use cases
+
+9. Next action within 48 hours
+
+Review the onboarding flow, identify the biggest drop-off step, and ship one focused improvement before building any new AI feature.
+
+At the bottom of the page, add CTA:
+
+Submit your decision
+
+This should use the same VITE_CHECKPOINT_INTAKE_URL placeholder.
+
+Also include a secondary CTA:
+
+Back to landing page
+
+==================================================
+6. FALLBACK CONTACT SECTION
+==================================================
+
+Add a fallback anchor section on the landing page with this id:
+
+checkpoint-contact
+
+If VITE_CHECKPOINT_INTAKE_URL is not configured, the primary CTA should scroll here.
+
+This section should say:
+
+Want a Decision Checkpoint?
+Submit your real decision through the intake form once it is available, or contact us directly.
+
+Use this environment variable for the support email:
+
+VITE_SUPPORT_EMAIL
+
+If VITE_SUPPORT_EMAIL is not configured, use:
+
+hello@adjudo.com
+
+Do not create backend form submission.
+Do not store submissions in the database.
+The intake form will be handled externally through Google Forms, Tally, Typeform, or similar.
+
+==================================================
+7. SOURCE TRACKING SUPPORT
+==================================================
+
+Add lightweight source tracking support for external intake links if simple to implement.
+
+If the landing page URL includes a source parameter, preserve it when linking to the external intake form.
+
+Examples:
+- /?source=x
+- /?source=indiehackers
+- /?source=reddit
+- /?source=linkedin
+
+If possible, append the source value to the intake URL as:
+
+?source=<source>
+
+or
+
+&source=<source>
+
+depending on whether the intake URL already has query parameters.
+
+If this is complex or risky in the current codebase, skip implementation and do not overbuild.
+
+Do not add database tracking.
+Do not implement analytics infrastructure.
+
+==================================================
+8. ENVIRONMENT VARIABLE PLACEHOLDERS
+==================================================
+
+Use these environment variables:
+
+VITE_CHECKPOINT_INTAKE_URL
+VITE_SUPPORT_EMAIL
+
+Optional:
+
+VITE_CHECKPOINT_PRICE_LABEL
+VITE_CHECKPOINT_DELIVERY_LABEL
+
+Default display values:
+
+Price:
+$9 paid beta
+
+Delivery:
+within 48 hours after payment
+
+If optional variables are not configured, use the default display values safely.
+
+==================================================
+9. DESIGN REQUIREMENTS
+==================================================
+
+Keep the design premium, minimal, monochrome, and consistent with Adjudo.
+
+Use:
+- white or off-white background
+- black / dark gray text
+- subtle borders
+- generous spacing
+- clean typography
+- simple layout
+- readable mobile layout
+
+Avoid:
+- colorful gradients
+- generic AI icons
+- blue active states if avoidable
+- fake dashboards
+- fake interactive demo
+- login requirement
+- overbuilt UI
+- heavy animations
+- app screenshots that imply the product is fully usable
+
+The goal is clarity, not a polished product demo.
+
+==================================================
+10. FOOTER / PAID BETA NOTE
+==================================================
+
+Add a small note near relevant CTAs:
+
+Adjudo is currently in paid beta.
+The Decision Checkpoint is delivered manually while we validate demand.
+
+==================================================
+11. DO NOT BREAK EXISTING FUNCTIONALITY
+==================================================
+
+Do not remove existing landing page sections unless necessary.
+Do not change authentication logic.
+Do not change admin logic.
+Do not change protected app routes.
+Do not modify database schema.
+Do not implement payment backend.
+Do not create a fake usable demo.
+Do not create a free account flow.
+
+The only new public route should be:
+
+/sample-decision-checkpoint
+
+unless the existing routing structure requires a slightly different path.
+
+==================================================
+12. ACCEPTANCE CRITERIA
+==================================================
+
+The work is complete when:
+
+- Public landing page clearly explains the Decision Checkpoint offer.
+- Landing page has a “Submit your decision” CTA using VITE_CHECKPOINT_INTAKE_URL.
+- Landing page has a “See a sample” button linking to /sample-decision-checkpoint.
+- If VITE_CHECKPOINT_INTAKE_URL is missing, the CTA falls back safely to #checkpoint-contact.
+- /sample-decision-checkpoint is accessible without login.
+- Sample page clearly shows Before / After.
+- Sample page uses a visitor-relevant example, not an internal Adjudo strategy decision.
+- Sample page clearly states it is read-only and manually delivered.
+- FAQ is present and answers account, payment, delivery, privacy, and ChatGPT-related questions.
+- “Who this is for” and “Not for” sections are present.
+- No fake usable demo is created.
+- No free account flow is created.
+- No Stripe API or webhook is implemented.
+- No database schema changes are made.
+- Existing app functionality remains untouched.
