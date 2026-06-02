@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+  <defs>
+    
+      
+      
+    
+    
+  </defs>
+  <rect width="1200" height="675" fill="#F7F7F5"/>
+  
+  <rect x="76" y="92" width="488" height="478" rx="20" fill="#FFFFFF"/>
+  <rect x="76" y="92" width="488" height="478" rx="20" fill="none" stroke="#D9D9D4" stroke-width="1"/>
+  <rect x="636" y="92" width="488" height="478" rx="20" fill="#FFFFFF"/>
+  <rect x="636" y="92" width="488" height="478" rx="20" fill="none" stroke="#D9D9D4" stroke-width="1"/>
+  
+  <g transform="translate(590 331)" stroke="#2B2B2B" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M-22 0 H22"/>
+    <path d="M8 -15 L23 0 L8 15"/>
+  </g>
+  
+
+MESSY INPUT
+
+Onboarding? AI feature?
+Pricing? Marketing angle?
+One week to build.
+Still stuck.
+
+  
+
+DECISION CHECKPOINT
+
+NEXT MOVE
+Fix onboarding first.
+REJECTED
+AI feature — doesn't fix activation.
+RISK
+Might be a positioning problem.
+VALIDATE
+Fix the #1 drop-off, then measure.
+
+  
+  <line x1="76" y1="612" x2="1124" y2="612" stroke="#DEDED9" stroke-width="1"/>
+  <text x="76" y="644" font-weight="800" font-family="Inter, Helvetica, Arial, sans-serif" fill="rgb(26, 26, 26)" font-size="18px">Adjudo</text>
+  <text x="1124" y="644" text-anchor="end" font-weight="500" font-family="Inter, Helvetica, Arial, sans-serif" fill="rgb(138, 138, 138)" font-size="18px">adjudo.com</text>
+</svg>

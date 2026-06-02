@@ -347,7 +347,7 @@ export default function LandingPage() {
 
           <figure className="mb-10 max-w-4xl rounded-2xl border border-border overflow-hidden bg-[#F7F7F5]">
             <img
-              src="/decision-checkpoint.svg"
+              src="/decision-checkpoint.png"
               alt="Messy input becomes a structured Decision Checkpoint: next move, rejected options, risk, and validation"
               className="w-full h-auto block"
             />
