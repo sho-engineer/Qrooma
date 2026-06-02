@@ -153,7 +153,7 @@ export default function SampleDecisionCheckpointPage() {
                 After
               </p>
               <p className="text-[15px] font-bold text-background">Decision Checkpoint</p>
-              <p className="text-[11px] text-background/50 mt-0.5">Human-reviewed · {DELIVERY}</p>
+              <p className="text-[11px] text-background/50 mt-0.5">Delivered manually · {DELIVERY}</p>
             </div>
 
             <div className="p-5 space-y-6">
@@ -261,7 +261,7 @@ export default function SampleDecisionCheckpointPage() {
           <p className="text-[14px] text-muted-foreground mb-8 max-w-md leading-relaxed">
             Send your messy notes, AI outputs, or open questions.
             If it is a good fit, we'll send you a {PRICE_LABEL.includes("$") ? PRICE_LABEL : `${PRICE_LABEL}`} payment link.
-            After payment, you receive a human-reviewed Decision Checkpoint {DELIVERY}.
+            After payment, you'll receive your Decision Checkpoint {DELIVERY}.
           </p>
           <div className="flex items-center gap-3 flex-wrap">
             <a
