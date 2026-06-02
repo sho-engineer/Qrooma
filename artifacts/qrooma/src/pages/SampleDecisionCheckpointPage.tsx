@@ -14,7 +14,7 @@ const logoA = "/brand/adjudo-wordmark.png";
 
 const INTAKE_URL  = (import.meta.env.VITE_CHECKPOINT_INTAKE_URL  as string | undefined)?.trim() ?? "";
 const PRICE_LABEL = (import.meta.env.VITE_CHECKPOINT_PRICE_LABEL as string | undefined)?.trim() || "$9 paid beta";
-const DELIVERY    = (import.meta.env.VITE_CHECKPOINT_DELIVERY_LABEL as string | undefined)?.trim() || "within 48 hours after payment";
+
 const intakeCta   = INTAKE_URL || "/submit-decision";
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -234,7 +234,7 @@ export default function SampleDecisionCheckpointPage() {
               {/* Next action — highlighted */}
               <div className="rounded-xl bg-foreground text-background px-4 py-4">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-background/50 mb-1.5">
-                  Next action {DELIVERY}
+                  Next action
                 </p>
                 <p className="text-[13px] font-medium text-background leading-relaxed">
                   Review the onboarding flow, identify the biggest drop-off step, and ship one focused improvement before building any new AI feature.
@@ -261,7 +261,7 @@ export default function SampleDecisionCheckpointPage() {
           <p className="text-[14px] text-muted-foreground mb-8 max-w-md leading-relaxed">
             Send your messy notes, AI outputs, or open questions.
             If it is a good fit, we'll send you a {PRICE_LABEL.includes("$") ? PRICE_LABEL : `${PRICE_LABEL}`} payment link.
-            After payment, you'll receive your Decision Checkpoint {DELIVERY}.
+            After payment, you'll receive your AI-generated Decision Checkpoint right away.
           </p>
           <div className="flex items-center gap-3 flex-wrap">
             <a
