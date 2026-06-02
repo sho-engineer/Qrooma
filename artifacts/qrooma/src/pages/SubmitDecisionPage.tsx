@@ -115,7 +115,7 @@ export default function SubmitDecisionPage() {
             Decision submitted.
           </h1>
           <p className="text-[16px] text-muted-foreground leading-relaxed mb-6 max-w-lg">
-            We'll review it manually. If it's a good fit, we'll contact you with a $9 payment link. After payment, your Decision Checkpoint will be delivered within 48 hours.
+            We'll review your submission for fit. If it's a good fit, we'll send you a $9 payment link — your AI-generated Decision Checkpoint is delivered right after payment.
           </p>
           <p className="text-[13px] text-muted-foreground/60 leading-relaxed max-w-md">
             If you don't hear from us within a few days, the decision may not have been a good fit for this format. You won't be charged unless we reach out.
@@ -157,7 +157,7 @@ export default function SubmitDecisionPage() {
           Submit your decision
         </h1>
         <p className="text-[14px] text-muted-foreground leading-relaxed max-w-lg">
-          Paid beta. No account needed. We review each submission manually and only send a $9 payment link if it's a good fit.
+          Paid beta. No account needed. We review each submission for fit and only send a $9 payment link if it qualifies.
         </p>
       </div>
 
@@ -341,7 +341,7 @@ export default function SubmitDecisionPage() {
                 onChange={(e) => set("consent_accepted", e.target.checked)}
               />
               <span className="text-[13px] text-muted-foreground leading-relaxed">
-                I understand this is a paid beta and my submission will be reviewed manually. My notes won't be shared publicly without permission.
+                I understand this is a paid beta and my submission will be reviewed for fit. My notes won't be shared publicly without permission.
                 <span className="text-muted-foreground/50"> *</span>
               </span>
             </label>

@@ -498,7 +498,7 @@ export default function LandingPage() {
           {[
             {
               q: "Is this just raw AI output?",
-              a: "It's AI-generated, but run through three perspectives — Builder, Skeptic, Operator — instead of a single pass, then shaped into a Decision Checkpoint. In this beta we review each submission for fit and deliver it manually.",
+              a: "It's AI-generated, structured across three perspectives — Builder, Skeptic, Operator — instead of a single pass, then shaped into a Decision Checkpoint. In this beta we review each submission for fit before sending a payment link.",
             },
             {
               q: "Is this just ChatGPT?",
@@ -506,7 +506,7 @@ export default function LandingPage() {
             },
             {
               q: "Do I need an account?",
-              a: "No. Submit through the intake form. If it's a good fit, we'll send a payment link manually.",
+              a: "No. Submit through the intake form. If it's a good fit, we'll send you a payment link.",
             },
             {
               q: "What happens after I submit?",
@@ -514,7 +514,7 @@ export default function LandingPage() {
             },
             {
               q: "Is this a full SaaS product?",
-              a: "Not yet. Adjudo is in paid beta, delivered manually while we validate demand.",
+              a: "Not yet. Adjudo is in paid beta while we validate demand.",
             },
             {
               q: "What if my decision isn't a good fit?",

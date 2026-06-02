@@ -92,7 +92,7 @@ export default function SampleDecisionCheckpointPage() {
           </span>
           <p className="text-[12px] text-muted-foreground">
             This is a sample Decision Checkpoint.
-            The {PRICE_LABEL} is currently delivered manually {DELIVERY}.
+            The {PRICE_LABEL} delivers an AI-generated Decision Checkpoint after payment.
           </p>
         </div>
       </div>
@@ -153,7 +153,7 @@ export default function SampleDecisionCheckpointPage() {
                 After
               </p>
               <p className="text-[15px] font-bold text-background">Decision Checkpoint</p>
-              <p className="text-[11px] text-background/50 mt-0.5">Delivered manually · {DELIVERY}</p>
+              <p className="text-[11px] text-background/50 mt-0.5">AI-generated · delivered after payment</p>
             </div>
 
             <div className="p-5 space-y-6">
@@ -280,7 +280,7 @@ export default function SampleDecisionCheckpointPage() {
             </Link>
           </div>
           <p className="mt-5 text-[11px] text-muted-foreground/40">
-            Adjudo is currently in paid beta. The Decision Checkpoint is delivered manually while we validate demand.
+            Adjudo is currently in paid beta. The Decision Checkpoint is AI-generated.
           </p>
         </div>
       </section>
