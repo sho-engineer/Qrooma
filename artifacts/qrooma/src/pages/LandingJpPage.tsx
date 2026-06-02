@@ -129,7 +129,7 @@ export default function LandingPageJP() {
     ? (urlSource
         ? `${checkpointIntakeRaw}${checkpointIntakeRaw.includes("?") ? "&" : "?"}source=${encodeURIComponent(urlSource)}`
         : checkpointIntakeRaw)
-    : "#checkpoint-contact";
+    : "/submit-decision";
   const ctaExternal = Boolean(checkpointIntakeRaw);
 
   const howSteps = [

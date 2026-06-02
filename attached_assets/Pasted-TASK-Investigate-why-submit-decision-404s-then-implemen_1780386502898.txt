@@ -1,0 +1,44 @@
+TASK: Investigate why /submit-decision 404s, then implement it only if it's missing or broken.
+
+=== STEP 1 — INVESTIGATE (report findings BEFORE changing anything) ===
+
+1. Find the client-side router (wouter — look for <Switch> / <Route> from "wouter"). List every registered route path and its component.
+2. Is there a route for "/submit-decision"? If yes: which component, and why might it 404 (missing/renamed component, wrong path, build error)? If no: confirm it is absent.
+3. Find any access gate. Search the codebase for: "early access", "access code", "waitlist", "ProtectedRoute", "RequireAuth", "useAuth", and redirect logic. Report which routes are public vs. behind the gate. Confirm whether "/", "/jp", and "/sample-decision-checkpoint" are public (they load fine when logged out) and whether "/submit-decision" would be public.
+4. "/sample-decision-checkpoint" works as a logged-out deep link. Use EXACTLY how that route is registered as the reference pattern for adding a new public page.
+
+Report the above. Then continue to STEP 2 ONLY IF "/submit-decision" does not exist, or exists but is broken/gated.
+
+=== STEP 2 — IMPLEMENT a public /submit-decision intake page ===
+
+This is a paid-beta concierge intake form, NOT a self-serve SaaS feature.
+
+DO NOT: implement Stripe/payments/webhooks/checkout; create a free-account flow; require login on this page; change existing auth logic; break existing functionality; expose submissions publicly.
+
+ROUTE:
+- Add a PUBLIC route "/submit-decision" (no login), registered the same way as the working public "/sample-decision-checkpoint", OUTSIDE any early-access/auth gate. It must load for logged-out visitors.
+
+PAGE (match existing Adjudo design — monochrome, minimal, same look as LandingPage / SampleDecisionCheckpoint):
+- Title: "Submit your decision"
+- Note: "Paid beta. No account needed. We review each submission manually and only send a $9 payment link if it's a good fit."
+- Required fields: Name or handle; Email; What are you building?; What decision are you trying to make?; What options are you considering?; What would happen if you choose wrong?; Messy notes / AI outputs / context (textarea); Consent checkbox ("I understand this is a paid beta and my submission will be reviewed manually. My notes won't be shared publicly without permission.")
+- Optional fields: Website / product URL; What have you already tried?; Where did you find Adjudo? (select: X / LinkedIn / Indie Hackers / Reddit / Friend / Other); Preferred contact (select: Email / X DM / LinkedIn DM / Other)
+- Hidden honeypot field for spam (if filled, silently reject).
+- Capture "?source=" from the URL and store it.
+- Client validation: required fields non-empty, basic email format, consent must be checked.
+- On submit: POST to a backend endpoint that stores the submission in the existing database using the project's existing DB/ORM pattern.
+- On success, show: "Thanks — your decision has been submitted. We'll review it manually. If it's a good fit, we'll contact you with a $9 payment link. After payment, your Decision Checkpoint will be delivered within 48 hours."
+
+DATABASE — table "decision_checkpoint_submissions" (create if missing; follow existing schema/migration pattern):
+- id, name_or_handle, email, what_are_you_building, decision_to_make, options_considered, what_happens_if_wrong, messy_notes, website_url, already_tried, source, preferred_contact_method, consent_accepted
+- internal/nullable: status (default "new"), payment_status (default "not_sent"), admin_notes, stakes, decision_type, good_fit, payment_link_sent_at, delivered_at, second_use
+- created_at, updated_at
+
+WIRE THE FUNNEL:
+- Ensure the landing page and sample-page "Submit your decision" CTAs resolve to this "/submit-decision" route. They currently use env var VITE_CHECKPOINT_INTAKE_URL with a fallback — either set VITE_CHECKPOINT_INTAKE_URL="/submit-decision", or update the CTA fallback to link to "/submit-decision".
+
+AFTER IMPLEMENTING:
+- Confirm "/submit-decision" loads for a logged-out visitor.
+- (Secondary, optional) If an admin page exists, add a simple admin-only list of these submissions with status/payment controls. Keep this minimal — the public form storing data is the priority.
+
+Report what you changed and confirm the route is public and the form writes to the DB.

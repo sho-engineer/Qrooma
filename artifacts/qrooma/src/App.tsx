@@ -15,6 +15,7 @@ import AuthPage from "./pages/AuthPage";
 import EarlyAccessPage from "./pages/EarlyAccessPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import SampleDecisionCheckpointPage from "./pages/SampleDecisionCheckpointPage";
+import SubmitDecisionPage           from "./pages/SubmitDecisionPage";
 import RoomsPage from "./pages/RoomsPage";
 import RoomDetailPage from "./pages/RoomDetailPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -174,6 +175,9 @@ function Router() {
 
       {/* Public sample page — no login required */}
       <Route path="/sample-decision-checkpoint" component={SampleDecisionCheckpointPage} />
+
+      {/* Public intake form — paid beta, no login required */}
+      <Route path="/submit-decision" component={SubmitDecisionPage} />
 
       {/* Login — requires valid early access */}
       <Route path="/login">

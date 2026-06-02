@@ -15,7 +15,7 @@ const logoA = "/brand/adjudo-wordmark.png";
 const INTAKE_URL  = (import.meta.env.VITE_CHECKPOINT_INTAKE_URL  as string | undefined)?.trim() ?? "";
 const PRICE_LABEL = (import.meta.env.VITE_CHECKPOINT_PRICE_LABEL as string | undefined)?.trim() || "$9 paid beta";
 const DELIVERY    = (import.meta.env.VITE_CHECKPOINT_DELIVERY_LABEL as string | undefined)?.trim() || "within 48 hours after payment";
-const intakeCta   = INTAKE_URL || "#";
+const intakeCta   = INTAKE_URL || "/submit-decision";
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 

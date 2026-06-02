@@ -5,6 +5,7 @@ import {
   UsersIcon, TagIcon, MessageSquareIcon, BarChart2Icon,
   PlusIcon, ToggleLeftIcon, ToggleRightIcon, ShieldIcon, UserIcon,
   TrendingUpIcon, CalendarIcon, ArrowUpIcon, MapPinIcon, MailIcon,
+  InboxIcon, ChevronDownIcon, ChevronRightIcon,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -1141,16 +1142,211 @@ function WaitlistTab({ headers }: { headers: Record<string, string> }) {
   );
 }
 
+// ── Tab: Submissions ───────────────────────────────────────────────────────
+
+interface CheckpointSubmission {
+  id: string;
+  nameOrHandle: string;
+  email: string;
+  whatAreYouBuilding: string;
+  decisionToMake: string;
+  optionsConsidered: string;
+  whatHappensIfWrong: string;
+  messyNotes: string;
+  websiteUrl: string | null;
+  alreadyTried: string | null;
+  source: string | null;
+  whereDidYouFind: string | null;
+  preferredContactMethod: string | null;
+  consentAccepted: boolean;
+  status: string;
+  paymentStatus: string;
+  adminNotes: string | null;
+  goodFit: boolean | null;
+  paymentLinkSentAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+}
+
+const STATUS_BADGE: Record<string, string> = {
+  new:        "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  reviewing:  "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  accepted:   "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  rejected:   "bg-muted text-muted-foreground",
+  delivered:  "bg-primary/10 text-primary",
+};
+const PAYMENT_BADGE: Record<string, string> = {
+  not_sent: "bg-muted text-muted-foreground",
+  sent:     "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  paid:     "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  refunded: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+};
+
+function SubmissionsTab({ headers }: { headers: Record<string, string> }) {
+  const [subs, setSubs]       = useState<CheckpointSubmission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [saving, setSaving]   = useState<string | null>(null);
+  const [notes, setNotes]     = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch("/api/admin/checkpoint-submissions", { headers })
+      .then(r => r.json())
+      .then(d => { setSubs(Array.isArray(d) ? d as CheckpointSubmission[] : []); })
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function patch(id: string, update: Record<string, unknown>) {
+    setSaving(id);
+    try {
+      const res = await fetch(`/api/admin/checkpoint-submissions/${id}`, {
+        method: "PATCH",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify(update),
+      });
+      const updated = await res.json() as CheckpointSubmission;
+      setSubs(prev => prev.map(s => s.id === id ? updated : s));
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  if (loading) return <Spinner />;
+  if (subs.length === 0) return (
+    <div className="py-16 text-center text-muted-foreground text-sm">No submissions yet.</div>
+  );
+
+  return (
+    <div className="space-y-3">
+      <p className="text-[12px] text-muted-foreground">{subs.length} submission{subs.length !== 1 ? "s" : ""}</p>
+      {subs.map(s => {
+        const isOpen = expanded === s.id;
+        const noteDraft = notes[s.id] ?? s.adminNotes ?? "";
+        return (
+          <div key={s.id} className="rounded-xl border border-border bg-card overflow-hidden">
+            <button
+              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+              onClick={() => setExpanded(isOpen ? null : s.id)}
+            >
+              {isOpen ? <ChevronDownIcon size={14} className="shrink-0 text-muted-foreground" /> : <ChevronRightIcon size={14} className="shrink-0 text-muted-foreground" />}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-sm text-foreground">{s.nameOrHandle}</span>
+                  <span className="text-xs text-muted-foreground">{s.email}</span>
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_BADGE[s.status] ?? "bg-muted text-muted-foreground"}`}>{s.status}</span>
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${PAYMENT_BADGE[s.paymentStatus] ?? "bg-muted text-muted-foreground"}`}>{s.paymentStatus.replace("_", " ")}</span>
+                  {s.goodFit === true  && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">✓ good fit</span>}
+                  {s.goodFit === false && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">✗ not a fit</span>}
+                </div>
+                <p className="text-[12px] text-muted-foreground mt-0.5 truncate">{s.whatAreYouBuilding}</p>
+              </div>
+              <span className="text-[11px] text-muted-foreground/60 shrink-0">{relDate(s.createdAt)}</span>
+            </button>
+
+            {isOpen && (
+              <div className="border-t border-border px-4 py-4 space-y-5 text-sm">
+                {/* Read-only fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    ["Decision to make",    s.decisionToMake],
+                    ["Options considered",  s.optionsConsidered],
+                    ["If wrong…",           s.whatHappensIfWrong],
+                    ["Already tried",       s.alreadyTried],
+                    ["Website",             s.websiteUrl],
+                    ["Source / channel",    s.whereDidYouFind || s.source],
+                    ["Preferred contact",   s.preferredContactMethod],
+                  ].filter(([, v]) => v).map(([label, val]) => (
+                    <div key={label as string} className="space-y-0.5">
+                      <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">{label as string}</p>
+                      <p className="text-[13px] text-foreground whitespace-pre-wrap">{val as string}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {s.messyNotes && (
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Notes / context</p>
+                    <p className="text-[13px] text-foreground whitespace-pre-wrap bg-muted/40 rounded-lg px-3 py-2 max-h-48 overflow-y-auto">{s.messyNotes}</p>
+                  </div>
+                )}
+
+                {/* Admin controls */}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {/* Status */}
+                  <select
+                    className="text-[12px] border border-border rounded-lg px-2 py-1.5 bg-background text-foreground"
+                    value={s.status}
+                    disabled={saving === s.id}
+                    onChange={e => void patch(s.id, { status: e.target.value })}
+                  >
+                    {["new","reviewing","accepted","rejected","delivered"].map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+
+                  {/* Payment status */}
+                  <select
+                    className="text-[12px] border border-border rounded-lg px-2 py-1.5 bg-background text-foreground"
+                    value={s.paymentStatus}
+                    disabled={saving === s.id}
+                    onChange={e => void patch(s.id, { paymentStatus: e.target.value })}
+                  >
+                    {["not_sent","sent","paid","refunded"].map(v => <option key={v} value={v}>{v.replace("_", " ")}</option>)}
+                  </select>
+
+                  {/* Good fit toggle */}
+                  <button
+                    className={`text-[12px] px-3 py-1.5 rounded-lg border transition-colors ${s.goodFit === true ? "bg-emerald-100 border-emerald-300 text-emerald-700" : "border-border text-muted-foreground hover:text-foreground"}`}
+                    disabled={saving === s.id}
+                    onClick={() => void patch(s.id, { goodFit: s.goodFit === true ? null : true })}
+                  >
+                    Good fit
+                  </button>
+                  <button
+                    className={`text-[12px] px-3 py-1.5 rounded-lg border transition-colors ${s.goodFit === false ? "bg-red-50 border-red-200 text-red-600" : "border-border text-muted-foreground hover:text-foreground"}`}
+                    disabled={saving === s.id}
+                    onClick={() => void patch(s.id, { goodFit: s.goodFit === false ? null : false })}
+                  >
+                    Not a fit
+                  </button>
+                </div>
+
+                {/* Admin notes */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Admin notes</p>
+                  <textarea
+                    rows={2}
+                    className="w-full text-[13px] px-3 py-2 border border-border rounded-lg bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-foreground/20"
+                    placeholder="Internal notes…"
+                    value={noteDraft}
+                    onChange={e => setNotes(n => ({ ...n, [s.id]: e.target.value }))}
+                  />
+                  <button
+                    className="text-[12px] px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                    disabled={saving === s.id || noteDraft === (s.adminNotes ?? "")}
+                    onClick={() => void patch(s.id, { adminNotes: noteDraft })}
+                  >
+                    {saving === s.id ? "Saving…" : "Save notes"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Tabs config ────────────────────────────────────────────────────────────
 
-type TabId = "overview" | "users" | "coupons" | "feedback" | "waitlist";
+type TabId = "overview" | "users" | "coupons" | "feedback" | "waitlist" | "submissions";
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: "overview",  label: "Overview",  icon: <BarChart2Icon size={13} /> },
-  { id: "users",     label: "Users",     icon: <UsersIcon size={13} /> },
-  { id: "coupons",   label: "Coupons",   icon: <TagIcon size={13} /> },
-  { id: "feedback",  label: "Feedback",  icon: <MessageSquareIcon size={13} /> },
-  { id: "waitlist",  label: "Waitlist",  icon: <MailIcon size={13} /> },
+  { id: "overview",    label: "Overview",     icon: <BarChart2Icon size={13} /> },
+  { id: "users",       label: "Users",        icon: <UsersIcon size={13} /> },
+  { id: "coupons",     label: "Coupons",      icon: <TagIcon size={13} /> },
+  { id: "feedback",    label: "Feedback",     icon: <MessageSquareIcon size={13} /> },
+  { id: "waitlist",    label: "Waitlist",     icon: <MailIcon size={13} /> },
+  { id: "submissions", label: "Submissions",  icon: <InboxIcon size={13} /> },
 ];
 
 // ── Main Page ──────────────────────────────────────────────────────────────
@@ -1189,11 +1385,12 @@ export default function AdminPage() {
         </div>
 
         {/* Tab content */}
-        {activeTab === "overview"  && <OverviewTab      headers={headers} />}
-        {activeTab === "users"     && <UsersTab         headers={headers} currentUserId={user.id} />}
-        {activeTab === "coupons"   && <CouponsTab       headers={headers} />}
-        {activeTab === "feedback"  && <FeedbackAdminTab headers={headers} />}
-        {activeTab === "waitlist"  && <WaitlistTab      headers={headers} />}
+        {activeTab === "overview"    && <OverviewTab      headers={headers} />}
+        {activeTab === "users"       && <UsersTab         headers={headers} currentUserId={user.id} />}
+        {activeTab === "coupons"     && <CouponsTab       headers={headers} />}
+        {activeTab === "feedback"    && <FeedbackAdminTab headers={headers} />}
+        {activeTab === "waitlist"    && <WaitlistTab      headers={headers} />}
+        {activeTab === "submissions" && <SubmissionsTab   headers={headers} />}
       </div>
     </div>
   );
