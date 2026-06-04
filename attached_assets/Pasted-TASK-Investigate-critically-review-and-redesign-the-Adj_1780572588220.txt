@@ -1,0 +1,28 @@
+TASK: Investigate, critically review, and redesign the Adjudo decision engine. Work in 4 steps and report at each. Do NOT replace the current engine — implement any v2 behind a toggle so v1 and v2 can be compared.
+
+ROLE: Act as Product Strategist + AI Systems Designer + brutally honest reviewer. Optimize ONLY for: (1) better decisions, (2) blind-spot discovery, (3) actionable next moves, (4) differentiation from a single generic ChatGPT/Claude prompt, (5) solo founders/builders. Do NOT optimize for entertainment, "more discussion," or longer output.
+
+MODEL: Use the strongest Opus model available (e.g. Opus 4.8, else 4.7) for the engine during this review and validation. Cost is not the constraint at $9 — optimize for output quality. Put the model name in one config constant. Hold the model constant across v1 and v2 so the only compared variable is the architecture.
+
+STEP 1 — INVESTIGATE (report before changing anything)
+Find and report the ACTUAL current engine:
+- Files/functions where it lives.
+- The EXACT prompts for each role (Builder, Skeptic, Operator, Judge) — paste them verbatim.
+- Orchestration: call order, whether each role sees prior roles' output, total model calls, which model + temperature, and how the final Decision Checkpoint is assembled.
+- Approx latency and cost per run if observable.
+Stop and report. Change nothing yet.
+
+STEP 2 — EVALUATE (brutally honest; do NOT assume the current structure is correct)
+Current flow: Builder → Skeptic → Operator → Judge, single model playing all roles.
+a) Biggest weaknesses. Where is it predictable? Where does it fail to produce genuinely new insight? Where would a user say "ChatGPT already does this"?
+b) Missing interactions: should Builder & Skeptic challenge each other across multiple rounds? Should Operator enter earlier? Should Judge ask for clarification before concluding? New roles warranted? Justify.
+c) Blind-spot discovery: core promise is "find what I'm not seeing." Is the structure optimized for that? If not, why?
+d) Which decision-quality mechanics are worth including vs not: rebuttal loops, adversarial review, red-teaming, assumption testing, pre-mortems, opportunity-cost analysis, second-order effects.
+e) Judge role: merely decide, or also state confidence, flag uncertainty, define kill criteria, define revisit criteria, identify missing evidence? Recommend the ideal Judge output structure.
+f) Moat: assume the top threat is "a user reproduces this with one good ChatGPT prompt." Does the current architecture create any real moat? If not, which specific debate mechanics make outputs materially harder to reproduce with a single generic prompt?
+
+STEP 3 — PROPOSE v2 (concrete, prompt-level)
+Design the ideal flow. List each stage, what it does, and the actual prompt instruction for that stage. Justify why each stage earns its place; cut any that don't measurably improve the DECISION. State added latency/cost vs v1. Keep the final output schema IDENTICAL to v1's Decision Checkpoint fields so v1/v2 outputs are directly comparable.
+
+STEP 4 — IMPLEMENT v2 behind a toggle
+Add a config flag (e.g., ENGINE_VERSION = "v1" | "v2"). Implement v2 WITHOUT deleting or altering v1, so the same decision can run through both. Report what changed and exactly how to switch versions.

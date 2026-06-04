@@ -19,6 +19,8 @@ export default function AuthPage() {
   const [resetSent,     setResetSent]  = useState(false);
   const [isSubmitting,  setSubmitting] = useState(false);
 
+  const wasTimedOut = new URLSearchParams(window.location.search).get("reason") === "inactivity";
+
   const { signInWithGoogle, signInWithEmail, signUp, sendPasswordReset } = useAuth();
   const { locale, setLocale } = useLocale();
   const isJa = locale === "ja";
@@ -99,6 +101,15 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
+
+        {/* Inactivity logout notice */}
+        {wasTimedOut && (
+          <div className="mb-5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[13px] leading-snug">
+            {isJa
+              ? "非アクティブのため自動的にログアウトされました。"
+              : "You were logged out due to inactivity."}
+          </div>
+        )}
 
         {/* Top bar */}
         <div className="flex items-center justify-between mb-6">

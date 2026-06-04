@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { Switch, Route, Router as WouterRouter, Redirect, Link } from "wouter";
+import { useState, useEffect, useCallback } from "react";
+import { Switch, Route, Router as WouterRouter, Redirect, Link, useLocation } from "wouter";
+import { useIdleTimeout } from "./hooks/useIdleTimeout";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MenuIcon } from "lucide-react";
 import { AuthProvider, useAuth, isTesterEmail } from "./context/AuthContext";
@@ -43,6 +44,14 @@ function Spinner() {
  */
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading, signOut } = useAuth();
+  const [, navigate] = useLocation();
+
+  const handleTimeout = useCallback(async () => {
+    await signOut();
+    navigate("/login?reason=inactivity");
+  }, [signOut, navigate]);
+
+  const { warningSecondsLeft } = useIdleTimeout(handleTimeout, !!user && !isLoading);
 
   if (isLoading) return <Spinner />;
 
@@ -73,7 +82,16 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     return <Redirect to="/early-access?expired=true" />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {warningSecondsLeft !== null && (
+        <div className="fixed top-0 inset-x-0 z-[9999] bg-amber-500 text-white text-[13px] text-center py-2 px-4 shadow-md">
+          非アクティブのため{warningSecondsLeft}秒後に自動ログアウトします。操作を続けるにはクリックまたはキー入力してください。
+        </div>
+      )}
+      {children}
+    </>
+  );
 }
 
 /**
