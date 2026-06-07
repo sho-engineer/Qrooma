@@ -11,6 +11,8 @@ export interface DebateTaskPayload {
   userMessage: string
   /** Language detected from the user's first message. Used to lock all AI responses. */
   discussionLanguage?: string
+  /** Number of active AI sides: 2 (A+B) or 3 (A+B+C). Default 3. */
+  activeAgentCount?: 2 | 3
   settings: {
     side_a_provider: Provider
     side_a_model: string
@@ -105,38 +107,32 @@ export const structuredDebateTask = task({
   id: 'structured-debate',
   maxDuration: 300,
   run: async (payload: DebateTaskPayload) => {
-    const { runId, roomId, userId, userMessage, settings, discussionLanguage = 'English' } = payload
+    const {
+      runId, roomId, userId, userMessage, settings,
+      discussionLanguage = 'English',
+      activeAgentCount = 3,
+    } = payload
     const lang = langInstruction(discussionLanguage)
     const db = getDb()
 
-    logger.log('Starting structured debate', { runId, roomId })
+    logger.log('Starting structured debate', { runId, roomId, activeAgentCount })
 
     // Mark run as running
     await db.from('runs').update({ status: 'running' }).eq('id', runId)
 
-    // ── Decrypt API keys inside the task (never in payload) ─────────────────
+    // Build side configs only for active sides — avoids fetching unused API keys
+    const activeSideKeys = (['a', 'b', 'c'] as const).slice(0, activeAgentCount)
+
     let sideConfigs: SideConfig[]
     try {
-      sideConfigs = await Promise.all([
-        {
-          side: 'a' as const,
-          provider: settings.side_a_provider,
-          model: settings.side_a_model,
-          apiKey: await getDecryptedKey(db, userId, settings.side_a_provider),
-        },
-        {
-          side: 'b' as const,
-          provider: settings.side_b_provider,
-          model: settings.side_b_model,
-          apiKey: await getDecryptedKey(db, userId, settings.side_b_provider),
-        },
-        {
-          side: 'c' as const,
-          provider: settings.side_c_provider,
-          model: settings.side_c_model,
-          apiKey: await getDecryptedKey(db, userId, settings.side_c_provider),
-        },
-      ])
+      sideConfigs = await Promise.all(
+        activeSideKeys.map(async (side) => ({
+          side,
+          provider: settings[`side_${side}_provider`],
+          model: settings[`side_${side}_model`],
+          apiKey: await getDecryptedKey(db, userId, settings[`side_${side}_provider`]),
+        }))
+      )
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       await db.from('runs').update({ status: 'failed', error_message: msg }).eq('id', runId)

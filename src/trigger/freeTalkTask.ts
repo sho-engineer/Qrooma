@@ -11,6 +11,8 @@ export interface FreeTalkTaskPayload {
   userMessage: string
   /** Language detected from the user's first message. Used to lock all AI responses. */
   discussionLanguage?: string
+  /** Number of active AI sides: 2 (A+B) or 3 (A+B+C). Default 3. */
+  activeAgentCount?: 2 | 3
   settings: {
     side_a_provider: Provider
     side_a_model: string
@@ -75,37 +77,31 @@ export const freeTalkTask = task({
   id: 'free-talk',
   maxDuration: 300,
   run: async (payload: FreeTalkTaskPayload) => {
-    const { runId, roomId, userId, userMessage, settings, discussionLanguage = 'English' } = payload
+    const {
+      runId, roomId, userId, userMessage, settings,
+      discussionLanguage = 'English',
+      activeAgentCount = 3,
+    } = payload
     const lang = langInstruction(discussionLanguage)
     const db = getDb()
 
-    logger.log('Starting free talk', { runId, roomId })
+    logger.log('Starting free talk', { runId, roomId, activeAgentCount })
 
     await db.from('runs').update({ status: 'running' }).eq('id', runId)
 
-    // Decrypt keys inside the task
+    // Build side configs only for active sides — avoids fetching unused API keys
+    const activeSideKeys = (['a', 'b', 'c'] as const).slice(0, activeAgentCount)
+
     let sideConfigs: SideConfig[]
     try {
-      sideConfigs = await Promise.all([
-        {
-          side: 'a' as const,
-          provider: settings.side_a_provider,
-          model: settings.side_a_model,
-          apiKey: await getDecryptedKey(db, userId, settings.side_a_provider),
-        },
-        {
-          side: 'b' as const,
-          provider: settings.side_b_provider,
-          model: settings.side_b_model,
-          apiKey: await getDecryptedKey(db, userId, settings.side_b_provider),
-        },
-        {
-          side: 'c' as const,
-          provider: settings.side_c_provider,
-          model: settings.side_c_model,
-          apiKey: await getDecryptedKey(db, userId, settings.side_c_provider),
-        },
-      ])
+      sideConfigs = await Promise.all(
+        activeSideKeys.map(async (side) => ({
+          side,
+          provider: settings[`side_${side}_provider`],
+          model: settings[`side_${side}_model`],
+          apiKey: await getDecryptedKey(db, userId, settings[`side_${side}_provider`]),
+        }))
+      )
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       await db.from('runs').update({ status: 'failed', error_message: msg }).eq('id', runId)
@@ -160,9 +156,12 @@ export const freeTalkTask = task({
           logger.log(`Side ${cfg.side} spoke in round ${round + 1}`)
         }
 
-        // Check convergence: if all 3 sides' last messages contain agreement keywords
-        const lastThree = conversationHistory.slice(-3)
-        if (lastThree.length === 3 && lastThree.every((h) => CONVERGENCE_KEYWORDS.test(h.content))) {
+        // Check convergence: if all active sides' last messages contain agreement keywords
+        const lastN = conversationHistory.slice(-activeAgentCount)
+        if (
+          lastN.length === activeAgentCount &&
+          lastN.every((h) => CONVERGENCE_KEYWORDS.test(h.content))
+        ) {
           logger.log('Convergence detected, ending early')
           converged = true
         }
