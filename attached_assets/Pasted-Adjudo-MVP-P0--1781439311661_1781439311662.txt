@@ -1,0 +1,172 @@
+Adjudo MVPのP0修正が完了したとのことなので、実装内容を確認したいです。
+
+以下について、実装状況・変更ファイル・現在の挙動を具体的に回答してください。
+「対応済み」だけではなく、該当ファイル名、主要な変更点、未対応/懸念があれば明記してください。
+
+⸻
+
+1. max_tokens 修正について
+
+1. artifacts/api-server/src/lib/ai.ts の max_tokens: 400 はすべて修正されていますか？
+2. 通常メッセージ、checkpoint/summary、Decision Memo JSON生成で、それぞれ別のtoken上限を指定できるようになっていますか？
+3. 現在の設定値を教えてください。
+    * 通常メッセージ:
+    * checkpoint / summary:
+    * Decision Memo JSON:
+4. OpenAI / Anthropic / Google それぞれで、同等の出力上限になるように設定されていますか？
+5. Claude Opusを使ったDecision Memo生成時に、JSONが途中で切れる問題は解消されていますか？
+
+⸻
+
+2. Completed without Conclusion 問題について
+
+1. receivedConclusion=false のまま done event が来た場合、現在はどう処理されますか？
+2. Decision Memoが存在しない状態でRun statusが completed になる可能性は完全になくなっていますか？
+3. その修正はどのファイルで行いましたか？
+4. 現在のRun statusには、以下のような状態が分かれていますか？
+    * running
+    * checkpoint_ready
+    * generating_conclusion
+    * completed
+    * failed
+5. JSONパースエラーが発生した場合、ユーザーにはどう表示されますか？
+6. JSONパース失敗時のリトライ、またはJSON修復処理は実装されていますか？
+
+⸻
+
+3. Decision Memo 自動生成フローについて
+
+1. 現在もユーザーが "End here" を押さないとDecision Memoは生成されませんか？
+2. それとも、議論完了後に自動でDecision Memoが生成されるようになりましたか？
+3. forceConclusion:true は現在どのタイミングで使われていますか？
+4. checkpointは現在、ユーザーにどのように表示されますか？
+5. ユーザーが1回メッセージを送信しただけで、最終的にDecision Memoまで到達しますか？
+6. Decision Memo生成中であることはUI上で分かりますか？
+7. Decision Memo生成に失敗した場合、ユーザーは再生成できますか？
+
+⸻
+
+4. FreeプランのOperator有効化について
+
+1. FREE_SIDES は A/B/C の3エントリになっていますか？
+2. Freeプランでも Side C = Operator が呼ばれるようになっていますか？
+3. Freeプランの標準フローは現在、2-agentですか？3-agentですか？
+4. 現在のFreeプランの実行順序を教えてください。
+    例:
+    * Round 1: Builder / Breaker / Operator
+    * Summary
+    * Round 2: Builder / Breaker / Operator
+    * Conclusion
+5. Freeプランでも最終的にOperator視点がDecision Memoに反映されますか？
+
+⸻
+
+5. モデル名非表示について
+
+通常ユーザー画面から、モデル名・provider名は完全に消えていますか？
+
+以下の文字列が通常UIに残っていないか確認してください。
+
+* Claude Opus
+* OpenAI
+* Anthropic
+* Gemini
+* GPT
+* model
+* provider
+* API key
+* BYOK
+
+特に以下のファイルで確認してください。
+
+1. artifacts/qrooma/src/components/MessageBubble.tsx
+    * MessageBubbleにモデル名は表示されていませんか？
+    * Builder / Breaker / Operator の役割名だけになっていますか？
+2. artifacts/qrooma/src/pages/SettingsPage.tsx
+    * Claude Opusなどのモデル名表示は消えていますか？
+    * Fixed 2-agent config は消えていますか？
+    * API Key / BYOK 設定導線は消えていますか？
+3. artifacts/qrooma/src/components/MessageInput.tsx
+    * Free modeバナーは消えていますか？
+    * “Set up in Settings” のような導線は消えていますか？
+
+⸻
+
+6. Settingsページについて
+
+1. Settingsページに現在残っている設定項目をすべて教えてください。
+2. Settingsページは以下だけに整理されていますか？
+    * Language
+    * Writing style
+    * 必要ならOutput tone
+3. Freeプラン説明、APIキー設定、agentCount設定、モデル選択などは通常ユーザーから見えない状態になっていますか？
+4. 管理者だけが見える設定項目がある場合、それも教えてください。
+
+⸻
+
+7. i18n / 日本語表示について
+
+日本語設定時に、主要画面が日本語表示になっているか確認してください。
+
+特に以下は修正されていますか？
+
+1. MessageInput.tsx
+    * “Normal”
+    * “Prompt Mode”
+2. RoomsPage.tsx
+    * “just now”
+    * “m ago”
+    * “h ago”
+    * “d ago”
+3. SettingsPage.tsx
+    * “Free”
+    * “Current plan”
+    * “Usage”
+4. AdminPage.tsx
+    * 英語固定テキスト
+
+また、localStorageの qrooma_locale が ja の場合、リロード後も日本語設定が維持されますか？
+
+⸻
+
+8. Decision Memo保存について
+
+1. Decision Memoは現在もlocalStorage保存ですか？
+2. PostgreSQLへの保存は今回実装しましたか？それとも未実装ですか？
+3. ブラウザを変えた場合、過去のDecision Memoは見えますか？
+4. Projectごとの過去Decision Memo参照ON/OFFは、現状どの程度機能していますか？
+5. 今回未対応の場合、DB保存へ移行するための接続ポイントやTODOは残していますか？
+
+⸻
+
+9. 実際の動作確認結果
+
+以下のテストを実施した結果を教えてください。
+
+1. 日本語でRoomにメッセージ送信
+2. Builder / Breaker / Operator が日本語で応答
+3. 議論完了後、自動でDecision Memo生成
+4. Decision Memo JSONが途中で切れない
+5. Run statusが正しく completed になる
+6. MessageBubbleにモデル名が出ない
+7. SettingsにClaude Opus / API Key / Free mode説明が出ない
+8. リロード後もRoomとDecision Memoが見える
+9. 英語設定に切り替えた場合、英語UIになる
+10. 日本語設定に戻した場合、日本語UIになる
+
+⸻
+
+10. 残っている懸念・未対応事項
+
+最後に、今回の実装後も残っている懸念を正直に教えてください。
+
+特に以下があれば明記してください。
+
+* Decision Memoが生成されない可能性がまだある箇所
+* JSONパース失敗の可能性
+* Claude Opusでの出力切断リスク
+* Freeプラン3-agent化によるコスト増
+* localStorage保存による制約
+* i18n未対応箇所
+* UI上にまだ残っている英語/モデル名/APIキー関連文言
+* テスト未実施の箇所
