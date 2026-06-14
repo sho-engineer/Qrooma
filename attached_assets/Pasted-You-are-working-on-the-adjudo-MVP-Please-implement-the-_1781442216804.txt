@@ -1,0 +1,420 @@
+You are working on the adjudo MVP.
+
+Please implement the remaining pre-external-user fixes.
+
+Current verification result:
+The core Decision Room flow is partially working:
+
+* Builder / Breaker / Operator are implemented
+* Claude Opus appears configured
+* generating_conclusion status exists
+* Decision Memo JSON generation works
+* JSON repair retry exists
+* Japanese i18n works
+
+However, the MVP is not ready for external users because:
+
+1. We need to verify actual runtime API calls.
+2. Room still contains legacy Free / API key / Connect warning UI.
+3. Decision Memo is stored only in localStorage, not Firestore.
+4. Project → Room creation flow is not implemented.
+
+Please implement these fixes in the order below.
+
+==================================================
+P0-1: Verify actual Claude / Anthropic runtime calls
+
+Concern:
+The report says Claude runtime is PASS, but also says simulateRun is used for Free plan.
+We need to verify that the actual test user flow calls Anthropic Claude, not mock/simulated output.
+
+Please add server-side logging for AI calls.
+
+For each AI call, log:
+
+* runId
+* roomId
+* userId if available
+* role: Builder / Breaker / Operator / FinalMemo / Repair
+* provider
+* model
+* isFallback
+* isSimulated
+* startedAt
+* completedAt
+* success/failure
+* error message if failed
+
+Important:
+
+* Do not log full user prompt if it may contain sensitive information.
+* Do not log API keys.
+* Logs can be console logs for now, or saved to a lightweight collection if already easy.
+
+Expected:
+When running a normal Decision Room with the current test user, logs should clearly show:
+
+* Builder uses Anthropic / claude-opus-4-5
+* Breaker uses Anthropic / claude-opus-4-5
+* Operator uses Anthropic / claude-opus-4-5
+* Final Decision Memo uses Anthropic / claude-opus-4-5
+* Repair uses Anthropic / claude-opus-4-5 if triggered
+* simulateRun is not used for actual comparison tests
+
+If simulateRun is still used for Free/Special/tester users, please report and fix so that tester/admin/special users use the real Claude API.
+
+==================================================
+P0-2: Remove all Free / API key / Connect warning UI from Room
+
+Remove the remaining legacy warning from RoomDetailPage:
+
+Current remaining condition:
+runStatus === “idle” && plan === “connect” && !hasSomeKey && !hasMessages
+
+Current text:
+
+* “No API keys configured”
+* “Connect plan requires API keys. Add them in Settings → API keys.”
+
+Expected:
+Do not show API key warnings, Connect plan warnings, Free mode, BYOK, model config, or API settings prompts anywhere in the normal user Room UI.
+
+Remove or hide all of these from normal user screens:
+
+* Free mode
+* Try without API keys
+* Set keys for full access
+* Set up in Settings
+* No API keys configured
+* Connect plan requires API keys
+* API key warning
+* BYOK
+* Connect plan references
+* model selection
+* fixed model config
+* 2 agents, fixed models
+* Side A/B/C
+* default mode
+* agent count settings
+
+MVP rule:
+The backend may use Anthropic/OpenAI/Gemini internally, but normal users should only see roles and Decision Workspace UX, not model/provider/API configuration.
+
+==================================================
+P0-3: Save Decision Memo to Firestore
+
+Current problem:
+messagesService.saveConclusion() only writes to localStorage.
+This is not acceptable for external users because:
+
+* data disappears across devices
+* data disappears in private browser
+* no server-side persistence
+* no Project Context reuse
+* no admin/debug visibility
+
+Please implement Firestore persistence for Decision Memos.
+
+Recommended collection:
+
+decisionMemos/{memoId}
+
+Fields:
+
+{
+id: string,
+userId: string,
+userEmail: string | null,
+
+projectId: string | null,
+roomId: string,
+runId: string,
+
+title: string | null,
+
+memo: {
+decision: string,
+background: string,
+reasoning: string,
+axis_evaluations: any[],
+conditions_that_change_decision: any[],
+do_now: any[],
+not_now: any[],
+future_consideration: any[],
+needs_confirmation: any[],
+next_actions: any[]
+},
+
+rawText: string | null,
+parseError: boolean,
+parseErrorMessage: string | null,
+
+provider: string | null,
+model: string | null,
+
+createdAt: Timestamp,
+updatedAt: Timestamp
+}
+
+If the existing Decision Memo schema differs, keep the existing schema but include:
+
+* userId
+* projectId
+* roomId
+* runId
+* parseError
+* rawText
+* createdAt
+* updatedAt
+
+Behavior:
+
+1. When final Decision Memo is generated, save it to Firestore.
+2. After Firestore save succeeds, update run status to completed.
+3. UI should fetch the latest memo for the current room/run from Firestore.
+4. localStorage may remain only as a fallback/cache, not the source of truth.
+5. After page refresh, Decision Memo should still display from Firestore.
+6. After logging in from another browser/device, the memo should still display.
+7. If Firestore save fails, do not silently mark run as completed.
+8. Show clear error state if memo generation succeeded but saving failed.
+
+Access:
+
+* Users can read/write only their own decisionMemos.
+* Admin can read decisionMemos if admin dashboard later requires it.
+* Do not allow one user to read another user’s memos.
+
+Please update or add Firestore security rules if rules are managed in repo.
+If firestore.rules does not exist, add one or document the required console-side rule changes clearly.
+
+==================================================
+P0-4: Project → Room creation flow
+
+Current problem:
+
+* /projects routes to RoomsPage.
+* projectId exists on room, but there is no dedicated Project detail page.
+* User cannot create a Room directly under a Project.
+* Project room list and room count are incomplete.
+
+Please implement a minimal Project → Room flow.
+
+Expected routes:
+
+* /projects
+* /projects/:projectId
+* /rooms/:roomId
+
+Project list page:
+
+* Show user’s projects
+* Each project card opens /projects/:projectId
+* Show project title
+* Show room count
+* Show updatedAt if available
+* Include create project if already supported
+
+Project detail page:
+
+* Show project title
+* Show rooms under that project
+* Query rooms where projectId == current projectId and ownerId == current user
+* Sort by updatedAt desc or createdAt desc
+* Show empty state if no rooms exist
+* Add primary button:
+    English: + New Decision Room
+    Japanese: + 新しいルーム
+
+New Room behavior:
+
+1. User clicks + New Decision Room.
+2. Create rooms/{roomId}
+3. Set:
+    * id
+    * projectId
+    * ownerId / userId
+    * title: “Untitled Decision Room” or “新しいディシジョンルーム”
+    * status: “idle” or current room status standard
+    * createdAt
+    * updatedAt
+4. Redirect to /rooms/{roomId}
+
+Room behavior:
+
+* RoomDetailPage should read room.projectId.
+* Decision Memo saved from that room should include the same projectId.
+* Project detail page should show the created room after returning.
+
+Room count:
+Preferred MVP approach:
+
+* Calculate count from rooms where projectId == project.id.
+* Avoid stale denormalized counts unless already implemented reliably.
+
+Existing standalone rooms:
+If a room has no projectId, allow it to remain standalone for now.
+If low risk, add a simple “Move to project” / “Assign to project” action later, but do not block this implementation on drag-and-drop.
+
+Do not implement drag-and-drop in this pass.
+
+==================================================
+P1: Basic Firestore rules tracking
+
+The report says firestore.rules was not found in the repo.
+
+Please do one of the following:
+
+Option A:
+If this project uses Firebase rules from source control, add/update firestore.rules.
+
+Option B:
+If rules are managed only in Firebase Console, create a clear document:
+
+docs/firestore-rules-required.md
+
+Include required rules for:
+
+* users
+* projects
+* rooms
+* messages
+* decisionMemos
+* coupons
+* couponRedemptions
+* waitlist
+* feedback
+* admin-only data
+
+Minimum required security expectations:
+
+* normal users can read/write only their own projects, rooms, messages, decisionMemos
+* normal users cannot update their own role/status/accessStatus
+* normal users cannot create/update coupons
+* normal users cannot read admin data
+* admins can access admin collections based on users/{uid}.role == “admin”
+* API keys are never exposed to client
+
+==================================================
+Manual QA Checklist
+
+After implementation, please test:
+
+1. AI runtime
+
+* Run a messy Japanese PR decision prompt.
+* Confirm logs show real Anthropic Claude calls.
+* Confirm simulateRun is false.
+* Confirm Builder / Breaker / Operator / Final Memo all run.
+
+2. Room UI cleanup
+
+* Open Room as normal user/tester/admin.
+* Confirm no Free mode, API key, Connect, BYOK, or model warning appears.
+* Confirm Settings has no API key/model sections.
+
+3. Decision Memo Firestore save
+
+* Run a room to completion.
+* Confirm Decision Memo appears.
+* Refresh page.
+* Confirm Decision Memo remains.
+* Open same account in another browser if possible.
+* Confirm Decision Memo is loaded from Firestore.
+* Confirm Firestore document has userId, roomId, runId, projectId if applicable.
+
+4. Project → Room
+
+* Create/open a project.
+* Click + New Decision Room.
+* Confirm room is created with projectId.
+* Confirm redirect to room works.
+* Run a decision.
+* Confirm memo includes projectId.
+* Return to project detail.
+* Confirm room appears.
+* Confirm room count updates.
+
+5. Language
+
+* Set UI language to Japanese.
+* Confirm project and room labels are Japanese.
+* Set to English.
+* Confirm labels switch correctly.
+
+6. Security
+
+* Confirm non-owner cannot read another user’s project/room/memo.
+* Confirm normal user cannot access admin data.
+* Confirm normal user cannot update role/accessStatus.
+
+==================================================
+Expected Report
+
+After implementation, report:
+
+1. Summary
+
+What was implemented.
+
+2. Files changed
+
+3. AI runtime verification
+
+Include actual provider/model logs summary.
+
+4. Removed legacy UI
+
+List removed texts/components.
+
+5. Firestore Decision Memo persistence
+
+* collection
+* fields
+* read/write flow
+* localStorage fallback behavior if any
+
+6. Project → Room flow
+
+* routes
+* components
+* Firestore fields
+* room count behavior
+
+7. Security/rules
+
+* rules added or docs created
+* remaining gaps
+
+8. Manual QA result
+
+PASS/PARTIAL/FAIL for each checklist item.
+
+9. Remaining risks/TODOs
+
+==================================================
+Important Constraints
+
+Do not implement:
+
+* BYOK
+* API key settings UI
+* model selection UI
+* Connect plan UI
+* Side A/B/C settings
+* default mode
+* agent count settings
+* radar chart
+* score evaluation
+* drag-and-drop room assignment
+* complex organization/team permissions
+* billing/payment
+
+Keep the MVP focused on:
+
+* Project
+* Decision Room
+* Builder / Breaker / Operator
+* Decision Memo
+* Handoff
+* Early Access / Coupon
+* Admin basics

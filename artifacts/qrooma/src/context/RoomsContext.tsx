@@ -63,7 +63,7 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
       ...(opts?.useProjectContext != null && { useProjectContext: opts.useProjectContext }),
     };
     setRooms((prev) => [room, ...prev]);
-    roomsService.create(user?.id ?? "demo", name).catch(console.error);
+    roomsService.create(user?.id ?? "demo", name, opts).catch(console.error);
     return room;
   }
 

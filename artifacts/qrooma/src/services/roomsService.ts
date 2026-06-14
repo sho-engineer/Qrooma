@@ -70,7 +70,7 @@ export const roomsService = {
   },
 
   /** SUPABASE: .from("rooms").insert({ user_id: userId, name }).select().single() */
-  async create(_userId: string, name: string): Promise<Room> {
+  async create(_userId: string, name: string, opts?: { projectId?: string }): Promise<Room> {
     const room: Room = {
       id:        `room-${Date.now()}`,
       name:      name.trim(),
@@ -79,6 +79,7 @@ export const roomsService = {
       hasFutureConsideration: false,
       hasTasks:               false,
       hasHandoff:             false,
+      ...(opts?.projectId != null && { projectId: opts.projectId }),
     };
     const rooms = load();
     rooms.unshift(room);

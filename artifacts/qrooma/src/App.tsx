@@ -19,6 +19,7 @@ import SampleDecisionCheckpointPage from "./pages/SampleDecisionCheckpointPage";
 import SubmitDecisionPage           from "./pages/SubmitDecisionPage";
 import RoomsPage from "./pages/RoomsPage";
 import RoomDetailPage from "./pages/RoomDetailPage";
+import ProjectDetailPage from "./pages/ProjectDetailPage";
 import SettingsPage from "./pages/SettingsPage";
 import FeedbackPage from "./pages/FeedbackPage";
 import AdminPage from "./pages/AdminPage";
@@ -159,9 +160,10 @@ function AppShell() {
         </div>
 
         <Switch>
-          <Route path="/projects"  component={RoomsPage} />
-          <Route path="/rooms"     component={RoomsPage} />
-          <Route path="/rooms/:id" component={RoomDetailPage} />
+          <Route path="/projects"             component={RoomsPage} />
+          <Route path="/projects/:projectId"  component={ProjectDetailPage} />
+          <Route path="/rooms"                component={RoomsPage} />
+          <Route path="/rooms/:id"            component={RoomDetailPage} />
           <Route path="/settings"  component={SettingsPage} />
           <Route path="/admin"     component={AdminPage} />
           <Route component={NotFoundPage} />

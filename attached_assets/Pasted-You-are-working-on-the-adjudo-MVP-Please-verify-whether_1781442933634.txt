@@ -1,0 +1,496 @@
+You are working on the adjudo MVP.
+
+Please verify whether the latest implementation is actually working.
+
+Do not add new features.
+Do not do a broad refactor.
+This is a verification task.
+
+Please inspect the code, run/manual-test the app where possible, and report PASS / PARTIAL / FAIL for each item.
+
+==================================================
+Context
+
+The previous implementation task requested these fixes:
+
+1. Verify actual Claude / Anthropic runtime calls.
+2. Remove all Free / API key / Connect warning UI from Room and Settings.
+3. Save Decision Memo to Firestore instead of localStorage only.
+4. Implement Project → Room creation flow.
+5. Add or document Firestore security rules.
+
+Expected MVP behavior:
+
+* User can create/open a Project.
+* User can create a Decision Room under a Project.
+* User can enter a messy decision prompt.
+* Builder / Breaker / Operator run.
+* Claude / Anthropic is actually called, not simulateRun.
+* Final Decision Memo is generated.
+* Decision Memo is saved to Firestore.
+* Decision Memo appears after completion.
+* Decision Memo remains after page refresh and ideally another browser/session.
+* No Free mode / API key / Connect / BYOK UI appears.
+* UI language follows Settings.
+
+==================================================
+Check 1: Actual Claude / Anthropic runtime
+
+Please verify that the actual running app calls Claude / Anthropic.
+
+Check:
+
+1. Are Builder / Breaker / Operator using Anthropic?
+2. Is Final Decision Memo generation using Anthropic?
+3. Is JSON repair using Anthropic when triggered?
+4. Is simulateRun disabled for tester/admin/special users?
+5. Is simulateRun avoided during real comparison tests?
+6. Are provider/model logs available?
+7. Are API keys never logged?
+8. Are full user prompts avoided in logs?
+
+Expected runtime:
+
+* provider: anthropic
+* model: claude-opus-4-5
+* roles:
+    * Builder
+    * Breaker
+    * Operator
+    * FinalMemo
+    * Repair if needed
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Runtime provider:
+* Runtime model:
+* simulateRun used? yes/no
+* Evidence:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 2: Legacy Free / API / Connect UI removed
+
+Please verify that the following do not appear anywhere in normal user screens:
+
+* Free mode
+* Try without API keys
+* Set keys for full access
+* Set up in Settings
+* No API keys configured
+* Connect plan requires API keys
+* API key warning
+* BYOK
+* Connect plan references
+* API key settings
+* model selection
+* fixed model config
+* 2 agents, fixed models
+* Side A/B/C
+* default mode
+* agent count settings
+
+Check these pages/components:
+
+1. Room detail page
+2. Room input area
+3. Settings page
+4. Mobile view
+5. Desktop view
+6. Header/footer/status bars
+7. Any empty/error states
+
+Expected:
+Normal users should see only adjudo’s Decision Workspace UX.
+Users should not see provider/model/API configuration.
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Remaining visible legacy text:
+* Files checked:
+* Screens/pages checked:
+* Remaining risk:
+
+==================================================
+Check 3: Decision Memo Firestore persistence
+
+Please verify that Decision Memos are now saved to Firestore.
+
+Expected:
+Decision Memo should not be localStorage-only.
+
+Check:
+
+1. When a run completes, is Decision Memo saved to Firestore?
+2. Which collection is used?
+    * decisionMemos?
+    * rooms/{roomId}/decisionMemos?
+    * other?
+3. Does the document include:
+    * id
+    * userId
+    * userEmail if available
+    * projectId
+    * roomId
+    * runId
+    * memo JSON
+    * rawText
+    * parseError
+    * parseErrorMessage
+    * provider
+    * model
+    * createdAt
+    * updatedAt
+4. Is completed status set only after Firestore save succeeds?
+5. If Firestore save fails, does the UI show an error instead of silently completing?
+6. Does the UI read the memo from Firestore?
+7. Does the memo remain after page refresh?
+8. Does the memo load in another browser/session for the same user?
+9. Is localStorage only a fallback/cache, not the source of truth?
+10. Are older localStorage memos handled gracefully?
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Firestore collection/path:
+* Fields present:
+* Source of truth: Firestore / localStorage / mixed
+* Refresh persistence: PASS/PARTIAL/FAIL
+* Cross-browser persistence: PASS/PARTIAL/FAIL
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 4: Decision Room completion behavior
+
+Please verify the run lifecycle after Firestore persistence was added.
+
+Expected lifecycle:
+
+running
+→ checkpoint or checkpoint_ready
+→ generating_conclusion
+→ completed
+
+Important:
+completed must only happen after:
+
+* Builder / Breaker / Operator messages are generated
+* Final Decision Memo is generated
+* Decision Memo is saved to Firestore
+* UI can fetch/display the memo
+
+Check:
+
+1. Can completed happen before Decision Memo generation?
+2. Can completed happen before Firestore save?
+3. Can completed happen if decisionMemo is undefined?
+4. Can completed happen if Firestore save fails?
+5. Is memo_failed or error used when final memo generation/save fails?
+6. Does “Will appear after a completed run” disappear after completion?
+7. Does the final memo display automatically?
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Evidence:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 5: JSON repair and fallback
+
+Please verify JSON failure behavior.
+
+Expected:
+
+1. LLM returns Decision Memo JSON.
+2. App parses JSON.
+3. If parse fails, app attempts one repair.
+4. If repair succeeds, structured memo displays.
+5. If repair fails, app shows fallback clearly.
+6. parseError metadata is saved.
+7. Undefined decisionMemo is not treated as success.
+
+Check:
+
+1. Is repair still implemented after Firestore save changes?
+2. Is parseError saved to Firestore?
+3. Is rawText saved to Firestore?
+4. Does fallback UI clearly show parse issue?
+5. Can a parse-failed memo still be reviewed?
+6. Does completed status behave correctly in parseError case?
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Evidence:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 6: Project → Room creation flow
+
+Please verify Project → Room flow.
+
+Expected routes:
+
+* /projects
+* /projects/:projectId
+* /rooms/:roomId
+
+Expected behavior:
+
+1. User can see their projects.
+2. User can open a project detail page.
+3. User can click + New Decision Room / + 新しいルーム.
+4. New room is created with projectId.
+5. User is redirected to /rooms/:roomId.
+6. Room detail page reads the room correctly.
+7. Decision Memo generated in the room includes projectId.
+8. Returning to project detail shows the new room.
+9. Room count updates correctly.
+10. Standalone rooms without projectId still do not break.
+
+Check:
+
+1. Does /projects show project list?
+2. Does /projects/:projectId exist?
+3. Does project detail show rooms where projectId == current projectId?
+4. Does + New Decision Room create a room with projectId?
+5. Does the new room have ownerId/userId?
+6. Is room count calculated correctly?
+7. Can users see only their own projects/rooms?
+8. Are missing/deleted projects handled gracefully?
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Routes implemented:
+* Firestore fields:
+* Room count behavior:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 7: Japanese / English i18n
+
+Please verify language behavior after the changes.
+
+Expected:
+If Settings language is Japanese, Project and Room UI should show Japanese labels.
+If English, show English.
+
+Check Japanese labels for:
+
+* Projects
+* New Decision Room
+* Room status
+* Running
+* Completed
+* Generating memo
+* Memo failed
+* Conclusion / Decision Memo
+* Re-run
+* Input placeholder
+* Empty states
+* Error states
+* Project empty state
+* Room empty state
+
+Expected examples:
+
+Completed -> 完了
+Running -> 実行中
+Generating memo -> メモ生成中
+Conclusion -> 結論
+New Decision Room -> 新しいルーム
+Re-run -> 再実行
+Ask the team something… -> チームに質問する…
+
+Check:
+
+1. Does Settings save language?
+2. Does Project page read language?
+3. Does Room page read language?
+4. Does language switch without refresh if intended?
+5. Are any new Project/Room texts hardcoded English?
+6. Does generated AI output follow Japanese input/user setting?
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Missing translations:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 8: Security / Firestore rules
+
+Please verify security basics.
+
+Expected:
+
+* Users can read/write only their own projects.
+* Users can read/write only their own rooms.
+* Users can read/write only their own messages.
+* Users can read/write only their own decisionMemos.
+* Normal users cannot update their own role/status/accessStatus.
+* Normal users cannot create/update coupons.
+* Normal users cannot read admin data.
+* Admin pages are protected by role, not just hidden in UI.
+* API keys are never exposed to the client.
+
+Check:
+
+1. Does firestore.rules exist?
+2. If not, does docs/firestore-rules-required.md exist?
+3. Are rules actually deployed or only documented?
+4. Are server endpoints checking Firebase auth?
+5. Are admin endpoints checking users/{uid}.role === “admin”?
+6. Can a normal user access another user’s room/memo by URL?
+7. Can a normal user write to decisionMemos with another userId?
+8. Are environment variables safely server-side only?
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Rules file/docs:
+* Deployed or documented only:
+* Urgent concerns:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 9: Manual end-to-end test
+
+Please run or simulate this full E2E flow.
+
+Test prompt:
+
+adjudoのPRで何からやればいいか分からない。まだ誰も知らないし、投稿しても反応ない。でも、1人でもいいから実際に使ってもらいたい。Xやるのか、DMするのか、比較記事作るのか、LP直すのか、無料で使ってもらうのか、まずプロダクト直すのか迷ってる。今週やるべきことを決めたい。ちゃんと次のアクションに落として。
+
+Expected final memo includes:
+
+* 推奨アクション
+* 判断理由
+* 棄却した選択肢
+* 前提
+* リスク
+* 検証すること
+* 今やること
+* 今やらないこと
+* 次のアクション
+
+E2E steps:
+
+1. Login as tester/admin/special user.
+2. Set UI language to Japanese.
+3. Open /projects.
+4. Open or create a project.
+5. Click + 新しいルーム.
+6. Confirm room opens.
+7. Submit the messy Japanese PR prompt.
+8. Confirm Builder output appears.
+9. Confirm Breaker output appears.
+10. Confirm Operator output appears.
+11. Confirm メモ生成中 state appears.
+12. Confirm final Decision Memo appears.
+13. Confirm run status becomes 完了.
+14. Refresh page.
+15. Confirm Decision Memo still appears.
+16. Confirm Firestore has decisionMemo document.
+17. Confirm no Free/API/Connect warning appears.
+18. Confirm logs show real Anthropic Claude calls.
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* What worked:
+* What failed:
+* Evidence/logs:
+* Remaining risk:
+
+==================================================
+Final Report Format
+
+Please return the report in this exact structure:
+
+1. Executive Summary
+
+Overall status:
+
+* READY FOR EXTERNAL 1-USER TEST
+    or
+* READY FOR INTERNAL COMPARISON ONLY
+    or
+* NOT READY
+
+Short explanation.
+
+2. Status Table
+
+Check	Status	Priority	Notes
+Claude runtime	PASS/PARTIAL/FAIL	P0	…
+Legacy UI removal	PASS/PARTIAL/FAIL	P0	…
+Firestore memo persistence	PASS/PARTIAL/FAIL	P0	…
+Run completion behavior	PASS/PARTIAL/FAIL	P0	…
+JSON repair/fallback	PASS/PARTIAL/FAIL	P1	…
+Project → Room	PASS/PARTIAL/FAIL	P0/P1	…
+i18n	PASS/PARTIAL/FAIL	P1	…
+Security/rules	PASS/PARTIAL/FAIL	P0/P1	…
+E2E test	PASS/PARTIAL/FAIL	P0	…
+
+3. Remaining P0 Issues
+
+List only true blockers for one external user test.
+
+4. Remaining P1 Issues
+
+List important but non-blocking issues.
+
+5. Evidence
+
+Include:
+
+* files checked
+* routes checked
+* Firestore collections/fields
+* runtime provider/model
+* logs summary
+* screenshots if available
+
+6. Go / No-Go Judgment
+
+Answer both:
+
+1. Can we run adjudo vs ChatGPT vs Claude internal comparison test?
+
+* GO / NO-GO
+
+2. Can we let one external user try adjudo for one real decision?
+
+* GO / NO-GO
+
+Explain why.
+
+==================================================
+Important
+
+Do not mark PASS just because code exists.
+Mark PASS only if behavior works.
+
+If Firestore save exists but UI still reads localStorage as source of truth, mark PARTIAL.
+
+If completed can happen without a Firestore-saved memo, mark FAIL.
+
+If any Free/API/Connect warning is still visible to normal users, mark FAIL.
+
+If Project → Room creates a room without projectId, mark FAIL.
+
+If actual runtime uses simulateRun during the test, mark FAIL for Claude runtime.
+
+If security rules are only documented but not deployed, mark PARTIAL.

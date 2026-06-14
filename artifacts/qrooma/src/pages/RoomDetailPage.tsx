@@ -19,7 +19,7 @@ import { useParams } from "wouter";
 import { RotateCcwIcon } from "lucide-react";
 import { AGENTS } from "../data/dummy";
 import { messagesService } from "../services/messagesService";
-import { runsService, type RunPayload, type RealRunParams } from "../services/runsService";
+import { runsService, type RealRunParams } from "../services/runsService";
 import { useAuth } from "../context/AuthContext";
 import { useSettings } from "../context/SettingsContext";
 import { useRooms } from "../context/RoomsContext";
@@ -27,6 +27,7 @@ import { useLocale } from "../context/LocaleContext";
 import { usePlan } from "../context/PlanContext";
 import { useUserProfile, isFullAccessActive } from "../context/UserProfileContext";
 import { usageService } from "../services/usageService";
+import { decisionMemosService } from "../services/decisionMemosService";
 import type { ConclusionData, ConclusionStatus, Message, PromptConfig, RunStatus } from "../types";
 import RoomHeader from "../components/RoomHeader";
 import MessageBubble from "../components/MessageBubble";
@@ -120,6 +121,7 @@ export default function RoomDetailPage() {
   );
   const [conclusionStatus,  setConclusionStatus]  = useState<ConclusionStatus>("idle");
   const [limitError,        setLimitError]        = useState<string | null>(null);
+  const [memoSaveError,     setMemoSaveError]     = useState(false);
 
   // ─── Prompt Mode state ──────────────────────────────────────────────────────
   const [promptMode,   setPromptMode]   = useState(false);
@@ -214,6 +216,20 @@ export default function RoomDetailPage() {
     shouldScrollToBottom.current = false;
   }, [roomId]);
 
+  // Fetch Decision Memos from Firestore — overrides localStorage with server data
+  useEffect(() => {
+    if (!user?.id) return;
+    decisionMemosService.getForRoom(roomId, user.id).then((firestoreMemos) => {
+      if (firestoreMemos.length === 0) return;
+      setConclusions((prev) => {
+        const fsRunIds = new Set(firestoreMemos.map((m) => m.runId));
+        const localOnly = prev.filter((c) => c.runId && !fsRunIds.has(c.runId));
+        return [...firestoreMemos, ...localOnly];
+      });
+      setConclusionStatus((prev) => prev === "idle" ? "final" : prev);
+    });
+  }, [roomId, user?.id]);
+
   useEffect(() => {
     return () => { cancelRun.current?.(); };
   }, []);
@@ -285,8 +301,7 @@ export default function RoomDetailPage() {
     setFatalError(null);
     setLimitError(null);
     setConclusionStatus("loading");
-    // Count every real run (Free and BYOK)
-    if (isFree || hasSomeKey) {
+    if (canRun) {
       usageService.increment();
     }
 
@@ -316,7 +331,7 @@ export default function RoomDetailPage() {
       }
     }
 
-    if (hasSomeKey || isFree) {
+    if (canRun) {
       const sides = isFree
         ? (["A", "B", "C"] as const)
         : ((agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[]);
@@ -374,6 +389,14 @@ export default function RoomDetailPage() {
           messagesService.saveConclusion(roomId, enriched);
           setConclusions(messagesService.getConclusions(roomId));
           setConclusionStatus("final");
+          setMemoSaveError(false);
+          decisionMemosService.save(
+            enriched,
+            user?.id ?? "",
+            null,
+            roomId,
+            room?.projectId ?? null,
+          ).then((id) => { if (!id) setMemoSaveError(true); });
         },
         (status) => {
           onStatus(status);
@@ -417,17 +440,6 @@ export default function RoomDetailPage() {
         // onGeneratingConclusion — rounds done, memo generation starting
         () => setRunStatus("generating_conclusion"),
       );
-      cancelRun.current = cancel;
-    } else {
-      // No API keys → simulate (no conclusion generated)
-      setConclusionStatus("idle");
-      const payload: RunPayload = {
-        roomId,
-        userId:     "demo",
-        mode:       effectiveMode,
-        agentCount,
-      };
-      const cancel = runsService.simulateRun(runId, payload, onMessage, onStatus);
       cancelRun.current = cancel;
     }
   }
@@ -522,7 +534,7 @@ export default function RoomDetailPage() {
     if (isRunActive || messages.length === 0) return;
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     if (!lastUserMsg) return;
-    if (!hasSomeKey && !isFree) return;
+    if (!canRun) return;
 
     const sides = isFree
       ? (["A", "B", "C"] as const)
@@ -567,6 +579,9 @@ export default function RoomDetailPage() {
         messagesService.saveConclusion(roomId, enriched);
         setConclusions(messagesService.getConclusions(roomId));
         setConclusionStatus("final");
+        setMemoSaveError(false);
+        decisionMemosService.save(enriched, user?.id ?? "", null, roomId, room?.projectId ?? null)
+          .then((id) => { if (!id) setMemoSaveError(true); });
         setRunStatus("completed");
       },
       (status) => {
@@ -614,7 +629,7 @@ export default function RoomDetailPage() {
   // "議論を続ける" — run additional rounds focused on the 残論点 from the last provisional
   const handleContinueDiscussion = useCallback((direction: string = "") => {
     if (isRunActive || messages.length === 0) return;
-    if (!hasSomeKey && !isFree) return;
+    if (!canRun) return;
 
     // ── Continuation limit check for Free plan ──
     if (isFree && !profile.isUnlimitedUser && !isFullAccessActive(profile)) {
@@ -687,6 +702,9 @@ export default function RoomDetailPage() {
         messagesService.saveConclusion(roomId, enriched);
         setConclusions(messagesService.getConclusions(roomId));
         setConclusionStatus("final");
+        setMemoSaveError(false);
+        decisionMemosService.save(enriched, user?.id ?? "", null, roomId, room?.projectId ?? null)
+          .then((id) => { if (!id) setMemoSaveError(true); });
         setRunStatus("completed");
       },
       (status) => {
@@ -819,15 +837,12 @@ export default function RoomDetailPage() {
           </div>
         )}
 
-        {runStatus === "idle" && plan === "connect" && !hasSomeKey && hasMessages === false && (
-          <div className="mt-4 px-4 py-3.5 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40">
-            <p className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-0.5">
-              {locale === "ja" ? "APIキーが設定されていません" : "No API keys configured"}
-            </p>
-            <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 leading-relaxed">
+        {memoSaveError && runStatus === "completed" && (
+          <div className="mt-3 px-4 py-2.5 rounded-xl border border-orange-200 bg-orange-50 dark:border-orange-900/40 dark:bg-orange-950/30">
+            <p className="text-[11px] text-orange-700 dark:text-orange-400">
               {locale === "ja"
-                ? "Connect プランではAPIキーが必要です。設定 → APIキーで追加してください。"
-                : "Connect plan requires API keys. Add them in Settings → API keys."}
+                ? "メモはローカルに保存されました。クラウド同期に失敗しました。"
+                : "Memo saved locally — cloud sync failed."}
             </p>
           </div>
         )}
