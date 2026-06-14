@@ -122,32 +122,30 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     })();
   }, [user?.id, isAdmin, isTester]);
 
-  // Write / refresh Firestore user document for ALL logged-in users on login
+  // Write / refresh Firestore user document for ALL logged-in users on login.
+  // Only safe profile fields are written client-side.
+  // Protected fields (role, accessStatus, plan, etc.) are set exclusively by
+  // the server-side Admin SDK or Firebase Console — never by the client.
   useEffect(() => {
     if (!user || !firestoreDb) return;
     const ref = doc(firestoreDb, "users", user.id);
-    const roleForFirestore: UserRole = isAdmin ? "admin" : isTester ? "tester" : "user";
-    const accessStatus = isAdmin || isTester ? "unlimited" : "active";
 
     void (async () => {
       try {
         const snap = await getDoc(ref);
         if (!snap.exists()) {
           await setDoc(ref, {
-            uid:             user.id,
-            email:           user.email,
-            role:            roleForFirestore,
-            accessStatus,
-            accessExpiresAt: null,
-            createdAt:       serverTimestamp(),
-            updatedAt:       serverTimestamp(),
-            lastLoginAt:     serverTimestamp(),
+            uid:         user.id,
+            email:       user.email,
+            displayName: user.name,
+            createdAt:   serverTimestamp(),
+            updatedAt:   serverTimestamp(),
+            lastLoginAt: serverTimestamp(),
           });
         } else {
           await updateDoc(ref, {
             email:       user.email,
-            role:        roleForFirestore,
-            accessStatus,
+            displayName: user.name,
             updatedAt:   serverTimestamp(),
             lastLoginAt: serverTimestamp(),
           });
@@ -156,7 +154,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
         console.warn("[Adjudo] Firestore user doc write failed:", e);
       }
     })();
-  }, [user?.id, isAdmin, isTester]);
+  }, [user?.id]);
 
   async function applyCode(code: string): Promise<{ success: boolean; message: string }> {
     if (!user) return { success: false, message: "not_logged_in" };
