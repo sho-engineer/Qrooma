@@ -15,7 +15,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (stored) {
       try {
         const parsed = JSON.parse(stored) as Settings & {
-          anthropicApiKey?: unknown;
           googleApiKey?: unknown;
           sideA?: { provider?: string; model?: string; side?: string };
           sideB?: { provider?: string; model?: string; side?: string };
@@ -24,12 +23,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         if (parsed.defaultMode === "debate" || parsed.defaultMode === "collaborate" || parsed.defaultMode === "critique") {
           parsed.defaultMode = "structured-debate";
         }
-        // Migrate: remove legacy multi-provider fields, force all sides to openai
-        delete parsed.anthropicApiKey;
+        // Migrate: remove legacy google key
         delete parsed.googleApiKey;
-        if (parsed.sideA) parsed.sideA.provider = "openai";
-        if (parsed.sideB) parsed.sideB.provider = "openai";
-        if (parsed.sideC) parsed.sideC.provider = "openai";
+        // Ensure anthropicApiKey exists
+        if (!("anthropicApiKey" in parsed)) {
+          (parsed as Settings).anthropicApiKey = "";
+        }
         return { ...DEFAULT_SETTINGS, ...parsed };
       } catch { /* ignore */ }
     }

@@ -334,12 +334,13 @@ export const FREETALK_POOL = [
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
-  openaiApiKey: "",
-  sideA: { side: "A", provider: "openai", model: "gpt-4o"      },
-  sideB: { side: "B", provider: "openai", model: "gpt-4o-mini"  },
-  sideC: { side: "C", provider: "openai", model: "gpt-4o-mini"  },
+  openaiApiKey:    "",
+  anthropicApiKey: "",
+  sideA: { side: "A", provider: "anthropic", model: "claude-opus-4-5"    },
+  sideB: { side: "B", provider: "anthropic", model: "claude-opus-4-5"    },
+  sideC: { side: "C", provider: "anthropic", model: "claude-opus-4-5"    },
   defaultMode: "structured-debate",
-  agentCount: 3,
+  agentCount: 2,
   writingStyle: {
     tone:             "natural",
     conclusionFormat: "paragraph",

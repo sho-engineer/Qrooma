@@ -208,11 +208,12 @@ export interface PromptConfig {
 }
 
 export interface Settings {
-  openaiApiKey: string;
-  sideA:        AgentSideConfig;
-  sideB:        AgentSideConfig;
-  sideC:        AgentSideConfig;
-  defaultMode:  DefaultMode;
-  agentCount:   2 | 3;
-  writingStyle: WritingStyle;
+  openaiApiKey:     string;
+  anthropicApiKey:  string;
+  sideA:            AgentSideConfig;
+  sideB:            AgentSideConfig;
+  sideC:            AgentSideConfig;
+  defaultMode:      DefaultMode;
+  agentCount:       2 | 3;
+  writingStyle:     WritingStyle;
 }

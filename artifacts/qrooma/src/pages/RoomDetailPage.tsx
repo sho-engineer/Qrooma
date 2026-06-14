@@ -52,7 +52,8 @@ const FREE_SIDES: Array<{ provider: "openai"; model: string }> = [
   { provider: "openai", model: "gpt-4o-mini" },
 ];
 
-function hasApiKeyFor(_provider: string, settings: { openaiApiKey: string }): boolean {
+function hasApiKeyFor(provider: string, settings: { openaiApiKey: string; anthropicApiKey: string }): boolean {
+  if (provider === "anthropic") return !!settings.anthropicApiKey;
   return !!settings.openaiApiKey;
 }
 
@@ -153,8 +154,8 @@ export default function RoomDetailPage() {
 
   const hasSomeKey = useMemo(() => {
     if (plan !== "connect") return false;
-    return !!settings.openaiApiKey;
-  }, [plan, settings.openaiApiKey]);
+    return !!(settings.anthropicApiKey || settings.openaiApiKey);
+  }, [plan, settings.anthropicApiKey, settings.openaiApiKey]);
 
   const canRun = plan !== "connect" ? true : hasSomeKey;
 
@@ -328,7 +329,7 @@ export default function RoomDetailPage() {
 
       const agentConfig = isFree
         ? allAgentConfig
-        : allAgentConfig.filter(() => !!settings.openaiApiKey);
+        : allAgentConfig.filter((conf) => hasApiKeyFor(conf.provider, settings));
 
       const params: RealRunParams = {
         roomId,
@@ -338,7 +339,8 @@ export default function RoomDetailPage() {
         mode:       effectiveMode,
         agentConfig,
         apiKeys: isFree ? {} : {
-          openai: settings.openaiApiKey || undefined,
+          openai:    settings.openaiApiKey    || undefined,
+          anthropic: settings.anthropicApiKey || undefined,
         },
         previousMessages: messages
           .filter((m) => m.role !== "summary")
@@ -463,7 +465,8 @@ export default function RoomDetailPage() {
 
     const text = input.trim();
     const apiKeyPayload = isFree ? {} : {
-      openai: settings.openaiApiKey || undefined,
+      openai:    settings.openaiApiKey    || undefined,
+      anthropic: settings.anthropicApiKey || undefined,
     };
 
     setIsCheckingAmbiguity(true);
@@ -520,7 +523,7 @@ export default function RoomDetailPage() {
     const sideConfigs = isFree ? FREE_SIDES : [settings.sideA, settings.sideB, settings.sideC];
     const agentConfig = sides
       .map((side, i) => ({ side, provider: sideConfigs[i]!.provider, model: sideConfigs[i]!.model }))
-      .filter(() => isFree || !!settings.openaiApiKey);
+      .filter((conf) => isFree || hasApiKeyFor(conf.provider, settings));
 
     setConclusionStatus("loading");
     setRunStatus("running");
@@ -534,7 +537,8 @@ export default function RoomDetailPage() {
       mode:             effectiveMode,
       agentConfig,
       apiKeys: isFree ? {} : {
-        openai: settings.openaiApiKey || undefined,
+        openai:    settings.openaiApiKey    || undefined,
+        anthropic: settings.anthropicApiKey || undefined,
       },
       previousMessages: messages
         .filter((m) => m.role !== "summary")
@@ -623,7 +627,7 @@ export default function RoomDetailPage() {
     const sideConfigs = isFree ? FREE_SIDES : [settings.sideA, settings.sideB, settings.sideC];
     const agentConfig = sides
       .map((side, i) => ({ side, provider: sideConfigs[i]!.provider, model: sideConfigs[i]!.model }))
-      .filter(() => isFree || !!settings.openaiApiKey);
+      .filter((conf) => isFree || hasApiKeyFor(conf.provider, settings));
 
     const runId = `run-${Date.now()}-cont`;
     const nextCount = runCount + 1;
@@ -644,7 +648,8 @@ export default function RoomDetailPage() {
       mode:             effectiveMode,
       agentConfig,
       apiKeys: isFree ? {} : {
-        openai: settings.openaiApiKey || undefined,
+        openai:    settings.openaiApiKey    || undefined,
+        anthropic: settings.anthropicApiKey || undefined,
       },
       previousMessages: messages
         .filter((m) => m.role !== "summary")

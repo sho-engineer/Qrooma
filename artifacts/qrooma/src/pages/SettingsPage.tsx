@@ -236,6 +236,97 @@ function WritingStyleSection({
 
 // ─── Main Settings Page ───────────────────────────────────────────────────────
 
+const CLAUDE_MODELS = [
+  { id: "claude-opus-4-5",    label: "Opus"   },
+  { id: "claude-sonnet-4-5",  label: "Sonnet" },
+] as const;
+
+type ClaudeModelId = (typeof CLAUDE_MODELS)[number]["id"];
+
+function ClaudeSection({
+  settings,
+  updateSettings,
+  locale,
+}: {
+  settings:       ReturnType<typeof useSettings>["settings"];
+  updateSettings: ReturnType<typeof useSettings>["updateSettings"];
+  locale:         string;
+}) {
+  const isJa = locale === "ja";
+
+  function setModel(side: "sideA" | "sideB", model: ClaudeModelId) {
+    updateSettings({ [side]: { ...settings[side], provider: "anthropic", model } });
+  }
+
+  return (
+    <section>
+      <h3 className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-[0.15em] mb-4">
+        Claude API
+      </h3>
+
+      <div className="space-y-4">
+        {/* API key */}
+        <div>
+          <p className="text-xs font-semibold text-foreground mb-1.5">
+            {isJa ? "Anthropic API キー" : "Anthropic API key"}
+          </p>
+          <input
+            type="password"
+            value={settings.anthropicApiKey}
+            onChange={(e) => updateSettings({ anthropicApiKey: e.target.value })}
+            placeholder="sk-ant-api03-..."
+            autoComplete="off"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-sm font-mono text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-1 focus:ring-foreground/20 transition-shadow"
+          />
+          <p className="mt-1.5 text-[11px] text-muted-foreground/50 leading-relaxed">
+            {isJa
+              ? "ブラウザに一時保存されます。APIキーは console.anthropic.com で取得できます。"
+              : "Stored temporarily in your browser. Get yours at console.anthropic.com."}
+          </p>
+        </div>
+
+        {/* Per-agent model selector */}
+        <div>
+          <p className="text-xs font-semibold text-foreground mb-2">
+            {isJa ? "モデル" : "Model"}
+          </p>
+          <div className="rounded-2xl border border-border bg-card divide-y divide-border/60 overflow-hidden">
+            {([
+              { sideKey: "sideA" as const, color: "#10a37f", label: isJa ? "Builder（候補提案）" : "Builder" },
+              { sideKey: "sideB" as const, color: "#d97706", label: isJa ? "Breaker（検証・反証）" : "Breaker" },
+            ]).map(({ sideKey, color, label }) => {
+              const current = settings[sideKey].model as ClaudeModelId;
+              return (
+                <div key={sideKey} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                    <span className="text-[11px] text-foreground/80 truncate">{label}</span>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {CLAUDE_MODELS.map(({ id, label: mLabel }) => (
+                      <button
+                        key={id}
+                        onClick={() => setModel(sideKey, id)}
+                        className={`px-2.5 py-1 text-[11px] rounded-lg border transition-all duration-150 active:scale-[0.97] ${
+                          current === id
+                            ? "bg-foreground text-background border-foreground"
+                            : "bg-background text-foreground/60 border-border hover:bg-accent"
+                        }`}
+                      >
+                        {mLabel}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const { settings, updateSettings } = useSettings();
   const { t, locale, setLocale }     = useLocale();
@@ -281,6 +372,13 @@ export default function SettingsPage() {
               <InviteCodeSection />
             </div>
           </section>
+
+          {/* ══ CLAUDE API ═══════════════════════════════════════════════ */}
+          <ClaudeSection
+            settings={settings}
+            updateSettings={updateSettings}
+            locale={locale}
+          />
 
           {/* ══ DISPLAY ══════════════════════════════════════════════════ */}
           <section>
