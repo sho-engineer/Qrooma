@@ -1,0 +1,465 @@
+You are working on the adjudo MVP.
+
+Please verify the latest implementation after the Project / Room UX changes and the “completed but no conclusion” fix.
+
+Do not add new features.
+Do not do a broad refactor.
+This is a verification task only.
+
+Please inspect the code, run/manual-test the app if possible, and report PASS / PARTIAL / FAIL for each item.
+
+==================================================
+Context
+
+The latest implementation was supposed to fix:
+
+1. Project / Room UX was confusing.
+2. Users should be able to create a Room directly under a Project from the sidebar.
+3. Existing Rooms should be movable into a Project.
+4. Project and Room hierarchy should be clearer.
+5. Typography / text size should be more consistent.
+6. P0 bug: Run status shows completed, but Conclusion / Decision Memo does not appear.
+
+Expected product structure:
+
+Project
+└ Decision Room
+└ Decision Memo
+
+Expected status flow:
+
+running
+→ generating_conclusion
+→ saving_memo
+→ completed
+
+If something fails:
+
+running
+→ generating_conclusion
+→ saving_memo
+→ memo_failed
+
+Important:
+completed must never be shown if the Conclusion / Decision Memo is missing or not displayable.
+
+==================================================
+Check 1: Sidebar Project → Room UX
+
+Please verify the sidebar behavior.
+
+Expected:
+
+1. Projects are visible in the left sidebar.
+2. Each project can be expanded/collapsed.
+3. Rooms belonging to a project are shown nested under that project.
+4. A project with zero rooms shows a useful empty state or clear add action.
+5. Each project has a clear “+” or “+ New Room” action.
+6. Clicking the project-level add action creates a Room with that projectId.
+7. The new Room appears nested under that Project.
+8. The app navigates to /rooms/:roomId after creation.
+9. Standalone rooms are still accessible, but clearly separated from project rooms.
+10. The user can understand where to add a room without going to a hidden page.
+
+Please check mobile and desktop.
+
+Report:
+
+* Status: PASS / PARTIAL / FAIL
+* UX option implemented:
+    * Option 1: Project-centric nested sidebar
+    * Option 2: Separate project/room lists with clearer labels
+* Evidence:
+* Files checked:
+* Remaining issue:
+
+==================================================
+Check 2: Create Room directly under Project
+
+Please verify the room creation flow from a Project.
+
+Test steps:
+
+1. Open sidebar.
+2. Find a Project.
+3. Click the project’s “+” / “+ New Room” action.
+4. Confirm a new room is created.
+5. Confirm the new room has projectId set to the selected Project.
+6. Confirm the room opens immediately.
+7. Return to the sidebar.
+8. Confirm the room is displayed under that Project.
+9. Return to Project detail page if it exists.
+10. Confirm the room count updated.
+
+Expected data:
+
+room.projectId === selectedProject.id
+
+If room data is still localStorage-backed, confirm projectId is stored there.
+If Firestore-backed, confirm projectId and ownerId/userId are written correctly.
+
+Report:
+
+* Status: PASS / PARTIAL / FAIL
+* Created room data:
+* projectId set correctly: YES / NO
+* Navigation works: YES / NO
+* Room count updates: YES / NO
+* Files checked:
+* Remaining issue:
+
+==================================================
+Check 3: Move existing Room into Project
+
+Please verify the “Move to project” behavior.
+
+Expected:
+
+1. Existing standalone Room has a visible “…” menu or similar action.
+2. Menu includes:
+    * Move to project
+    * Change project
+    * or equivalent wording
+3. Clicking it opens a project selection modal/menu.
+4. User can choose a Project.
+5. room.projectId is updated.
+6. Room disappears from standalone/unassigned list.
+7. Room appears under the selected Project.
+8. Project detail page shows the moved Room.
+9. User can move the Room to another Project.
+10. If implemented, user can remove the Room from Project / make it standalone.
+
+Please verify:
+
+* mobile
+* desktop
+* existing completed Room
+* existing in-progress Room if possible
+
+Report:
+
+* Status: PASS / PARTIAL / FAIL
+* Move UI location:
+* Data update behavior:
+* Files checked:
+* Remaining issue:
+
+==================================================
+Check 4: Project / Room visual hierarchy and typography
+
+Please verify text size and hierarchy.
+
+The previous UI had inconsistent text sizes.
+
+Expected:
+
+* Project name should be visually distinct but not oversized.
+* Room name should be readable and consistent.
+* Status text should be smaller and muted.
+* Supporting metadata should not compete with the Room title.
+* Mobile typography should not feel randomly large/small.
+* Current selected Room should be clearly highlighted.
+* Project and Room indentation should make the hierarchy obvious.
+
+Please check:
+
+1. Sidebar project labels
+2. Sidebar room labels
+3. Sidebar status labels
+4. Empty state labels
+5. Room detail title
+6. Room status chips
+7. Conversation body text
+8. Conclusion body text
+9. Input placeholder text
+10. Mobile layout
+
+Report:
+
+* Status: PASS / PARTIAL / FAIL
+* Inconsistent text still visible:
+* Files checked:
+* Remaining issue:
+
+==================================================
+Check 5: Completed but no Conclusion bug
+
+This is the most important check.
+
+Previous bad behavior:
+
+* Run status showed 完了 / Completed
+* But Conclusion / Decision Memo was empty or did not appear
+
+Expected:
+completed must only happen when:
+
+1. Builder / Breaker / Operator outputs exist.
+2. Final Conclusion / Decision Memo has been generated.
+3. ConclusionData exists in client state.
+4. Decision Memo has been saved successfully.
+5. ConclusionCard can render the result.
+
+Check:
+
+1. Can completed happen if conclusion is missing?
+2. Can completed happen if decisionMemo is undefined and there is no rawText fallback?
+3. Can completed happen if Firestore save fails?
+4. Does memo_failed appear instead of completed on failure?
+5. Does saving_memo appear before completed?
+6. Does Conclusion automatically open or visibly appear after completion?
+7. Does mobile view show the conclusion correctly?
+8. Does refresh reload the conclusion correctly?
+9. Does the old empty message remain incorrectly?
+10. Is there any path where status = completed and conclusion panel is blank?
+
+Report:
+
+* Status: PASS / PARTIAL / FAIL
+* Root cause found:
+* Fix verified:
+* Files checked:
+* Remaining issue:
+
+==================================================
+Check 6: ConclusionCard rendering
+
+Please verify ConclusionCard behavior specifically.
+
+Expected:
+
+If structured Decision Memo exists:
+
+* Render structured Decision Memo card.
+* Show key sections clearly.
+
+If JSON parse failed but rawText exists:
+
+* Show clear fallback.
+* Show warning that structured memo parsing failed.
+* Still display rawText.
+
+If neither structured memo nor rawText exists:
+
+* Do NOT show completed.
+* Show an error state.
+* Provide a retry/re-run action if available.
+
+Expected sections if structured memo exists:
+
+* 推奨アクション / Decision
+* 判断理由 / Reasoning
+* 棄却した選択肢 / Not now
+* 前提 / Assumptions or background
+* リスク / Risks
+* 検証すること / Needs confirmation
+* 今やること / Do now
+* 今やらないこと / Not now
+* 次のアクション / Next actions
+
+Report:
+
+* Status: PASS / PARTIAL / FAIL
+* Structured memo renders: YES / NO
+* Raw text fallback renders: YES / NO
+* Empty state handled safely: YES / NO
+* Files checked:
+* Remaining issue:
+
+==================================================
+Check 7: Firestore Decision Memo persistence
+
+Please verify Decision Memo persistence after the latest UX/status changes.
+
+Expected:
+
+* Decision Memo is saved to Firestore.
+* completed happens only after Firestore save success.
+* Refresh reloads memo.
+* Same account in another browser/session can load memo if possible.
+* memo document contains correct metadata.
+
+Check Firestore document fields:
+
+* userId
+* userEmail
+* projectId
+* roomId
+* runId
+* memo
+* rawText
+* parseError
+* parseErrorMessage
+* provider
+* model
+* createdAt
+* updatedAt
+
+Also verify:
+
+* provider is not null
+* model is not null
+* userEmail is not null if Firebase Auth email exists
+* projectId is set if Room belongs to Project
+
+Report:
+
+* Status: PASS / PARTIAL / FAIL
+* Firestore path:
+* Fields present:
+* Refresh persistence:
+* Cross-session persistence if tested:
+* Files checked:
+* Remaining issue:
+
+==================================================
+Check 8: Manual E2E test on mobile
+
+Please run or simulate this full mobile E2E flow.
+
+Test prompt:
+
+adjudoのPRで何からやればいいか分からない。まだMVPで、ほとんど誰も知らない。XもLinkedInもフォロワーが少なくて、投稿してもほぼ反応がない。LPもあるけど、今のままで刺さるか分からない。まず欲しいのは大量のユーザーではなく、1人でいいから実際のビジネス判断にadjudoを使ってもらうこと。その人に「ChatGPTやClaudeに直接聞くより、adjudoの方が意思決定しやすい」と感じてもらえるかを確認したい。今迷っている選択肢は、XやLinkedInで投稿を続ける、Founderや個人開発者にDMする、ChatGPT/Claudeとの比較記事を書く、LPを直す、無料で1件Decision Memoを作る、まずプロダクトをもっと直す、自分の意思決定でadjudoを使って事例を作る、など。時間は限られている。今週やることを1つか2つに絞りたい。単なるマーケ施策のアイデア出しではなく、どの選択肢を採用して、どれを捨てるべきか、理由とリスクも含めて整理してほしい。最後に、今週の具体的なアクションに落として。
+
+E2E steps:
+
+1. Open app on mobile width.
+2. Open sidebar.
+3. Create or open a Project.
+4. Create a new Room directly under that Project.
+5. Confirm Room appears nested under Project.
+6. Submit the Japanese PR prompt.
+7. Confirm Builder output appears.
+8. Confirm Breaker output appears.
+9. Confirm Operator output appears.
+10. Confirm status changes to メモ生成中.
+11. Confirm status changes to メモ保存中.
+12. Confirm status changes to 完了 only after memo is visible.
+13. Confirm 結論 / Decision Memo appears.
+14. Refresh page.
+15. Confirm memo still appears.
+16. Open sidebar.
+17. Confirm Room is still under the correct Project.
+18. Confirm no Free / API key / BYOK / Connect UI appears.
+
+Report:
+
+* Status: PASS / PARTIAL / FAIL
+* What worked:
+* What failed:
+* Screenshots/logs if available:
+* Remaining issue:
+
+==================================================
+Check 9: Regression check — old unwanted UI
+
+Please verify these old UI elements did not return:
+
+* Free mode
+* API key warning
+* No API keys configured
+* Connect plan requires API keys
+* BYOK
+* API key settings
+* model selection
+* fixed model config
+* 2 agents fixed models
+* Side A/B/C
+* default mode
+* agent count settings
+
+Check:
+
+* Sidebar
+* Room page
+* Settings
+* Mobile
+* Desktop
+
+Report:
+
+* Status: PASS / PARTIAL / FAIL
+* Remaining legacy text:
+* Files checked:
+* Remaining issue:
+
+==================================================
+Final Report Format
+
+Please return the report in this structure:
+
+1. Executive Summary
+
+Overall status:
+
+* READY FOR EXTERNAL 1-USER TEST
+    or
+* READY FOR INTERNAL COMPARISON ONLY
+    or
+* NOT READY
+
+Short explanation.
+
+2. Status Table
+
+Check	Status	Priority	Notes
+Sidebar Project → Room UX	PASS/PARTIAL/FAIL	P0	…
+Create Room under Project	PASS/PARTIAL/FAIL	P0	…
+Move Room to Project	PASS/PARTIAL/FAIL	P1	…
+Typography consistency	PASS/PARTIAL/FAIL	P1	…
+Completed but no Conclusion	PASS/PARTIAL/FAIL	P0	…
+ConclusionCard rendering	PASS/PARTIAL/FAIL	P0	…
+Firestore memo persistence	PASS/PARTIAL/FAIL	P0	…
+Mobile E2E	PASS/PARTIAL/FAIL	P0	…
+Legacy UI regression	PASS/PARTIAL/FAIL	P1	…
+
+3. Remaining P0 Issues
+
+List only blockers for one external user test.
+
+4. Remaining P1 Issues
+
+List important but non-blocking issues.
+
+5. Evidence
+
+Include:
+
+* files checked
+* components changed
+* routes checked
+* Firestore fields
+* status flow
+* screenshots/logs if available
+
+6. Go / No-Go Judgment
+
+Answer both:
+
+1. Can we run adjudo vs ChatGPT vs Claude internal comparison test?
+
+* GO / NO-GO
+
+2. Can we let one external user try adjudo for one real decision?
+
+* GO / NO-GO
+
+Explain why.
+
+==================================================
+Important
+
+Do not mark PASS just because code exists.
+Mark PASS only if behavior works.
+
+If completed can happen without a visible Conclusion, mark FAIL.
+
+If Project “+” creates a room without projectId, mark FAIL.
+
+If moving a room does not update projectId, mark FAIL.
+
+If mobile view hides or fails to render the Conclusion, mark FAIL.
+
+If Firestore memo save fails but completed still appears, mark FAIL.
+
+If old API/BYOK/model UI is visible, mark FAIL.
