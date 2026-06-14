@@ -13,34 +13,53 @@ service cloud.firestore {
 
     // Reads users/{uid}.role to verify admin status.
     // No circular problem: when a user reads their OWN doc, isOwner() short-circuits
-    // before isAdmin() is evaluated. isAdmin() is only evaluated for cross-user access.
+    // before isAdmin() is evaluated.
     function isAdmin() {
       return isSignedIn()
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
     }
 
-    // Returns true if none of the protected fields changed in this update.
-    // Uses diff().affectedKeys() — checks CHANGED fields only, not the full document.
-    // (request.resource.data includes ALL fields after update, so "in" checks would
-    // always be true for fields that already existed — this is the correct approach.)
+    // Fields that only the server-side Admin SDK may set.
+    // Listed inline in both functions below (Firestore Rules has no top-level constants).
+    // Uses keys().hasAny() on create — request.resource.data is the full new document.
+    // Uses diff().affectedKeys() on update — checks only the changed fields.
+
+    function noProtectedFieldsOnCreate() {
+      return !request.resource.data.keys().hasAny([
+        "role", "status", "accessStatus", "plan", "isAdmin",
+        "adminNote",
+        "blockedAt", "blockedBy", "blockedReason",
+        "deletedAt", "deletedBy", "deleteReason",
+        "accessExpiresAt", "accessGrantedBy", "couponGrantedBy"
+      ]);
+    }
+
     function userProtectedFieldsUnchanged() {
       return !request.resource.data.diff(resource.data).affectedKeys()
-               .hasAny(["role", "status", "accessStatus", "plan", "isAdmin"]);
+               .hasAny([
+                 "role", "status", "accessStatus", "plan", "isAdmin",
+                 "adminNote",
+                 "blockedAt", "blockedBy", "blockedReason",
+                 "deletedAt", "deletedBy", "deleteReason",
+                 "accessExpiresAt", "accessGrantedBy", "couponGrantedBy"
+               ]);
     }
 
     // ── users ───────────────────────────────────────────────────────────────
-    // Normal users: read/create/update own doc, cannot change protected fields.
-    // Admin: full write access (override).
+    // Normal users: read/create/update own doc only.
+    //   create: protected fields MUST NOT be present in the new document.
+    //   update: protected fields MUST NOT be among the changed fields.
+    // Admin: full write access via Admin SDK (bypasses rules) or isAdmin() path.
     match /users/{userId} {
       allow read:   if isSignedIn() && (isOwner(userId) || isAdmin());
-      allow create: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && noProtectedFieldsOnCreate();
       allow update: if (isSignedIn() && isOwner(userId) && userProtectedFieldsUnchanged())
                     || isAdmin();
       allow delete: if isAdmin();
     }
 
     // ── projects ────────────────────────────────────────────────────────────
-    // App writes: userId (set to auth.uid on create in projectsService.ts).
+    // App writes: userId field (projectsService.ts sets userId = auth.uid on create).
     // Currently localStorage-backed. Rules apply when migrated to Firestore.
     // On update: userId ownership field must not change.
     match /projects/{projectId} {
@@ -52,10 +71,8 @@ service cloud.firestore {
     }
 
     // ── rooms ───────────────────────────────────────────────────────────────
-    // App writes: currently localStorage-only; ownerId NOT written yet.
-    // REQUIRED before these rules are useful: roomsService.create() must write
-    //   ownerId: <auth.uid>  on every room document when migrated to Firestore.
-    // On update: ownerId ownership field must not change.
+    // MIGRATION REQUIREMENT: roomsService.create() must write ownerId = auth.uid
+    // when rooms are moved from localStorage to Firestore.
     match /rooms/{roomId} {
       allow read:   if isSignedIn() && isOwner(resource.data.ownerId);
       allow create: if isSignedIn() && isOwner(request.resource.data.ownerId);
@@ -65,10 +82,8 @@ service cloud.firestore {
     }
 
     // ── messages ────────────────────────────────────────────────────────────
-    // App writes: currently localStorage-only; userId NOT written yet.
-    // REQUIRED before these rules are useful: messages must include userId = auth.uid
-    // when migrated to Firestore.
-    // On update: userId ownership field must not change.
+    // MIGRATION REQUIREMENT: messages must include userId = auth.uid
+    // when moved from localStorage to Firestore.
     match /messages/{messageId} {
       allow read:   if isSignedIn() && isOwner(resource.data.userId);
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
@@ -78,9 +93,8 @@ service cloud.firestore {
     }
 
     // ── decisionMemos ───────────────────────────────────────────────────────
-    // App writes: userId (set in decisionMemosService.save()).
-    // Currently the only collection with live Firestore writes.
-    // On update: userId ownership field must not change.
+    // Live Firestore writes active today (decisionMemosService.save()).
+    // userId is set by the service; ownership field locked on update.
     match /decisionMemos/{memoId} {
       allow read:   if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
@@ -90,26 +104,22 @@ service cloud.firestore {
     }
 
     // ── coupons ─────────────────────────────────────────────────────────────
-    // Normal users CAN read (needed to validate early-access codes in client flow).
-    // Only admins can create, update, or delete coupons.
+    // Normal users CAN read (needed to validate early-access codes).
+    // Only admins can create/update/delete.
     match /coupons/{couponId} {
       allow read:  if isSignedIn();
       allow write: if isAdmin();
     }
 
     // ── couponRedemptions ───────────────────────────────────────────────────
-    // Users create their own redemption records.
-    // Only admins can modify or delete.
     match /couponRedemptions/{redemptionId} {
-      allow read:          if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
-      allow create:        if isSignedIn() && isOwner(request.resource.data.userId);
+      allow read:           if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow create:         if isSignedIn() && isOwner(request.resource.data.userId);
       allow update, delete: if isAdmin();
     }
 
     // ── waitlist ────────────────────────────────────────────────────────────
-    // Public create (pre-auth, before signup). Field restriction prevents
-    // arbitrary data injection — only these known-safe fields are allowed.
-    // Only admins can read, update, or delete.
+    // Public create (pre-auth). Field restriction blocks arbitrary data injection.
     match /waitlist/{entryId} {
       allow create: if request.resource.data.keys()
                        .hasOnly(["email", "name", "createdAt", "source", "status"]);
@@ -117,9 +127,8 @@ service cloud.firestore {
     }
 
     // ── feedback ────────────────────────────────────────────────────────────
-    // Signed-in users can submit feedback. Only admins can read or manage.
     match /feedback/{feedbackId} {
-      allow create:          if isSignedIn();
+      allow create:              if isSignedIn();
       allow read, update, delete: if isAdmin();
     }
 

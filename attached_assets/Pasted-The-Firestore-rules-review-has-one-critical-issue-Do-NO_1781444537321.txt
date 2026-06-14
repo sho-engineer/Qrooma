@@ -1,0 +1,83 @@
+The Firestore rules review has one critical issue.
+
+Do NOT deploy the current rules yet.
+
+Critical issue:
+The current users create rule allows any signed-in user to create their own users/{uid} document with arbitrary fields.
+
+Current rule:
+allow create: if isSignedIn() && isOwner(userId);
+
+This is dangerous because a malicious user could create:
+
+{
+  role: "admin",
+  accessStatus: "unlimited",
+  plan: "admin",
+  isAdmin: true
+}
+
+Then isAdmin() would read users/{uid}.role == "admin", allowing privilege escalation.
+
+Please fix the users create rule.
+
+Expected behavior:
+A normal signed-in user can create only a safe default user profile.
+They must not be able to create or set protected/admin/access fields.
+
+Protected fields:
+- role
+- status
+- accessStatus
+- plan
+- isAdmin
+- adminNote
+- blockedAt
+- blockedBy
+- blockedReason
+- deletedAt
+- deletedBy
+- deleteReason
+- accessExpiresAt
+- accessGrantedBy
+- couponGrantedBy
+
+Recommended safe create rule:
+- allow create only if the user is creating their own doc
+- and protected fields are not included
+OR
+- allow role/status/accessStatus only if they are safe default values
+
+Option A, stricter:
+Normal user create must NOT include protected fields.
+
+Option B, controlled defaults:
+Normal user create can include:
+role: "user"
+status: "waitlist" or "active"
+accessStatus: "waitlist" or "active"
+but cannot include admin/tester/unlimited values.
+
+Please choose the safer implementation for the current app.
+
+Also update userProtectedFieldsUnchanged() to include all protected fields, not only:
+role, status, accessStatus, plan, isAdmin.
+
+Add these protected fields:
+- adminNote
+- blockedAt
+- blockedBy
+- blockedReason
+- deletedAt
+- deletedBy
+- deleteReason
+- accessExpiresAt
+- accessGrantedBy
+- couponGrantedBy
+
+Then return:
+1. Updated firestore.rules
+2. Explanation of how privilege escalation is prevented
+3. Whether admin@adjudo.com must be created/assigned manually in Firebase Console
+4. Whether tester/dev roles must be assigned manually or via server-side admin endpoint
+5. Final safe-to-deploy judgment
