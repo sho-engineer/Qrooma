@@ -112,6 +112,8 @@ export interface ConclusionData {
   isFinal?: boolean;
   /** Structured Decision Memo (present for final conclusions when AI returns JSON) */
   decisionMemo?: DecisionMemo;
+  /** True when Decision Memo JSON parsing failed even after repair attempt */
+  parseError?: boolean;
 }
 
 export interface Message {
@@ -140,14 +142,16 @@ export interface AgentInfo {
 }
 
 /**
- * idle        = no run started
- * running     = rounds in progress
- * checkpoint  = rounds done, provisional conclusion generated — awaiting human decision
- * continued   = human chose to continue; additional rounds in progress
- * completed   = human chose to end here; conclusion finalized
- * error       = catastrophic failure
+ * idle                  = no run started
+ * running               = rounds in progress
+ * checkpoint            = rounds done, provisional conclusion generated — awaiting human decision
+ * continued             = human chose to continue; additional rounds in progress
+ * generating_conclusion = all rounds done; Decision Memo generation in progress
+ * completed             = Decision Memo finalized and saved
+ * memo_failed           = rounds completed but Decision Memo generation failed
+ * error                 = catastrophic failure (agent/network error)
  */
-export type RunStatus = "idle" | "running" | "checkpoint" | "continued" | "completed" | "error";
+export type RunStatus = "idle" | "running" | "checkpoint" | "continued" | "generating_conclusion" | "completed" | "memo_failed" | "error";
 
 /**
  * idle        = no conclusion yet

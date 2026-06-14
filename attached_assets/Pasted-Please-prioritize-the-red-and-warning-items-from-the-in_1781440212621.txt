@@ -1,0 +1,99 @@
+Please prioritize the red ❌ and warning ⚠️ items from the investigation.
+
+My interpretation:
+
+1. ❌ generating_conclusion status missing is not acceptable if the UI can show Completed before the final Decision Memo is saved and displayed.
+2. ❌ JSON parse retry / repair is not implemented. This is dangerous because the core value of adjudo depends on structured Decision Memo output.
+3. ⚠️ Plain text fallback is acceptable only as a last resort, but the UI should clearly indicate that structured memo parsing failed.
+4. ⚠️ Decision Memo generation progress UI can be minimal, but the app should not look stuck.
+5. ⚠️ Memo-only regeneration can be P2 if full Re-run exists.
+6. Claude Opus appears configured in FREE_SIDES, but please verify runtime calls actually use Anthropic/Claude for Builder, Breaker, Operator, and Conclusion.
+
+Please fix in this order:
+
+## P0 Fix 1: Completed status must only happen after Decision Memo is saved
+
+Ensure the run lifecycle cannot mark a run as completed unless:
+- Builder / Breaker / Operator messages are generated
+- final Decision Memo / Conclusion is generated
+- Decision Memo is saved to Firestore
+- UI can fetch and display it
+
+If needed, add a status:
+
+generating_conclusion
+
+Expected lifecycle:
+running
+→ checkpoint_ready
+→ generating_conclusion
+→ completed
+
+If conclusion generation fails:
+- set status = failed or memo_failed
+- show a clear error
+- do not show completed
+
+## P0 Fix 2: Add JSON parse repair/retry
+
+When Decision Memo JSON parsing fails:
+
+1. Log the raw output.
+2. Attempt one repair pass using the LLM:
+   - Ask the model to convert the previous output into valid JSON matching the Decision Memo schema.
+3. Validate again.
+4. If repair still fails:
+   - show a plaintext fallback
+   - store parseError metadata
+   - do not silently treat it as a normal completed structured memo
+
+## P0 Fix 3: Ensure Operator and final memo generation are both active
+
+Confirm:
+- Builder runs
+- Breaker runs
+- Operator runs
+- Final Decision Memo generation runs
+- The final memo is not just the Operator message unless intentionally designed that way
+
+## P0 Fix 4: Verify actual Claude runtime usage
+
+Please verify with logs:
+- provider used for Builder
+- provider used for Breaker
+- provider used for Operator
+- provider used for final Decision Memo
+- actual model name
+- whether fallback to OpenAI occurs
+- whether any mock/stub response is still used
+
+## P1 Fix 5: UI states
+
+Add minimal UI states:
+- Running discussion
+- Generating Decision Memo
+- Decision Memo generated
+- Decision Memo generation failed
+
+Do not show Completed while the memo is still missing.
+
+## P1 Fix 6: Remove/rename legacy concepts internally if low risk
+
+If safe, rename old internal concepts:
+- FREE_SIDES
+- Side A/B/C
+- 2-agent config
+
+to:
+- DEFAULT_ROLES
+- Builder / Breaker / Operator
+
+Do not expose model names or provider settings to users.
+
+Please report:
+1. Files changed
+2. Run lifecycle after fix
+3. Firestore fields used for run status and decision memo
+4. JSON repair behavior
+5. Claude runtime verification result
+6. Manual QA result using a messy Japanese PR decision prompt

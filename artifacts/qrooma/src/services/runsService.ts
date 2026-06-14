@@ -184,15 +184,16 @@ export const runsService = {
    * It sends `conclusion` only when forceConclusion=true (human ended the discussion).
    */
   realRun(
-    params:              RealRunParams,
-    onMessage:           (msg: Message) => void,
-    onConclusion:        (conclusion: ConclusionData) => void,
-    onComplete:          (status: RunStatus) => void,
-    onAgentError?:       (side: string, message: string) => void,
-    onRoundStart?:       (event: RoundStartEvent) => void,
-    onRoundSummary?:     (event: RoundSummaryEvent) => void,
-    onConclusionError?:  () => void,
-    onCheckpoint?:       (conclusion: ConclusionData) => void,
+    params:                   RealRunParams,
+    onMessage:                (msg: Message) => void,
+    onConclusion:             (conclusion: ConclusionData) => void,
+    onComplete:               (status: RunStatus) => void,
+    onAgentError?:            (side: string, message: string) => void,
+    onRoundStart?:            (event: RoundStartEvent) => void,
+    onRoundSummary?:          (event: RoundSummaryEvent) => void,
+    onConclusionError?:       () => void,
+    onCheckpoint?:            (conclusion: ConclusionData) => void,
+    onGeneratingConclusion?:  () => void,
   ): () => void {
     const controller = new AbortController();
 
@@ -220,8 +221,9 @@ export const runsService = {
 
         // Track which kind of conclusion event we received so we can send the
         // right status when `done` fires.
-        let receivedCheckpoint = false;
-        let receivedConclusion = false;
+        let receivedCheckpoint      = false;
+        let receivedConclusion      = false;
+        let receivedConclusionError = false;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -257,6 +259,8 @@ export const runsService = {
                 runId:     String(data["runId"] ?? ""),
                 createdAt: String(data["createdAt"] ?? new Date().toISOString()),
               });
+            } else if (data["type"] === "generating_conclusion") {
+              onGeneratingConclusion?.();
             } else if (data["type"] === "checkpoint") {
               // Provisional conclusion — human must decide to end or continue
               const content = String(data["content"] ?? "").trim();
@@ -275,7 +279,7 @@ export const runsService = {
                 onConclusionError?.();
               }
             } else if (data["type"] === "conclusion") {
-              // Final conclusion — human explicitly ended the discussion (forceConclusion=true)
+              // Final conclusion — Decision Memo is generated automatically after all rounds.
               const content = String(data["content"] ?? "").trim();
               if (content) {
                 receivedConclusion = true;
@@ -288,12 +292,14 @@ export const runsService = {
                   isProvisional: false,
                   isFinal:       true,
                   decisionMemo: rawMemo && typeof rawMemo === "object" ? (rawMemo as DecisionMemo) : undefined,
+                  parseError:   data["parseError"] === true,
                 };
                 onConclusion(conc);
               } else {
                 onConclusionError?.();
               }
             } else if (data["type"] === "conclusion_error") {
+              receivedConclusionError = true;
               onConclusionError?.();
             } else if (data["type"] === "done") {
               // Send the appropriate terminal status based on what we received
@@ -301,8 +307,11 @@ export const runsService = {
                 onComplete("completed");
               } else if (receivedCheckpoint) {
                 onComplete("checkpoint");
+              } else if (receivedConclusionError) {
+                // Rounds completed but memo generation specifically failed
+                onComplete("memo_failed");
               } else {
-                // No conclusion or checkpoint received — something went wrong
+                // No conclusion or checkpoint received — catastrophic failure
                 onComplete("error");
               }
             } else if (data["type"] === "error") {

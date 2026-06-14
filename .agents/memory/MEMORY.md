@@ -1,0 +1,2 @@
+- [Free plan API key fix](free-plan-key.md) — free plan sends empty apiKeys {}; server must fall back to process.env.ANTHROPIC_API_KEY or agents silently skip
+- [Run lifecycle states](run-lifecycle.md) — RunStatus now has generating_conclusion + memo_failed; onGeneratingConclusion is 10th param of runsService.realRun

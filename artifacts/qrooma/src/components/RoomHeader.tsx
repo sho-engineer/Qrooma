@@ -87,10 +87,20 @@ function RunStatusBadge({ status }: { status: RunStatus }) {
       dotClass: "bg-violet-400 animate-pulse",
       pill: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400",
     },
+    generating_conclusion: {
+      label: t.statusGeneratingConclusion,
+      dotClass: "bg-blue-400 animate-pulse",
+      pill: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400",
+    },
     completed: {
       label: t.statusCompleted,
       dotClass: "bg-muted-foreground/40",
       pill: "bg-muted text-muted-foreground",
+    },
+    memo_failed: {
+      label: t.statusMemoFailed,
+      dotClass: "bg-orange-400/80",
+      pill: "bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400",
     },
     error: {
       label: t.statusError,

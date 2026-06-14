@@ -1217,9 +1217,10 @@ router.post("/discuss", discussLimiter, requireUser, async (req, res) => {
     projectContext?: string;
   };
 
+  // Free plan sends empty apiKeys {}; fall back to server-side env vars for Anthropic.
   const apiKeys = {
     openai:    clientApiKeys.openai    || undefined,
-    anthropic: clientApiKeys.anthropic || undefined,
+    anthropic: clientApiKeys.anthropic || process.env["ANTHROPIC_API_KEY"] || undefined,
     google:    clientApiKeys.google    || undefined,
   };
 
@@ -1551,6 +1552,9 @@ RULES:
         provisionalConclusionPrompt = PROVISIONAL_PROMPT;
       }
 
+      // Signal to client that rounds are complete and memo generation is starting.
+      sseWrite(res, { type: "generating_conclusion" });
+
       // Always generate the final Decision Memo JSON at end of rounds.
       // Decision Memo JSON mode: no presentation suffix (it would confuse JSON output)
       const usesDecisionMemoJson = !promptConfig;
@@ -1581,23 +1585,55 @@ RULES:
         // Always emit a final `conclusion` event with Decision Memo JSON.
         // There is no provisional checkpoint step — Decision Memo is generated automatically.
         let decisionMemo: object | undefined;
+        let parseError = false;
+
         if (usesDecisionMemoJson) {
+          const stripped = conclusionText
+            .replace(/^```(?:json)?\s*/i, "")
+            .replace(/```\s*$/, "")
+            .trim();
           try {
-            // Strip any accidental markdown fences before parsing
-            const stripped = conclusionText
-              .replace(/^```(?:json)?\s*/i, "")
-              .replace(/```\s*$/, "")
-              .trim();
             decisionMemo = JSON.parse(stripped);
           } catch {
-            // JSON parse failed — emit as plain text conclusion without structured memo
-            decisionMemo = undefined;
+            // First parse failed — attempt one LLM repair pass before giving up
+            req.log.warn({ rawLength: stripped.length }, "Decision Memo JSON parse failed; attempting LLM repair");
+            const repairConf = agentConfig[0];
+            const repairKey  = repairConf ? apiKeys[repairConf.provider as keyof typeof apiKeys] : undefined;
+            if (repairConf && repairKey && !controller.signal.aborted) {
+              try {
+                const repairSystem = `You are a JSON repair tool. The user will provide malformed or incomplete JSON text. Return ONLY valid JSON matching this exact schema — no markdown fences, no explanation, nothing else:
+{"decision":"<string>","confidence_level":"high|medium|low","reasoning_summary":"<string>","key_tradeoffs":["<string>"],"do_now":[{"item":"<string>","reason":"<string>"}],"not_now":[{"item":"<string>","reason":"<string>"}],"future_consideration":[{"item":"<string>","condition":"<string>"}],"next_actions":[{"task":"<string>","owner":"<string>","deadline":"<string>"}],"assumptions_made":["<string>"],"risk_flags":["<string>"]}`;
+                const repaired = await callAI({
+                  provider:     repairConf.provider as Provider,
+                  model:        repairConf.model,
+                  systemPrompt: repairSystem,
+                  messages:     [{ role: "user", content: stripped }],
+                  apiKey:       repairKey,
+                  signal:       controller.signal,
+                  maxTokens:    3000,
+                });
+                const repairedStripped = repaired
+                  .replace(/^```(?:json)?\s*/i, "")
+                  .replace(/```\s*$/, "")
+                  .trim();
+                decisionMemo = JSON.parse(repairedStripped);
+                req.log.info("Decision Memo JSON repair succeeded");
+              } catch {
+                decisionMemo = undefined;
+                parseError   = true;
+                req.log.warn("Decision Memo JSON repair also failed; sending plaintext fallback with parseError=true");
+              }
+            } else {
+              parseError = true;
+            }
           }
         }
+
         sseWrite(res, {
           type:         "conclusion",
           content:      conclusionText,
           decisionMemo: decisionMemo ?? null,
+          parseError:   parseError || null,
           createdAt:    new Date().toISOString(),
         });
       } else {

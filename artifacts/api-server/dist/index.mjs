@@ -63343,7 +63343,7 @@ router2.post("/discuss", discussLimiter, requireUser, async (req, res) => {
   } = req.body;
   const apiKeys = {
     openai: clientApiKeys.openai || void 0,
-    anthropic: clientApiKeys.anthropic || void 0,
+    anthropic: clientApiKeys.anthropic || process.env["ANTHROPIC_API_KEY"] || void 0,
     google: clientApiKeys.google || void 0
   };
   if (activeSseStreams >= MAX_SSE_STREAMS) {
@@ -63617,6 +63617,7 @@ RULES:
         finalConclusionPrompt = DECISION_MEMO_PROMPT;
         provisionalConclusionPrompt = PROVISIONAL_PROMPT;
       }
+      sseWrite(res, { type: "generating_conclusion" });
       const usesDecisionMemoJson = !promptConfig;
       const conclusionSystemPrompt = languageLock + finalConclusionPrompt + (usesDecisionMemoJson ? "" : "\n" + conclusionPresentation);
       let conclusionText = null;
@@ -63641,18 +63642,46 @@ RULES:
       }
       if (conclusionText) {
         let decisionMemo;
+        let parseError = false;
         if (usesDecisionMemoJson) {
+          const stripped = conclusionText.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
           try {
-            const stripped = conclusionText.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
             decisionMemo = JSON.parse(stripped);
           } catch {
-            decisionMemo = void 0;
+            req.log.warn({ rawLength: stripped.length }, "Decision Memo JSON parse failed; attempting LLM repair");
+            const repairConf = agentConfig[0];
+            const repairKey = repairConf ? apiKeys[repairConf.provider] : void 0;
+            if (repairConf && repairKey && !controller.signal.aborted) {
+              try {
+                const repairSystem = `You are a JSON repair tool. The user will provide malformed or incomplete JSON text. Return ONLY valid JSON matching this exact schema \u2014 no markdown fences, no explanation, nothing else:
+{"decision":"<string>","confidence_level":"high|medium|low","reasoning_summary":"<string>","key_tradeoffs":["<string>"],"do_now":[{"item":"<string>","reason":"<string>"}],"not_now":[{"item":"<string>","reason":"<string>"}],"future_consideration":[{"item":"<string>","condition":"<string>"}],"next_actions":[{"task":"<string>","owner":"<string>","deadline":"<string>"}],"assumptions_made":["<string>"],"risk_flags":["<string>"]}`;
+                const repaired = await callAI({
+                  provider: repairConf.provider,
+                  model: repairConf.model,
+                  systemPrompt: repairSystem,
+                  messages: [{ role: "user", content: stripped }],
+                  apiKey: repairKey,
+                  signal: controller.signal,
+                  maxTokens: 3e3
+                });
+                const repairedStripped = repaired.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+                decisionMemo = JSON.parse(repairedStripped);
+                req.log.info("Decision Memo JSON repair succeeded");
+              } catch {
+                decisionMemo = void 0;
+                parseError = true;
+                req.log.warn("Decision Memo JSON repair also failed; sending plaintext fallback with parseError=true");
+              }
+            } else {
+              parseError = true;
+            }
           }
         }
         sseWrite(res, {
           type: "conclusion",
           content: conclusionText,
           decisionMemo: decisionMemo ?? null,
+          parseError: parseError || null,
           createdAt: (/* @__PURE__ */ new Date()).toISOString()
         });
       } else {

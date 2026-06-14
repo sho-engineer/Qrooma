@@ -255,6 +255,8 @@ export interface Translations {
   endHereDesc: string;
   continueDiscussionDesc: string;
   statusCheckpoint: string;
+  statusGeneratingConclusion: string;
+  statusMemoFailed: string;
   leadingOption: string;
   conclusionReasoning: string;
   openQuestionsLabel: string;
@@ -681,6 +683,8 @@ const ja: Translations = {
   endHereDesc: "この暫定結論を最終版として確定する",
   continueDiscussionDesc: "残論点を踏まえてもう1ラウンド追加する",
   statusCheckpoint: "暫定",
+  statusGeneratingConclusion: "メモ生成中",
+  statusMemoFailed: "メモ生成失敗",
   leadingOption: "有力案",
   conclusionReasoning: "理由",
   openQuestionsLabel: "残論点",
@@ -1107,6 +1111,8 @@ const en: Translations = {
   endHereDesc: "Lock this provisional conclusion as the final answer",
   continueDiscussionDesc: "Add another round to address the open questions",
   statusCheckpoint: "Provisional",
+  statusGeneratingConclusion: "Writing memo",
+  statusMemoFailed: "Memo failed",
   leadingOption: "Leading Direction",
   conclusionReasoning: "Reasoning",
   openQuestionsLabel: "Open Questions",

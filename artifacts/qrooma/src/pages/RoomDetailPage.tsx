@@ -46,8 +46,9 @@ const AGENT_SIDE: Record<string, "A" | "B" | "C"> = {
   operator: "C",
 };
 
-// Free plan: fixed 3-agent config (server-side Anthropic key — no user key required)
-const FREE_SIDES: Array<{ provider: "anthropic"; model: string }> = [
+// Default 3-agent config for Free plan (Builder / Breaker / Operator).
+// All use server-side Anthropic key — no user key required.
+const DEFAULT_ROLES: Array<{ provider: "anthropic"; model: string }> = [
   { provider: "anthropic", model: "claude-opus-4-5" },
   { provider: "anthropic", model: "claude-opus-4-5" },
   { provider: "anthropic", model: "claude-opus-4-5" },
@@ -145,10 +146,10 @@ export default function RoomDetailPage() {
 
   const isFree = plan === "free";
   /** True while any round is actively running (initial run or continuation) */
-  const isRunActive = runStatus === "running" || runStatus === "continued";
+  const isRunActive = runStatus === "running" || runStatus === "continued" || runStatus === "generating_conclusion";
   const agentCount  = isFree ? 3 : (settings.agentCount ?? 3);
   const activeSides = isFree
-    ? FREE_SIDES
+    ? DEFAULT_ROLES
     : agentCount === 2
       ? [settings.sideA, settings.sideB]
       : [settings.sideA, settings.sideB, settings.sideC];
@@ -320,7 +321,7 @@ export default function RoomDetailPage() {
         ? (["A", "B", "C"] as const)
         : ((agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[]);
       const sideConfigs = isFree
-        ? FREE_SIDES
+        ? DEFAULT_ROLES
         : [settings.sideA, settings.sideB, settings.sideC];
 
       const allAgentConfig = sides.map((side, i) => ({
@@ -360,14 +361,15 @@ export default function RoomDetailPage() {
       const cancel = runsService.realRun(
         params,
         onMessage,
-        // onConclusion — called when forceConclusion=true (user clicked "End here")
+        // onConclusion — always called automatically after all rounds (Decision Memo auto-generated)
         (conc) => {
           const enriched: ConclusionData = {
             ...conc,
             runId,
-            runNumber: currentRunCount,
+            runNumber:  currentRunCount,
             isProvisional: false,
             isFinal:       true,
+            parseError:    conc.parseError,
           };
           messagesService.saveConclusion(roomId, enriched);
           setConclusions(messagesService.getConclusions(roomId));
@@ -375,7 +377,7 @@ export default function RoomDetailPage() {
         },
         (status) => {
           onStatus(status);
-          if (status === "error") {
+          if (status === "error" || status === "memo_failed") {
             setConclusionStatus((prev) => prev === "loading" ? "error" : prev);
           }
         },
@@ -395,15 +397,16 @@ export default function RoomDetailPage() {
           setMessages((prev) => [...prev, summaryMsg]);
         },
         () => {
-          // conclusion_error: rounds completed but AI failed to generate even a provisional.
+          // conclusion_error: memo generation failed — show memo_failed state
           setConclusionStatus("unresolved");
+          setRunStatus("memo_failed");
         },
-        // onCheckpoint — called after normal rounds complete (provisional conclusion)
+        // onCheckpoint — provisional conclusion (checkpoint flow, not main auto-flow)
         (conc) => {
           const enriched: ConclusionData = {
             ...conc,
             runId,
-            runNumber:    currentRunCount,
+            runNumber:     currentRunCount,
             isProvisional: true,
             isFinal:       false,
           };
@@ -411,6 +414,8 @@ export default function RoomDetailPage() {
           setConclusions(messagesService.getConclusions(roomId));
           setConclusionStatus("provisional");
         },
+        // onGeneratingConclusion — rounds done, memo generation starting
+        () => setRunStatus("generating_conclusion"),
       );
       cancelRun.current = cancel;
     } else {
@@ -522,7 +527,7 @@ export default function RoomDetailPage() {
     const sides = isFree
       ? (["A", "B", "C"] as const)
       : ((agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[]);
-    const sideConfigs = isFree ? FREE_SIDES : [settings.sideA, settings.sideB, settings.sideC];
+    const sideConfigs = isFree ? DEFAULT_ROLES : [settings.sideA, settings.sideB, settings.sideC];
     const agentConfig = sides
       .map((side, i) => ({ side, provider: sideConfigs[i]!.provider, model: sideConfigs[i]!.model }))
       .filter((conf) => isFree || hasApiKeyFor(conf.provider, settings));
@@ -553,11 +558,11 @@ export default function RoomDetailPage() {
 
     const cancel = runsService.realRun(
       params,
-      () => {},  // no new messages expected (rounds skipped)
+      () => {},
       (conc) => {
         const enriched: ConclusionData = {
           ...conc, runId, runNumber: runCount,
-          isProvisional: false, isFinal: true,
+          isProvisional: false, isFinal: true, parseError: conc.parseError,
         };
         messagesService.saveConclusion(roomId, enriched);
         setConclusions(messagesService.getConclusions(roomId));
@@ -566,12 +571,14 @@ export default function RoomDetailPage() {
       },
       (status) => {
         setRunStatus(status);
-        if (status === "error") setConclusionStatus("unresolved");
+        if (status === "error" || status === "memo_failed") setConclusionStatus("unresolved");
       },
       undefined,
       undefined,
       undefined,
-      () => { setConclusionStatus("unresolved"); setRunStatus("completed"); },
+      () => { setConclusionStatus("unresolved"); setRunStatus("memo_failed"); },
+      undefined,
+      () => setRunStatus("generating_conclusion"),
     );
     cancelRun.current = cancel;
   }, [runStatus, messages, hasSomeKey, isFree, agentCount, settings, roomId, runCount]);
@@ -626,7 +633,7 @@ export default function RoomDetailPage() {
     const sides = isFree
       ? (["A", "B", "C"] as const)
       : ((agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[]);
-    const sideConfigs = isFree ? FREE_SIDES : [settings.sideA, settings.sideB, settings.sideC];
+    const sideConfigs = isFree ? DEFAULT_ROLES : [settings.sideA, settings.sideB, settings.sideC];
     const agentConfig = sides
       .map((side, i) => ({ side, provider: sideConfigs[i]!.provider, model: sideConfigs[i]!.model }))
       .filter((conf) => isFree || hasApiKeyFor(conf.provider, settings));
@@ -674,9 +681,9 @@ export default function RoomDetailPage() {
     const cancel = runsService.realRun(
       params,
       onMsg,
-      // onConclusion — shouldn't fire in continuation (no forceConclusion), but handle defensively
+      // onConclusion — auto-generated after all continuation rounds
       (conc) => {
-        const enriched: ConclusionData = { ...conc, runId, runNumber: nextCount, isProvisional: false, isFinal: true };
+        const enriched: ConclusionData = { ...conc, runId, runNumber: nextCount, isProvisional: false, isFinal: true, parseError: conc.parseError };
         messagesService.saveConclusion(roomId, enriched);
         setConclusions(messagesService.getConclusions(roomId));
         setConclusionStatus("final");
@@ -684,7 +691,7 @@ export default function RoomDetailPage() {
       },
       (status) => {
         if (status !== "checkpoint") setRunStatus(status);
-        if (status === "error") setConclusionStatus((prev) => prev === "loading" ? "error" : prev);
+        if (status === "error" || status === "memo_failed") setConclusionStatus((prev) => prev === "loading" ? "error" : prev);
         if (status === "completed") {
           updateRoom(roomId, { lastRunStatus: status });
         }
@@ -704,7 +711,7 @@ export default function RoomDetailPage() {
         messagesService.append(summaryMsg);
         setMessages((prev) => [...prev, summaryMsg]);
       },
-      () => { setConclusionStatus("unresolved"); },
+      () => { setConclusionStatus("unresolved"); setRunStatus("memo_failed"); },
       // onCheckpoint — updated provisional conclusion
       (conc) => {
         const enriched: ConclusionData = { ...conc, runId, runNumber: nextCount, isProvisional: true, isFinal: false };
@@ -713,6 +720,8 @@ export default function RoomDetailPage() {
         setConclusionStatus("provisional");
         setRunStatus("checkpoint");
       },
+      // onGeneratingConclusion — rounds done, memo generation starting
+      () => setRunStatus("generating_conclusion"),
     );
     cancelRun.current = cancel;
   }, [runStatus, messages, hasSomeKey, isFree, agentCount, settings, roomId, runCount, conclusions, updateRoom]);
@@ -794,6 +803,21 @@ export default function RoomDetailPage() {
           />
         )}
         {runStatus === "error" && !fatalError && <ErrorState onRerun={rerun} />}
+        {runStatus === "memo_failed" && (
+          <div className="mx-4 mt-2 px-3 py-2.5 rounded-xl border border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/40 flex items-start gap-2">
+            <span className="text-orange-500 text-sm shrink-0 mt-px">⚠</span>
+            <div>
+              <p className="text-xs font-medium text-orange-800 dark:text-orange-300">
+                {locale === "ja" ? "Decision Memo の生成に失敗しました" : "Decision Memo generation failed"}
+              </p>
+              <p className="text-[11px] text-orange-700/80 dark:text-orange-400/80 mt-0.5">
+                {locale === "ja"
+                  ? "議論は完了しましたが、メモを生成できませんでした。再実行すると改善される場合があります。"
+                  : "Discussion completed but the memo could not be generated. Re-running may help."}
+              </p>
+            </div>
+          </div>
+        )}
 
         {runStatus === "idle" && plan === "connect" && !hasSomeKey && hasMessages === false && (
           <div className="mt-4 px-4 py-3.5 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40">

@@ -689,6 +689,17 @@ export default function ConclusionCard({
 
               {/* ── Scrollable conclusion body ── */}
               <div className="overflow-y-auto max-h-[42vh]">
+                {/* ── Parse error warning — structured memo could not be generated ── */}
+                {current!.parseError && (
+                  <div className="mx-4 mt-3 px-3 py-2 rounded-lg bg-orange-50 border border-orange-200 dark:bg-orange-950/30 dark:border-orange-900/60">
+                    <p className="text-[11px] font-medium text-orange-700 dark:text-orange-400">
+                      {locale === "ja"
+                        ? "構造化メモの生成に失敗しました。プレーンテキストで表示しています。"
+                        : "Structured memo could not be parsed. Showing plain text instead."}
+                    </p>
+                  </div>
+                )}
+
                 {/* ── Decision Memo Card (when available, replaces plain body) ── */}
                 {current!.decisionMemo ? (
                   <div className="px-4 py-4">
