@@ -1,0 +1,224 @@
+You are working on the adjudo MVP.
+
+The latest mobile test shows several issues.
+
+Do not add new features.
+Please fix only the issues below and verify them.
+
+==================================================
+P0: Builder never returns / AI may not be running
+
+Current issue:
+On mobile Replit preview, after submitting a prompt, the status remains running / generating, and Builder output never appears.
+
+This is a P0 blocker.
+Do not mark the app ready until real Builder / Breaker / Operator outputs appear.
+
+Please investigate the full runtime path:
+
+1. Is /api/discuss being called?
+2. Is the request authenticated with Firebase ID token?
+3. Is ANTHROPIC_API_KEY available in the Replit server environment?
+4. Is the server actually calling Anthropic?
+5. Is the model name valid?
+6. Is the SSE stream opening successfully?
+7. Are SSE events being received by the client?
+8. Does the server log show:
+    * discuss call started
+    * Builder call starting
+    * Builder call succeeded or failed
+9. If Builder fails, does the UI show an error?
+10. Is the app silently waiting forever?
+
+Expected behavior:
+
+* Builder output should appear within a reasonable time.
+* If the API call fails, show a clear error.
+* Do not leave the user stuck in “実行中” forever.
+* Add timeout/error handling if needed.
+
+Please add or verify logging for:
+
+* runId
+* roomId
+* role
+* provider
+* model
+* start time
+* success/failure
+* error message
+* durationMs
+
+Do not log API keys or full user prompt.
+
+Important:
+Replit Preview should be enough for testing.
+Deployment should not be required just to verify AI runtime, unless environment variables differ between Preview and Deploy.
+
+Please report:
+
+* Whether ANTHROPIC_API_KEY is detected
+* Whether /api/discuss is called
+* Whether Anthropic is called
+* Whether SSE events are received
+* Root cause of Builder not returning
+* Fix applied
+* Manual test result
+
+==================================================
+P1: Brand color mismatch
+
+Current issue:
+The Conclusion / unresolved card uses yellow/orange/purple/green accents that do not match the Adjudo brand.
+
+Adjudo brand direction:
+
+* Minimal
+* Black / white / gray
+* Decision workspace feel
+* Avoid colorful AI-tool feeling
+* Primary action should be black background / white text
+* Status colors should be subtle
+
+Please update the card colors:
+
+Do not use strong:
+
+* yellow
+* orange
+* purple
+* pastel green
+
+Suggested direction:
+
+* Pending / unresolved: neutral gray
+* Running: subtle dark/gray badge
+* Completed: black or very subtle green only if necessary
+* Error: muted red only for actual errors
+* Primary buttons: black background, white text
+* Secondary buttons: white/gray border
+
+Specifically, the current “結論 未確定” card should not look yellow/orange.
+Use neutral styling.
+
+==================================================
+P1: Project label typography too small
+
+Current issue:
+In the sidebar, the “PROJECTS” label and project area feel too small.
+The Project name hierarchy is weak.
+
+Please adjust typography:
+
+* Section label: still small, but readable
+* Project name: larger and clearer
+* Room name inside project: same readable size as standalone room
+* Status/metadata: smaller and muted
+* Selected room: clear highlight
+
+Expected:
+The user should immediately understand:
+Project
+└ Room
+
+Do not make the whole sidebar visually heavy.
+Just improve hierarchy and readability.
+
+==================================================
+P1: Rooms inside Project cannot be deleted
+
+Current issue:
+Standalone rooms have a “…” menu, but rooms nested inside Projects do not have the same management actions.
+
+Expected:
+Every room, whether standalone or inside a Project, should have the same room menu.
+
+Room menu should include:
+
+* Rename
+* Move to project / Change project
+* Remove from project if applicable
+* Delete or Archive
+
+At minimum, nested project rooms must support:
+
+* Delete or Archive
+* Move / Change project
+
+When deleting/archiving a nested room:
+
+* It should disappear from the Project
+* Project room count should update
+* Current route should redirect safely if deleting the open room
+
+Please reuse the existing standalone room menu if possible.
+Do not create separate inconsistent menus.
+
+==================================================
+P1: Duplicate room names under Project
+
+Current screenshot shows two “PR方法” rooms under the same Project.
+
+Please verify:
+
+* Was this caused by clicking + New Room multiple times?
+* Does the UI allow accidental duplicate room creation?
+* Is there any double-click issue?
+* Does the create button need loading/disabled state while creating?
+
+If low risk, prevent accidental double creation by disabling the project “+ New Room” action while room creation is in progress.
+
+==================================================
+Manual QA
+
+Please test on mobile width:
+
+1. Open app in Replit Preview.
+2. Open sidebar.
+3. Open Project.
+4. Create a new Room under Project.
+5. Submit the Japanese PR prompt.
+6. Confirm Builder output appears.
+7. Confirm Breaker output appears.
+8. Confirm Operator output appears.
+9. Confirm メモ生成中 → メモ保存中 → 完了.
+10. Confirm Decision Memo appears.
+11. Confirm no infinite loading.
+12. Confirm nested project room can be deleted/archived.
+13. Confirm Project room count updates.
+14. Confirm colors are neutral and brand-consistent.
+15. Confirm Project typography is readable.
+
+==================================================
+Expected report
+
+Please return:
+
+1. Summary
+
+2. Root cause of Builder not returning
+
+3. AI runtime verification
+
+* API called?
+* Anthropic key detected?
+* Anthropic called?
+* SSE events received?
+* Error handling added?
+
+4. UI color changes
+
+5. Typography changes
+
+6. Nested room menu/delete behavior
+
+7. Duplicate room prevention if implemented
+
+8. Manual mobile QA result
+
+9. Remaining risks
+
+Final judgment:
+
+* Can we run internal comparison test?
+* Can we let one external user test one real decision?
