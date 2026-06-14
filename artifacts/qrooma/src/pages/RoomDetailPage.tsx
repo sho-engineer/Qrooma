@@ -46,8 +46,9 @@ const AGENT_SIDE: Record<string, "A" | "B" | "C"> = {
   operator: "C",
 };
 
-// Free plan: fixed 2-agent config (no API keys required)
+// Free plan: fixed 3-agent config (server-side Anthropic key — no user key required)
 const FREE_SIDES: Array<{ provider: "anthropic"; model: string }> = [
+  { provider: "anthropic", model: "claude-opus-4-5" },
   { provider: "anthropic", model: "claude-opus-4-5" },
   { provider: "anthropic", model: "claude-opus-4-5" },
 ];
@@ -145,7 +146,7 @@ export default function RoomDetailPage() {
   const isFree = plan === "free";
   /** True while any round is actively running (initial run or continuation) */
   const isRunActive = runStatus === "running" || runStatus === "continued";
-  const agentCount  = isFree ? 2 : (settings.agentCount ?? 3);
+  const agentCount  = isFree ? 3 : (settings.agentCount ?? 3);
   const activeSides = isFree
     ? FREE_SIDES
     : agentCount === 2
@@ -164,6 +165,7 @@ export default function RoomDetailPage() {
       return [
         t.roleLabel("A", settings.defaultMode),
         t.roleLabel("B", settings.defaultMode),
+        t.roleLabel("C", settings.defaultMode),
       ];
     }
     const sideCodes: Array<"A" | "B" | "C"> = agentCount === 2 ? ["A", "B"] : ["A", "B", "C"];
@@ -315,7 +317,7 @@ export default function RoomDetailPage() {
 
     if (hasSomeKey || isFree) {
       const sides = isFree
-        ? (["A", "B"] as const)
+        ? (["A", "B", "C"] as const)
         : ((agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[]);
       const sideConfigs = isFree
         ? FREE_SIDES
@@ -518,7 +520,7 @@ export default function RoomDetailPage() {
     if (!hasSomeKey && !isFree) return;
 
     const sides = isFree
-      ? (["A", "B"] as const)
+      ? (["A", "B", "C"] as const)
       : ((agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[]);
     const sideConfigs = isFree ? FREE_SIDES : [settings.sideA, settings.sideB, settings.sideC];
     const agentConfig = sides
@@ -622,7 +624,7 @@ export default function RoomDetailPage() {
     const previousProvisional = conclusions[0]?.summary ?? "";
 
     const sides = isFree
-      ? (["A", "B"] as const)
+      ? (["A", "B", "C"] as const)
       : ((agentCount === 2 ? ["A", "B"] : ["A", "B", "C"]) as ("A" | "B" | "C")[]);
     const sideConfigs = isFree ? FREE_SIDES : [settings.sideA, settings.sideB, settings.sideC];
     const agentConfig = sides

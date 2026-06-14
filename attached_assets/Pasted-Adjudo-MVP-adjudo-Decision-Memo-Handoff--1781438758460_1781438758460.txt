@@ -1,0 +1,124 @@
+Adjudo MVPの以下の問題を優先順に修正してください。
+
+目的：
+adjudoの中核体験である「議論 → Decision Memo生成 → Handoff」が安定して動く状態にすること。
+特に、Completed表示なのにDecision Memoが存在しない状態をなくしてください。
+
+前提：
+
+* Frontend: React 18 + Vite + TypeScript
+* API server: Express + Node.js
+* Auth: Firebase Auth
+* DB: PostgreSQL
+* 現状、一部データはlocalStorage保存
+* ユーザー画面ではモデル名を見せない方針
+* Free mode / BYOK / API key設定の説明はユーザー画面から削除する方針
+
+P0 修正内容：
+
+1. ai.ts の max_tokens を引き上げる
+
+* 通常メッセージ生成: 1500 tokens
+* checkpoint / summary: 1500 tokens
+* Decision Memo JSON生成: 3000 tokens
+* providerごとに指定できるようにする
+* OpenAI / Anthropic / Googleで可能な限り同等の出力上限になるよう調整する
+
+2. Decision Memo生成失敗時のステータスを修正する
+
+* receivedConclusion=false の状態で done event が来ても、run status を completed にしない
+* Decision Memoが存在しない場合は completed 扱いにしない
+* generating_conclusion, completed, failed などの状態を明確に分ける
+* JSONパース失敗時はエラー表示、または1回だけJSON修復リトライを実行する
+
+3. Conclusionフローを改善する
+
+* 現在の「checkpoint → End here → forceConclusion:true」の2-step UXをやめる
+* 通常フローでは、議論完了後に自動でDecision Memoを生成する
+* checkpointは途中まとめまたは内部状態として扱う
+* ユーザーには最終的にDecision Memoが自動表示されるようにする
+* 補助ボタンとして必要なら “Regenerate Decision Memo” / “Continue discussion” を追加する
+
+4. FreeプランでもOperatorを有効化する
+
+* FREE_SIDES を A/B/C の3エントリにする
+* Side C = Operator をFreeでも呼び出す
+* ユーザーにはモデル名ではなく、Builder / Breaker / Operator の役割名だけを表示する
+* 裏側のモデル構成はユーザーに見せない
+
+5. Free mode / BYOK / API key UIを削除する
+    対象ファイル：
+
+* artifacts/qrooma/src/components/MessageInput.tsx
+    * isFreeMode = !apiKeysReady に依存するFree modeバナーを削除
+    * “Free mode”
+    * “Set up in Settings”
+    * ZapIcon付き説明を削除
+* artifacts/qrooma/src/pages/SettingsPage.tsx
+    * FreePlanCard内の “Fixed 2-agent config” を削除
+    * Builder/Breakerのモデル名 “Claude Opus” 表示を削除
+    * API key / BYOK / provider設定系のユーザー向け表示を削除
+* artifacts/qrooma/src/components/MessageBubble.tsx
+    * MessageBubble内のモデル名表示を削除
+    * 表示は Builder / Breaker / Operator などの役割名のみにする
+
+6. モデル名を通常ユーザー画面から完全に非表示にする
+
+* “Claude Opus”
+* “OpenAI”
+* “Anthropic”
+* “Gemini”
+* その他provider/model名
+    これらはSettings、MessageBubble、Room画面など通常ユーザーUIに表示しない。
+    必要な場合はAdmin画面またはサーバーログのみに限定する。
+
+P1 修正内容：
+
+7. i18n未対応箇所を修正する
+    対象：
+
+* MessageInput.tsx
+    * “Normal”
+    * “Prompt Mode”
+* RoomsPage.tsx
+    * “just now”
+    * “m ago”
+    * “h ago”
+    * “d ago”
+* SettingsPage.tsx
+    * “Free”
+    * “Current plan”
+    * “Usage”
+* AdminPage.tsx
+    * 英語ハードコード箇所
+
+8. Settingsページを簡素化する
+    Settingsに残す項目は原則以下のみ：
+
+* Language: ja / en
+* Writing style
+* 必要ならOutput tone
+
+削除する項目：
+
+* API Key設定
+* BYOK説明
+* Free mode説明
+* Fixed 2-agent config
+* モデル名表示
+* agentCount設定
+
+9. Decision Memo保存先の改善方針を確認する
+    現状localStorage保存だが、将来的にPostgreSQL保存へ移行できるようにする。
+    ただし今回の最優先は、Memo生成の安定化とUI整理。
+
+受け入れ条件：
+
+* ユーザーがメッセージ送信後、最終的にDecision Memoが自動生成される
+* Decision Memoが生成されていない状態でRunがcompleted表示にならない
+* JSONパース失敗時に無言でcompletedにならない
+* FreeプランでもBuilder / Breaker / Operatorの3役が動く
+* ユーザー画面に “Claude Opus” などのモデル名が表示されない
+* MessageInputにFree modeバナーが出ない
+* SettingsにFixed 2-agent configやAPI key設定導線が出ない
+* 日本語設定時に主要画面が日本語で表示される

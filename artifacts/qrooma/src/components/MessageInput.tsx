@@ -1,6 +1,5 @@
 import { forwardRef } from "react";
-import { Link } from "wouter";
-import { SendIcon, ZapIcon, KeyRoundIcon, SlidersHorizontalIcon, Square } from "lucide-react";
+import { SendIcon, SlidersHorizontalIcon, Square } from "lucide-react";
 import { useLocale } from "../context/LocaleContext";
 import { isMobile } from "../lib/isMobile";
 
@@ -11,14 +10,14 @@ interface Props {
   /** Called when the user presses the stop button during generation */
   onStop?:      () => void;
   isRunning:    boolean;
-  /** false = BYOK keys not set → Free mode (still allows sending, with banner) */
-  apiKeysReady: boolean;
   /** Whether prompt mode is currently active */
   promptMode?:  boolean;
   /** Toggle between normal and prompt mode */
   onTogglePromptMode?: () => void;
-  /** Usage info for Free plan display */
-  usageInfo?: { used: number; limit: number; isUnlimited: boolean } | null;
+  /** @deprecated kept for caller compatibility — no longer used */
+  apiKeysReady?: boolean;
+  /** @deprecated kept for caller compatibility — no longer used */
+  usageInfo?: unknown;
 }
 
 const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInput({
@@ -27,13 +26,10 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
   onSend,
   onStop,
   isRunning,
-  apiKeysReady,
   promptMode,
   onTogglePromptMode,
-  usageInfo,
 }, ref) {
   const { t, locale } = useLocale();
-  const isFreeMode = !apiKeysReady;
   const ja = locale === "ja";
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -46,41 +42,10 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
 
   const hintText = isMobile()
     ? (ja ? "送信は右のボタンから" : "Tap the button to send")
-    : (isFreeMode ? t.freeModeDesc : t.sendingAutoRun);
+    : t.sendingAutoRun;
 
   return (
     <div className="shrink-0 px-3 pb-3 pt-1 sm:px-4 sm:pb-4">
-      {/* Free mode banner */}
-      {isFreeMode && (
-        <div className="flex items-center justify-between gap-3 mb-2 px-3.5 py-2 rounded-xl bg-card border border-border/80">
-          <div className="flex items-center gap-2 min-w-0 flex-wrap">
-            <ZapIcon size={12} className="shrink-0 text-amber-500" />
-            <span className="text-[11px] font-medium text-foreground">{t.freeMode}</span>
-            {usageInfo && (
-              <span className="text-[11px] font-medium text-foreground/70 tabular-nums">
-                {usageInfo.isUnlimited
-                  ? t.usageUnlimited
-                  : `${usageInfo.limit - usageInfo.used} / ${usageInfo.limit}`}
-              </span>
-            )}
-            {!usageInfo && (
-              <>
-                <span className="text-[11px] text-muted-foreground/60 hidden sm:block">—</span>
-                <span className="text-[11px] text-muted-foreground/60 hidden sm:block leading-snug">
-                  {t.freeModeHint}
-                </span>
-              </>
-            )}
-          </div>
-          <Link href="/settings" className="shrink-0">
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors whitespace-nowrap">
-              <KeyRoundIcon size={10} />
-              {t.goToSettings}
-            </span>
-          </Link>
-        </div>
-      )}
-
       {/* Mode toggle row */}
       {onTogglePromptMode && (
         <div className="flex items-center gap-2 mb-2">
@@ -125,7 +90,6 @@ const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInpu
           }
           rows={2}
           disabled={isRunning}
-          // enterKeyHint="enter" tells iOS/Android to show "Return" key (newline), not "Send"/"Go"
           enterKeyHint={isMobile() ? "enter" : "send"}
           className="flex-1 resize-none text-sm bg-transparent outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed leading-relaxed"
         />

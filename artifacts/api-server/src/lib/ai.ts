@@ -21,9 +21,11 @@ export interface CallAIParams {
   messages: AIMessage[];
   apiKey: string;
   signal?: AbortSignal;
+  /** Max output tokens. Defaults to 1500 for regular messages, pass 3000 for conclusion/memo. */
+  maxTokens?: number;
 }
 
-export async function callAI({ provider, model, systemPrompt, messages, apiKey, signal }: CallAIParams): Promise<string> {
+export async function callAI({ provider, model, systemPrompt, messages, apiKey, signal, maxTokens = 1500 }: CallAIParams): Promise<string> {
   if (provider === "openai") {
     const client = new OpenAI({ apiKey });
     const res = await client.chat.completions.create(
@@ -33,7 +35,7 @@ export async function callAI({ provider, model, systemPrompt, messages, apiKey, 
           { role: "system", content: systemPrompt },
           ...messages,
         ],
-        max_tokens: 400,
+        max_tokens: maxTokens,
         temperature: 0.7,
       },
       { signal },
@@ -46,7 +48,7 @@ export async function callAI({ provider, model, systemPrompt, messages, apiKey, 
     const res = await client.messages.create(
       {
         model,
-        max_tokens: 400,
+        max_tokens: maxTokens,
         system: systemPrompt,
         messages: messages.map((m) => ({
           role: m.role,
@@ -65,8 +67,8 @@ export async function callAI({ provider, model, systemPrompt, messages, apiKey, 
     const gemini = genAI.getGenerativeModel({
       model,
       systemInstruction: systemPrompt,
+      generationConfig: { maxOutputTokens: maxTokens },
     });
-    // Build chat history (all but last message)
     const history = messages.slice(0, -1).map((m) => ({
       role: m.role === "user" ? "user" : "model",
       parts: [{ text: m.content }],

@@ -1276,7 +1276,7 @@ router.post("/discuss", discussLimiter, requireUser, async (req, res) => {
   }> = [];
 
   // Moderator call helper — uses first available agent's key
-  async function callModerator(systemPrompt: string, contextText: string): Promise<string | null> {
+  async function callModerator(systemPrompt: string, contextText: string, maxTokens = 1500): Promise<string | null> {
     const conf = agentConfig[0];
     if (!conf) return null;
     const key = apiKeys[conf.provider as keyof typeof apiKeys];
@@ -1291,6 +1291,7 @@ router.post("/discuss", discussLimiter, requireUser, async (req, res) => {
         messages:     [{ role: "user", content: contextText }],
         apiKey:       key,
         signal:       controller.signal,
+        maxTokens,
       });
     } catch {
       return null;
@@ -1393,7 +1394,7 @@ router.post("/discuss", discussLimiter, requireUser, async (req, res) => {
         let content: string;
         try {
           if (controller.signal.aborted) break;
-        content = await callAI({ provider: provider as Provider, model, systemPrompt, messages, apiKey, signal: controller.signal });
+        content = await callAI({ provider: provider as Provider, model, systemPrompt, messages, apiKey, signal: controller.signal, maxTokens: 1500 });
         } catch (agentErr: unknown) {
           const errMsg = agentErr instanceof Error ? agentErr.message : "Unknown error";
           sseWrite(res, { type: "agent_error", round, side, agentId, message: errMsg });
@@ -1550,11 +1551,10 @@ RULES:
         provisionalConclusionPrompt = PROVISIONAL_PROMPT;
       }
 
+      // Always generate the final Decision Memo JSON at end of rounds.
       // Decision Memo JSON mode: no presentation suffix (it would confuse JSON output)
-      const usesDecisionMemoJson = forceConclusion && !promptConfig;
-      const conclusionSystemPrompt = forceConclusion
-        ? languageLock + finalConclusionPrompt + (usesDecisionMemoJson ? "" : "\n" + conclusionPresentation)
-        : languageLock + provisionalConclusionPrompt + "\n" + conclusionPresentation;
+      const usesDecisionMemoJson = !promptConfig;
+      const conclusionSystemPrompt = languageLock + finalConclusionPrompt + (usesDecisionMemoJson ? "" : "\n" + conclusionPresentation);
 
       let conclusionText: string | null = null;
       for (const conf of agentConfig) {
@@ -1569,6 +1569,7 @@ RULES:
             messages:     [{ role: "user", content: conclusionContext }],
             apiKey:       key,
             signal:       controller.signal,
+            maxTokens:    3000,
           });
           if (conclusionText) break;
         } catch {
@@ -1577,37 +1578,28 @@ RULES:
       }
 
       if (conclusionText) {
-        if (forceConclusion) {
-          // Final conclusion — human explicitly ended the discussion
-          // Try to parse as Decision Memo JSON if using the JSON prompt
-          let decisionMemo: object | undefined;
-          if (usesDecisionMemoJson) {
-            try {
-              // Strip any accidental markdown fences before parsing
-              const stripped = conclusionText
-                .replace(/^```(?:json)?\s*/i, "")
-                .replace(/```\s*$/, "")
-                .trim();
-              decisionMemo = JSON.parse(stripped);
-            } catch {
-              // Fallback: emit as plain text conclusion
-              decisionMemo = undefined;
-            }
+        // Always emit a final `conclusion` event with Decision Memo JSON.
+        // There is no provisional checkpoint step — Decision Memo is generated automatically.
+        let decisionMemo: object | undefined;
+        if (usesDecisionMemoJson) {
+          try {
+            // Strip any accidental markdown fences before parsing
+            const stripped = conclusionText
+              .replace(/^```(?:json)?\s*/i, "")
+              .replace(/```\s*$/, "")
+              .trim();
+            decisionMemo = JSON.parse(stripped);
+          } catch {
+            // JSON parse failed — emit as plain text conclusion without structured memo
+            decisionMemo = undefined;
           }
-          sseWrite(res, {
-            type:         "conclusion",
-            content:      conclusionText,
-            decisionMemo: decisionMemo ?? null,
-            createdAt:    new Date().toISOString(),
-          });
-        } else {
-          // Provisional checkpoint — human must choose to end or continue
-          sseWrite(res, {
-            type:      "checkpoint",
-            content:   conclusionText,
-            createdAt: new Date().toISOString(),
-          });
         }
+        sseWrite(res, {
+          type:         "conclusion",
+          content:      conclusionText,
+          decisionMemo: decisionMemo ?? null,
+          createdAt:    new Date().toISOString(),
+        });
       } else {
         sseWrite(res, { type: "conclusion_error", message: "All agents failed to generate conclusion." });
       }

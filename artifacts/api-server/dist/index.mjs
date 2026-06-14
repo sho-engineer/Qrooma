@@ -53693,7 +53693,7 @@ Anthropic.Beta = Beta2;
 
 // src/lib/ai.ts
 import { GoogleGenerativeAI } from "@google/generative-ai";
-async function callAI({ provider, model, systemPrompt, messages, apiKey, signal }) {
+async function callAI({ provider, model, systemPrompt, messages, apiKey, signal, maxTokens = 1500 }) {
   if (provider === "openai") {
     const client = new OpenAI({ apiKey });
     const res = await client.chat.completions.create(
@@ -53703,7 +53703,7 @@ async function callAI({ provider, model, systemPrompt, messages, apiKey, signal 
           { role: "system", content: systemPrompt },
           ...messages
         ],
-        max_tokens: 400,
+        max_tokens: maxTokens,
         temperature: 0.7
       },
       { signal }
@@ -53715,7 +53715,7 @@ async function callAI({ provider, model, systemPrompt, messages, apiKey, signal 
     const res = await client.messages.create(
       {
         model,
-        max_tokens: 400,
+        max_tokens: maxTokens,
         system: systemPrompt,
         messages: messages.map((m) => ({
           role: m.role,
@@ -53732,7 +53732,8 @@ async function callAI({ provider, model, systemPrompt, messages, apiKey, signal 
     const genAI = new GoogleGenerativeAI(apiKey);
     const gemini = genAI.getGenerativeModel({
       model,
-      systemInstruction: systemPrompt
+      systemInstruction: systemPrompt,
+      generationConfig: { maxOutputTokens: maxTokens }
     });
     const history = messages.slice(0, -1).map((m) => ({
       role: m.role === "user" ? "user" : "model",
@@ -63373,7 +63374,7 @@ router2.post("/discuss", discussLimiter, requireUser, async (req, res) => {
     content: m.role === "user" ? m.content : `[${(m.agentId ?? "agent").toUpperCase()}]: ${m.content}`
   }));
   const allRoundMessages = [];
-  async function callModerator(systemPrompt, contextText) {
+  async function callModerator(systemPrompt, contextText, maxTokens = 1500) {
     const conf = agentConfig[0];
     if (!conf) return null;
     const key = apiKeys[conf.provider];
@@ -63387,7 +63388,8 @@ router2.post("/discuss", discussLimiter, requireUser, async (req, res) => {
         systemPrompt: languageLock + systemPrompt + "\n" + presentationSuffix,
         messages: [{ role: "user", content: contextText }],
         apiKey: key,
-        signal: controller.signal
+        signal: controller.signal,
+        maxTokens
       });
     } catch {
       return null;
@@ -63487,7 +63489,7 @@ ${currRoundText}`;
           let content;
           try {
             if (controller.signal.aborted) break;
-            content = await callAI({ provider, model, systemPrompt, messages, apiKey, signal: controller.signal });
+            content = await callAI({ provider, model, systemPrompt, messages, apiKey, signal: controller.signal, maxTokens: 1500 });
           } catch (agentErr) {
             const errMsg = agentErr instanceof Error ? agentErr.message : "Unknown error";
             sseWrite(res, { type: "agent_error", round, side, agentId, message: errMsg });
@@ -63615,8 +63617,8 @@ RULES:
         finalConclusionPrompt = DECISION_MEMO_PROMPT;
         provisionalConclusionPrompt = PROVISIONAL_PROMPT;
       }
-      const usesDecisionMemoJson = forceConclusion && !promptConfig;
-      const conclusionSystemPrompt = forceConclusion ? languageLock + finalConclusionPrompt + (usesDecisionMemoJson ? "" : "\n" + conclusionPresentation) : languageLock + provisionalConclusionPrompt + "\n" + conclusionPresentation;
+      const usesDecisionMemoJson = !promptConfig;
+      const conclusionSystemPrompt = languageLock + finalConclusionPrompt + (usesDecisionMemoJson ? "" : "\n" + conclusionPresentation);
       let conclusionText = null;
       for (const conf of agentConfig) {
         if (controller.signal.aborted) break;
@@ -63629,7 +63631,8 @@ RULES:
             systemPrompt: conclusionSystemPrompt,
             messages: [{ role: "user", content: conclusionContext }],
             apiKey: key,
-            signal: controller.signal
+            signal: controller.signal,
+            maxTokens: 3e3
           });
           if (conclusionText) break;
         } catch {
@@ -63637,29 +63640,21 @@ RULES:
         }
       }
       if (conclusionText) {
-        if (forceConclusion) {
-          let decisionMemo;
-          if (usesDecisionMemoJson) {
-            try {
-              const stripped = conclusionText.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
-              decisionMemo = JSON.parse(stripped);
-            } catch {
-              decisionMemo = void 0;
-            }
+        let decisionMemo;
+        if (usesDecisionMemoJson) {
+          try {
+            const stripped = conclusionText.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+            decisionMemo = JSON.parse(stripped);
+          } catch {
+            decisionMemo = void 0;
           }
-          sseWrite(res, {
-            type: "conclusion",
-            content: conclusionText,
-            decisionMemo: decisionMemo ?? null,
-            createdAt: (/* @__PURE__ */ new Date()).toISOString()
-          });
-        } else {
-          sseWrite(res, {
-            type: "checkpoint",
-            content: conclusionText,
-            createdAt: (/* @__PURE__ */ new Date()).toISOString()
-          });
         }
+        sseWrite(res, {
+          type: "conclusion",
+          content: conclusionText,
+          decisionMemo: decisionMemo ?? null,
+          createdAt: (/* @__PURE__ */ new Date()).toISOString()
+        });
       } else {
         sseWrite(res, { type: "conclusion_error", message: "All agents failed to generate conclusion." });
       }

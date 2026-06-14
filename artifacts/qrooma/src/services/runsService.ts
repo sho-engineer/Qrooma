@@ -302,7 +302,8 @@ export const runsService = {
               } else if (receivedCheckpoint) {
                 onComplete("checkpoint");
               } else {
-                onComplete("completed");
+                // No conclusion or checkpoint received — something went wrong
+                onComplete("error");
               }
             } else if (data["type"] === "error") {
               console.error("API discussion error:", data["message"]);
