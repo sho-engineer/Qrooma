@@ -63346,6 +63346,8 @@ router2.post("/discuss", discussLimiter, requireUser, async (req, res) => {
     anthropic: clientApiKeys.anthropic || process.env["ANTHROPIC_API_KEY"] || void 0,
     google: clientApiKeys.google || void 0
   };
+  const isFallback = !clientApiKeys.anthropic && !!process.env["ANTHROPIC_API_KEY"];
+  req.log.info({ runId, roomId, isFallback, agentCount: agentConfig.length, mode }, "discuss call started");
   if (activeSseStreams >= MAX_SSE_STREAMS) {
     res.status(503).json({ error: "Server busy, please try again later." });
     return;
@@ -63487,11 +63489,14 @@ ${currRoundText}`;
           ];
           sseWrite(res, { type: "agent_start", round, side, agentId });
           let content;
+          const _agentCallStart = Date.now();
           try {
             if (controller.signal.aborted) break;
             content = await callAI({ provider, model, systemPrompt, messages, apiKey, signal: controller.signal, maxTokens: 1500 });
+            req.log.info({ runId, roomId, role: roleLabel, provider, model, round, isFallback, durationMs: Date.now() - _agentCallStart }, "agent call succeeded");
           } catch (agentErr) {
             const errMsg = agentErr instanceof Error ? agentErr.message : "Unknown error";
+            req.log.warn({ runId, roomId, role: roleLabel, provider, model, round, isFallback, error: errMsg, durationMs: Date.now() - _agentCallStart }, "agent call failed");
             sseWrite(res, { type: "agent_error", round, side, agentId, message: errMsg });
             continue;
           }
@@ -63621,11 +63626,15 @@ RULES:
       const usesDecisionMemoJson = !promptConfig;
       const conclusionSystemPrompt = languageLock + finalConclusionPrompt + (usesDecisionMemoJson ? "" : "\n" + conclusionPresentation);
       let conclusionText = null;
+      let memoProvider = null;
+      let memoModel = null;
       for (const conf of agentConfig) {
         if (controller.signal.aborted) break;
         const key = apiKeys[conf.provider];
         if (!key) continue;
+        const _memoStart = Date.now();
         try {
+          req.log.info({ runId, roomId, role: "FinalMemo", provider: conf.provider, model: conf.model, isFallback }, "final memo call starting");
           conclusionText = await callAI({
             provider: conf.provider,
             model: conf.model,
@@ -63635,8 +63644,14 @@ RULES:
             signal: controller.signal,
             maxTokens: 3e3
           });
-          if (conclusionText) break;
+          if (conclusionText) {
+            memoProvider = conf.provider;
+            memoModel = conf.model;
+            req.log.info({ runId, roomId, role: "FinalMemo", provider: conf.provider, model: conf.model, isFallback, durationMs: Date.now() - _memoStart }, "final memo call succeeded");
+            break;
+          }
         } catch {
+          req.log.warn({ runId, roomId, role: "FinalMemo", provider: conf.provider, model: conf.model, durationMs: Date.now() - _memoStart }, "final memo call failed");
           continue;
         }
       }
@@ -63653,6 +63668,7 @@ RULES:
             const repairKey = repairConf ? apiKeys[repairConf.provider] : void 0;
             if (repairConf && repairKey && !controller.signal.aborted) {
               try {
+                req.log.info({ runId, roomId, role: "JSONRepair", provider: repairConf.provider, model: repairConf.model, isFallback }, "JSON repair call starting");
                 const repairSystem = `You are a JSON repair tool. The user will provide malformed or incomplete JSON text. Return ONLY valid JSON matching this exact schema \u2014 no markdown fences, no explanation, nothing else:
 {"decision":"<string>","confidence_level":"high|medium|low","reasoning_summary":"<string>","key_tradeoffs":["<string>"],"do_now":[{"item":"<string>","reason":"<string>"}],"not_now":[{"item":"<string>","reason":"<string>"}],"future_consideration":[{"item":"<string>","condition":"<string>"}],"next_actions":[{"task":"<string>","owner":"<string>","deadline":"<string>"}],"assumptions_made":["<string>"],"risk_flags":["<string>"]}`;
                 const repaired = await callAI({
@@ -63682,6 +63698,9 @@ RULES:
           content: conclusionText,
           decisionMemo: decisionMemo ?? null,
           parseError: parseError || null,
+          parseErrorMessage: parseError ? "Decision Memo JSON parse failed after LLM repair attempt" : null,
+          provider: memoProvider,
+          model: memoModel,
           createdAt: (/* @__PURE__ */ new Date()).toISOString()
         });
       } else {

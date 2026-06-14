@@ -11,7 +11,7 @@ import {
   LogOutIcon, SettingsIcon, MessageSquareIcon, LayoutDashboardIcon,
   PanelLeftCloseIcon, PanelLeftOpenIcon,
   MoreHorizontalIcon, Trash2Icon, ArchiveIcon, ArchiveRestoreIcon, ChevronDownIcon,
-  FolderIcon, FolderOpenIcon,
+  FolderIcon, FolderOpenIcon, MoveRightIcon,
 } from "lucide-react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -83,12 +83,102 @@ function DeleteConfirmDialog({
   );
 }
 
+// ─── Move to project modal ───────────────────────────────────────────────────
+// Lifted to Sidebar level (same pattern as DeleteConfirmDialog) to survive
+// RoomContextMenu unmount.
+
+function MoveToProjectModal({
+  roomId,
+  roomName,
+  currentProjectId,
+  onClose,
+}: {
+  roomId:           string;
+  roomName:         string;
+  currentProjectId?: string;
+  onClose:          () => void;
+}) {
+  const { locale } = useLocale();
+  const { projects } = useProjects();
+  const { updateRoom } = useRooms();
+
+  const activeProjects = projects.filter((p) => p.status === "active");
+
+  function moveTo(projectId: string | undefined) {
+    updateRoom(roomId, { projectId });
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div
+        className="relative z-10 w-full max-w-xs rounded-2xl border border-border bg-card shadow-2xl p-5 space-y-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            {locale === "ja" ? "プロジェクトに移動" : "Move to project"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+            {roomName}
+          </p>
+        </div>
+        <div className="space-y-1">
+          {activeProjects.map((proj) => (
+            <button
+              key={proj.id}
+              onClick={() => moveTo(proj.id)}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-left transition-colors ${
+                proj.id === currentProjectId
+                  ? "bg-sidebar-accent text-foreground font-medium"
+                  : "hover:bg-accent text-foreground"
+              }`}
+            >
+              <FolderIcon size={11} className="text-muted-foreground/60 shrink-0" />
+              <span className="truncate">{proj.name}</span>
+              {proj.id === currentProjectId && (
+                <span className="ml-auto text-[10px] text-muted-foreground/50">
+                  {locale === "ja" ? "現在" : "current"}
+                </span>
+              )}
+            </button>
+          ))}
+          {currentProjectId && (
+            <>
+              <div className="my-1 border-t border-border/30" />
+              <button
+                onClick={() => moveTo(undefined)}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-left hover:bg-accent transition-colors text-muted-foreground"
+              >
+                <XIcon size={11} className="shrink-0" />
+                <span>{locale === "ja" ? "プロジェクトから外す" : "Remove from project"}</span>
+              </button>
+            </>
+          )}
+          {activeProjects.length === 0 && (
+            <p className="text-xs text-muted-foreground/50 px-3 py-2">
+              {locale === "ja" ? "プロジェクトがありません" : "No projects yet"}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={onClose}
+          className="w-full py-1.5 text-xs text-muted-foreground border border-border rounded-xl hover:bg-accent transition-colors"
+        >
+          {locale === "ja" ? "キャンセル" : "Cancel"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Room context menu ────────────────────────────────────────────────────────
-// NOTE: DeleteConfirmDialog is intentionally NOT rendered here.
-// Rendering it inside RoomContextMenu caused a race condition:
+// NOTE: DeleteConfirmDialog and MoveToProjectModal are intentionally NOT rendered
+// here. Rendering them inside RoomContextMenu caused a race condition:
 // the "mousedown" click-outside handler unmounted this component (and the dialog)
-// before the "click" event on "削除する" could fire. The dialog is now lifted to
-// the Sidebar level so it survives the menu unmount.
+// before the "click" event on the confirm button could fire. Both are lifted to
+// the Sidebar level so they survive the menu unmount.
 
 function RoomContextMenu({
   roomId,
@@ -96,6 +186,7 @@ function RoomContextMenu({
   isArchived,
   onClose,
   onDeleteRequest,
+  onMoveRequest,
 }: {
   roomId:          string;
   roomName:        string;
@@ -103,10 +194,15 @@ function RoomContextMenu({
   onClose:         () => void;
   /** Called when user selects Delete — Sidebar owns the confirmation dialog */
   onDeleteRequest: (id: string, name: string) => void;
+  /** Called when user selects Move to project — Sidebar owns the modal */
+  onMoveRequest?:  (id: string, name: string) => void;
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { archiveRoom, restoreRoom } = useRooms();
+  const { projects } = useProjects();
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const hasProjects = projects.filter((p) => p.status === "active").length > 0;
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -129,11 +225,28 @@ function RoomContextMenu({
     onDeleteRequest(roomId, roomName);
   }
 
+  function handleMoveClick() {
+    onClose();
+    onMoveRequest?.(roomId, roomName);
+  }
+
   return (
     <div
       ref={menuRef}
-      className="absolute right-0 top-7 z-50 w-44 rounded-xl border border-border bg-card shadow-xl py-1 text-sm"
+      className="absolute right-0 top-7 z-50 w-48 rounded-xl border border-border bg-card shadow-xl py-1 text-sm"
     >
+      {!isArchived && hasProjects && onMoveRequest && (
+        <>
+          <button
+            onClick={handleMoveClick}
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent transition-colors text-left text-xs"
+          >
+            <MoveRightIcon size={12} className="text-muted-foreground" />
+            <span>{locale === "ja" ? "プロジェクトに移動" : "Move to project"}</span>
+          </button>
+          <div className="my-1 border-t border-border/40" />
+        </>
+      )}
       <button
         onClick={handleArchiveToggle}
         className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent transition-colors text-left text-xs"
@@ -172,9 +285,15 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
   const [newProjectMode, setNewProjectMode] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
+  /** Inline "new room inside project" state */
+  const [newRoomForProjectId,   setNewRoomForProjectId]   = useState<string | null>(null);
+  const [newRoomForProjectName, setNewRoomForProjectName] = useState("");
   /** Target room pending deletion — lifted here so the confirmation dialog
    *  survives the RoomContextMenu unmount (mousedown race condition fix). */
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  /** Target room pending project-move — lifted here so the modal survives
+   *  RoomContextMenu unmount (same race condition fix as deleteTarget). */
+  const [moveTarget, setMoveTarget] = useState<{ id: string; name: string; projectId?: string } | null>(null);
 
   const activeRooms   = rooms.filter((r) => !isRoomArchived(r));
   const archivedRooms = rooms.filter((r) =>  isRoomArchived(r));
@@ -213,6 +332,25 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
     addRoom(newRoomName.trim());
     setNewRoomName("");
     setNewRoomMode(false);
+  }
+
+  function createRoomInProject(projectId: string) {
+    if (!newRoomForProjectName.trim()) {
+      setNewRoomForProjectId(null);
+      setNewRoomForProjectName("");
+      return;
+    }
+    const room = addRoom(newRoomForProjectName.trim(), { projectId });
+    setNewRoomForProjectId(null);
+    setNewRoomForProjectName("");
+    setLocation(`/rooms/${room.id}`);
+    onClose();
+  }
+
+  /** Called by RoomContextMenu when user picks Move to project */
+  function handleMoveRequest(id: string, name: string) {
+    const room = rooms.find((r) => r.id === id);
+    setMoveTarget({ id, name, projectId: room?.projectId });
   }
 
   function handleRoomClick() {
@@ -381,6 +519,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
             {activeProjects.map((proj) => {
               const projRooms = activeRooms.filter((r) => r.projectId === proj.id);
               const isExpanded = expandedProjectId === proj.id;
+              const isAddingRoom = newRoomForProjectId === proj.id;
               return (
                 <div key={proj.id} className="mb-0.5">
                   <button
@@ -400,29 +539,97 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
                       className={`text-muted-foreground/30 transition-transform duration-150 ${isExpanded ? "" : "-rotate-90"}`}
                     />
                   </button>
-                  {isExpanded && projRooms.length > 0 && (
+                  {isExpanded && (
                     <div className="ml-3 border-l border-border/30 pl-1.5 mt-0.5 space-y-0.5">
                       {projRooms.map((room) => {
                         const isActive = location === `/rooms/${room.id}`;
+                        const menuOpen = menuOpenId === room.id;
                         return (
-                          <Link
+                          <div
                             key={room.id}
-                            href={`/rooms/${room.id}`}
-                            onClick={handleRoomClick}
-                            className={`block px-2 py-1 text-xs rounded-md transition-colors truncate ${
-                              isActive ? "bg-sidebar-accent text-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-foreground"
+                            className={`group relative flex items-center gap-0.5 rounded-md ${
+                              isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
                             }`}
                           >
-                            {room.name}
-                          </Link>
+                            <Link
+                              href={`/rooms/${room.id}`}
+                              onClick={handleRoomClick}
+                              className={`flex-1 min-w-0 px-2 py-1 text-xs truncate ${
+                                isActive ? "text-foreground" : "text-sidebar-foreground/70 hover:text-foreground"
+                              }`}
+                            >
+                              {room.name}
+                            </Link>
+                            <div className="relative shrink-0">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setMenuOpenId(menuOpen ? null : room.id);
+                                }}
+                                className={`p-1.5 rounded transition-all touch-manipulation ${
+                                  menuOpen
+                                    ? "opacity-100 text-foreground bg-sidebar-accent"
+                                    : "opacity-0 group-hover:opacity-70 text-muted-foreground hover:text-foreground"
+                                }`}
+                              >
+                                <MoreHorizontalIcon size={12} />
+                              </button>
+                              {menuOpen && (
+                                <RoomContextMenu
+                                  roomId={room.id}
+                                  roomName={room.name}
+                                  isArchived={false}
+                                  onClose={() => setMenuOpenId(null)}
+                                  onDeleteRequest={handleDeleteRequest}
+                                  onMoveRequest={handleMoveRequest}
+                                />
+                              )}
+                            </div>
+                          </div>
                         );
                       })}
+                      {/* Inline add-room for this project */}
+                      {isAddingRoom ? (
+                        <div className="px-1 py-1 space-y-1">
+                          <input
+                            autoFocus
+                            value={newRoomForProjectName}
+                            onChange={(e) => setNewRoomForProjectName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter")  createRoomInProject(proj.id);
+                              if (e.key === "Escape") { setNewRoomForProjectId(null); setNewRoomForProjectName(""); }
+                            }}
+                            placeholder={locale === "ja" ? "ルーム名" : "Room name"}
+                            className="w-full px-2 py-1 text-xs bg-background border border-input rounded-lg outline-none focus:ring-1 focus:ring-ring"
+                          />
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => createRoomInProject(proj.id)}
+                              className="flex-1 py-0.5 text-[11px] font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90"
+                            >
+                              {locale === "ja" ? "作成" : "Create"}
+                            </button>
+                            <button
+                              onClick={() => { setNewRoomForProjectId(null); setNewRoomForProjectName(""); }}
+                              className="flex-1 py-0.5 text-[11px] text-muted-foreground border border-border rounded-lg hover:bg-accent transition-colors"
+                            >
+                              {locale === "ja" ? "取消" : "Cancel"}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setNewRoomForProjectId(proj.id);
+                            setExpandedProjectId(proj.id);
+                          }}
+                          className="w-full flex items-center gap-1 px-2 py-0.5 text-[10px] text-muted-foreground/40 hover:text-muted-foreground/70 rounded-md hover:bg-sidebar-accent/30 transition-colors"
+                        >
+                          <PlusIcon size={9} />
+                          <span>{locale === "ja" ? "ルームを追加" : "New room"}</span>
+                        </button>
+                      )}
                     </div>
-                  )}
-                  {isExpanded && projRooms.length === 0 && (
-                    <p className="ml-5 text-[10px] text-muted-foreground/30 py-1">
-                      {locale === "ja" ? "ルームなし" : "No rooms"}
-                    </p>
                   )}
                 </div>
               );
@@ -591,6 +798,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
                           isArchived={false}
                           onClose={() => setMenuOpenId(null)}
                           onDeleteRequest={handleDeleteRequest}
+                          onMoveRequest={handleMoveRequest}
                         />
                       )}
                     </div>
@@ -742,6 +950,15 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
           roomName={deleteTarget.name}
           onConfirm={handleDeleteConfirmed}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {moveTarget && (
+        <MoveToProjectModal
+          roomId={moveTarget.id}
+          roomName={moveTarget.name}
+          currentProjectId={moveTarget.projectId}
+          onClose={() => setMoveTarget(null)}
         />
       )}
     </aside>

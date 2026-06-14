@@ -1,0 +1,123 @@
+Please improve the Project / Room UX and fix the “completed but no conclusion” issue.
+
+## 1. Project / Room UX redesign
+
+The current UX is confusing.
+Right now, Project and Room feel disconnected.
+
+I want two behaviors:
+
+### A. Create a room directly under a project
+When a user opens the left sidebar and sees a project, they should be able to add a room directly under that project.
+
+Expected behavior:
+- In the sidebar, each project should be expandable/collapsible.
+- Rooms belonging to that project should appear nested under it.
+- Each project should have a clear “+” or “+ New Room” action.
+- Clicking it should create a room with that projectId and open the room.
+
+Preferred structure:
+
+Projects
+- New Business
+  - PR Strategy
+  - Pricing Strategy
+  - Launch Timeline
+
+Do not separate “Projects” and “Rooms” as two disconnected lists if the room belongs to a project.
+
+### B. Move an existing room into a project
+For existing standalone rooms, add a clear action:
+- “Move to project”
+- “Remove from project” (optional)
+- or “Change project”
+
+Expected behavior:
+- In the room “…” menu, add “Move to project”
+- Open a modal or menu to choose:
+  - Project A
+  - Project B
+  - No project
+- After moving, update room.projectId
+- The room should appear under that project in the sidebar and project detail page
+
+## 2. Please prepare 2 UX options
+
+Please propose and implement one of these two directions:
+
+### Option 1 (recommended)
+Project-centric nested sidebar
+- Projects are the primary structure
+- Rooms appear under projects as children
+- Standalone rooms can be shown in a separate “Unassigned rooms” section
+
+### Option 2
+Keep project list and room list separate, but clearly show each room’s project and allow direct creation/move actions
+
+Please tell me which one you implemented and why.
+
+## 3. Typography / visual hierarchy consistency
+
+The current text sizes look inconsistent.
+
+Please standardize:
+- Project name
+- Room name
+- Status text
+- Supporting metadata
+- Room title
+- Body text
+- Input area text
+
+Use a consistent visual hierarchy for mobile and desktop.
+
+## 4. Fix the bug: completed but no conclusion
+
+This is a P0 issue.
+
+Current bad behavior:
+- Status becomes “Completed”
+- But the Conclusion section is empty / not returned
+
+Expected behavior:
+- `completed` must only happen if conclusion exists and is displayable
+- If conclusion generation fails, use `memo_failed` or equivalent
+- If conclusion save fails, do not show completed
+- Show a clear error state instead of an empty conclusion area
+
+Expected status flow:
+running
+→ generating_conclusion
+→ saving_memo
+→ completed
+
+If failed:
+running
+→ generating_conclusion
+→ saving_memo
+→ memo_failed
+
+Please inspect:
+- RoomDetailPage
+- runsService
+- ConclusionCard
+- decisionMemosService
+- any mobile-only rendering issues
+
+Please verify:
+1. completed cannot happen without a visible conclusion
+2. conclusion is rendered on mobile
+3. if conclusion exists in Firestore, UI loads it correctly
+4. if conclusion is missing, show error UI instead of blank panel
+
+## 5. Deliverable
+
+Please report:
+1. Which UX option you implemented
+2. Files changed
+3. How room creation under project now works
+4. How moving an existing room now works
+5. Typography changes
+6. Root cause of “completed but no conclusion”
+7. How it was fixed
+8. Manual QA results on mobile

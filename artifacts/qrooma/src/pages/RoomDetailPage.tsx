@@ -210,7 +210,12 @@ export default function RoomDetailPage() {
       // Explicit isFinal OR an existing conclusion without the provisional flag — both are final
       setConclusionStatus("final");
     } else {
-      setConclusionStatus("idle");
+      // No local conclusions found.
+      // If the room shows a completed run status but no local conclusion data exists,
+      // show a loading skeleton while Firestore is being checked — prevents the
+      // "completed badge + empty conclusion panel" flash that is the P0 bug.
+      const derivedStatus = room?.lastRunStatus ?? (msgs.length > 0 ? "completed" : "idle");
+      setConclusionStatus(derivedStatus === "completed" && msgs.length > 0 ? "loading" : "idle");
     }
     isFirstMount.current = true;
     shouldScrollToBottom.current = false;
@@ -220,13 +225,20 @@ export default function RoomDetailPage() {
   useEffect(() => {
     if (!user?.id) return;
     decisionMemosService.getForRoom(roomId, user.id).then((firestoreMemos) => {
-      if (firestoreMemos.length === 0) return;
+      if (firestoreMemos.length === 0) {
+        // Firestore has no memos for this room.
+        // If we were showing a loading skeleton (because the room had a "completed"
+        // status but no local conclusions), downgrade to "unresolved" so the user
+        // sees options to regenerate rather than a perpetual spinner.
+        setConclusionStatus((prev) => prev === "loading" ? "unresolved" : prev);
+        return;
+      }
       setConclusions((prev) => {
         const fsRunIds = new Set(firestoreMemos.map((m) => m.runId));
         const localOnly = prev.filter((c) => c.runId && !fsRunIds.has(c.runId));
         return [...firestoreMemos, ...localOnly];
       });
-      setConclusionStatus((prev) => prev === "idle" ? "final" : prev);
+      setConclusionStatus((prev) => (prev === "idle" || prev === "loading") ? "final" : prev);
     });
   }, [roomId, user?.id]);
 
