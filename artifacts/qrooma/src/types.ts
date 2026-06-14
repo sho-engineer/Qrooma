@@ -114,6 +114,12 @@ export interface ConclusionData {
   decisionMemo?: DecisionMemo;
   /** True when Decision Memo JSON parsing failed even after repair attempt */
   parseError?: boolean;
+  /** Error message when JSON parsing failed */
+  parseErrorMessage?: string | null;
+  /** AI provider used to generate this conclusion (e.g. "anthropic") */
+  provider?: string;
+  /** AI model used to generate this conclusion (e.g. "claude-opus-4-5") */
+  model?: string;
 }
 
 export interface Message {
@@ -147,11 +153,12 @@ export interface AgentInfo {
  * checkpoint            = rounds done, provisional conclusion generated — awaiting human decision
  * continued             = human chose to continue; additional rounds in progress
  * generating_conclusion = all rounds done; Decision Memo generation in progress
- * completed             = Decision Memo finalized and saved
- * memo_failed           = rounds completed but Decision Memo generation failed
+ * saving_memo           = conclusion received; Firestore save in progress (blocks completed)
+ * completed             = Decision Memo finalized AND Firestore save confirmed
+ * memo_failed           = rounds completed but Decision Memo generation or Firestore save failed
  * error                 = catastrophic failure (agent/network error)
  */
-export type RunStatus = "idle" | "running" | "checkpoint" | "continued" | "generating_conclusion" | "completed" | "memo_failed" | "error";
+export type RunStatus = "idle" | "running" | "checkpoint" | "continued" | "generating_conclusion" | "saving_memo" | "completed" | "memo_failed" | "error";
 
 /**
  * idle        = no conclusion yet

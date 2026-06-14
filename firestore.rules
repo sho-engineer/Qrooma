@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    // ── users ───────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow create: if isSignedIn() && isOwner(userId)
+        && !("role" in request.resource.data)
+        && !("accessStatus" in request.resource.data);
+      allow update: if isSignedIn() && isOwner(userId)
+        && !("role" in request.resource.data)
+        && !("accessStatus" in request.resource.data)
+        && !("plan" in request.resource.data);
+      allow write: if isAdmin();
+    }
+
+    // ── projects ────────────────────────────────────────────────────────────
+    match /projects/{projectId} {
+      allow read, write: if isSignedIn() && isOwner(resource.data.userId);
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+    }
+
+    // ── rooms ───────────────────────────────────────────────────────────────
+    // Note: rooms use `ownerId` field (set to auth.uid on creation).
+    match /rooms/{roomId} {
+      allow read, write: if isSignedIn() && isOwner(resource.data.ownerId);
+      allow create: if isSignedIn() && isOwner(request.resource.data.ownerId);
+    }
+
+    // ── messages ────────────────────────────────────────────────────────────
+    match /messages/{messageId} {
+      allow read, write: if isSignedIn() && isOwner(resource.data.userId);
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+    }
+
+    // ── decisionMemos ───────────────────────────────────────────────────────
+    match /decisionMemos/{memoId} {
+      allow read: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow update: if isSignedIn() && isOwner(resource.data.userId);
+      allow delete: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
+    }
+
+    // ── coupons ─────────────────────────────────────────────────────────────
+    match /coupons/{couponId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── couponRedemptions ───────────────────────────────────────────────────
+    match /couponRedemptions/{redemptionId} {
+      allow read: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAdmin();
+    }
+
+    // ── waitlist ────────────────────────────────────────────────────────────
+    match /waitlist/{entryId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ── feedback ────────────────────────────────────────────────────────────
+    match /feedback/{feedbackId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ── admin-only collections ───────────────────────────────────────────────
+    match /adminLogs/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /systemConfig/{docId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

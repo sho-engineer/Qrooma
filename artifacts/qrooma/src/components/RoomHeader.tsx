@@ -92,6 +92,11 @@ function RunStatusBadge({ status }: { status: RunStatus }) {
       dotClass: "bg-blue-400 animate-pulse",
       pill: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400",
     },
+    saving_memo: {
+      label: t.statusSavingMemo,
+      dotClass: "bg-blue-400 animate-pulse",
+      pill: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400",
+    },
     completed: {
       label: t.statusCompleted,
       dotClass: "bg-muted-foreground/40",

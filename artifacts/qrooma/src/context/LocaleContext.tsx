@@ -256,6 +256,7 @@ export interface Translations {
   continueDiscussionDesc: string;
   statusCheckpoint: string;
   statusGeneratingConclusion: string;
+  statusSavingMemo: string;
   statusMemoFailed: string;
   leadingOption: string;
   conclusionReasoning: string;
@@ -684,6 +685,7 @@ const ja: Translations = {
   continueDiscussionDesc: "残論点を踏まえてもう1ラウンド追加する",
   statusCheckpoint: "暫定",
   statusGeneratingConclusion: "メモ生成中",
+  statusSavingMemo: "メモ保存中",
   statusMemoFailed: "メモ生成失敗",
   leadingOption: "有力案",
   conclusionReasoning: "理由",
@@ -1112,6 +1114,7 @@ const en: Translations = {
   continueDiscussionDesc: "Add another round to address the open questions",
   statusCheckpoint: "Provisional",
   statusGeneratingConclusion: "Writing memo",
+  statusSavingMemo: "Saving memo",
   statusMemoFailed: "Memo failed",
   leadingOption: "Leading Direction",
   conclusionReasoning: "Reasoning",

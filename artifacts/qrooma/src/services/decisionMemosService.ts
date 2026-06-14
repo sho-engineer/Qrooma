@@ -6,21 +6,22 @@ import {
 import type { ConclusionData, DecisionMemo } from "../types";
 
 export interface DecisionMemoDoc {
-  id?:        string;
-  userId:     string;
-  userEmail:  string | null;
-  projectId:  string | null;
-  roomId:     string;
-  runId:      string;
-  title:      string | null;
-  memo:       DecisionMemo | null;
-  rawText:    string;
-  parseError: boolean;
-  provider:   string | null;
-  model:      string | null;
-  runNumber?: number;
-  createdAt?: unknown;
-  updatedAt?: unknown;
+  id?:               string;
+  userId:            string;
+  userEmail:         string | null;
+  projectId:         string | null;
+  roomId:            string;
+  runId:             string;
+  title:             string | null;
+  memo:              DecisionMemo | null;
+  rawText:           string;
+  parseError:        boolean;
+  parseErrorMessage: string | null;
+  provider:          string | null;
+  model:             string | null;
+  runNumber?:        number;
+  createdAt?:        unknown;
+  updatedAt?:        unknown;
 }
 
 export const decisionMemosService = {
@@ -38,16 +39,17 @@ export const decisionMemosService = {
         userEmail,
         projectId,
         roomId,
-        runId:      conclusion.runId ?? "",
-        title:      null,
-        memo:       conclusion.decisionMemo ?? null,
-        rawText:    conclusion.summary,
-        parseError: conclusion.parseError ?? false,
-        provider:   null,
-        model:      null,
-        runNumber:  conclusion.runNumber ?? null,
-        createdAt:  serverTimestamp(),
-        updatedAt:  serverTimestamp(),
+        runId:             conclusion.runId ?? "",
+        title:             null,
+        memo:              conclusion.decisionMemo ?? null,
+        rawText:           conclusion.summary,
+        parseError:        conclusion.parseError ?? false,
+        parseErrorMessage: conclusion.parseErrorMessage ?? null,
+        provider:          conclusion.provider ?? null,
+        model:             conclusion.model ?? null,
+        runNumber:         conclusion.runNumber ?? null,
+        createdAt:         serverTimestamp(),
+        updatedAt:         serverTimestamp(),
       });
       return ref.id;
     } catch (err) {

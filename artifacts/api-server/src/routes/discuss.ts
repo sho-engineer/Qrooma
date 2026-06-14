@@ -1566,6 +1566,8 @@ RULES:
       const conclusionSystemPrompt = languageLock + finalConclusionPrompt + (usesDecisionMemoJson ? "" : "\n" + conclusionPresentation);
 
       let conclusionText: string | null = null;
+      let memoProvider:   string | null = null;
+      let memoModel:      string | null = null;
       for (const conf of agentConfig) {
         if (controller.signal.aborted) break;
         const key = apiKeys[conf.provider as keyof typeof apiKeys];
@@ -1583,6 +1585,8 @@ RULES:
             maxTokens:    3000,
           });
           if (conclusionText) {
+            memoProvider = conf.provider;
+            memoModel    = conf.model;
             req.log.info({ runId, roomId, role: "FinalMemo", provider: conf.provider, model: conf.model, isFallback, durationMs: Date.now() - _memoStart }, "final memo call succeeded");
             break;
           }
@@ -1642,11 +1646,14 @@ RULES:
         }
 
         sseWrite(res, {
-          type:         "conclusion",
-          content:      conclusionText,
-          decisionMemo: decisionMemo ?? null,
-          parseError:   parseError || null,
-          createdAt:    new Date().toISOString(),
+          type:              "conclusion",
+          content:           conclusionText,
+          decisionMemo:      decisionMemo ?? null,
+          parseError:        parseError || null,
+          parseErrorMessage: parseError ? "Decision Memo JSON parse failed after LLM repair attempt" : null,
+          provider:          memoProvider,
+          model:             memoModel,
+          createdAt:         new Date().toISOString(),
         });
       } else {
         sseWrite(res, { type: "conclusion_error", message: "All agents failed to generate conclusion." });

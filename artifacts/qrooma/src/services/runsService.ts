@@ -186,7 +186,7 @@ export const runsService = {
   realRun(
     params:                   RealRunParams,
     onMessage:                (msg: Message) => void,
-    onConclusion:             (conclusion: ConclusionData) => void,
+    onConclusion:             (conclusion: ConclusionData) => Promise<boolean> | void,
     onComplete:               (status: RunStatus) => void,
     onAgentError?:            (side: string, message: string) => void,
     onRoundStart?:            (event: RoundStartEvent) => void,
@@ -224,6 +224,7 @@ export const runsService = {
         let receivedCheckpoint      = false;
         let receivedConclusion      = false;
         let receivedConclusionError = false;
+        let conclusionSavePromise: Promise<boolean> | undefined;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -285,16 +286,22 @@ export const runsService = {
                 receivedConclusion = true;
                 const rawMemo = data["decisionMemo"];
                 const conc: ConclusionData = {
-                  summary:      content,
-                  keyPoints:    [],
-                  generatedAt:  String(data["createdAt"] ?? new Date().toISOString()),
-                  runId:        params.runId,
-                  isProvisional: false,
-                  isFinal:       true,
-                  decisionMemo: rawMemo && typeof rawMemo === "object" ? (rawMemo as DecisionMemo) : undefined,
-                  parseError:   data["parseError"] === true,
+                  summary:           content,
+                  keyPoints:         [],
+                  generatedAt:       String(data["createdAt"] ?? new Date().toISOString()),
+                  runId:             params.runId,
+                  isProvisional:     false,
+                  isFinal:           true,
+                  decisionMemo:      rawMemo && typeof rawMemo === "object" ? (rawMemo as DecisionMemo) : undefined,
+                  parseError:        data["parseError"] === true,
+                  parseErrorMessage: data["parseErrorMessage"] ? String(data["parseErrorMessage"]) : null,
+                  provider:          data["provider"] ? String(data["provider"]) : undefined,
+                  model:             data["model"] ? String(data["model"]) : undefined,
                 };
-                onConclusion(conc);
+                const result = onConclusion(conc);
+                if (result instanceof Promise) {
+                  conclusionSavePromise = result;
+                }
               } else {
                 onConclusionError?.();
               }
@@ -302,9 +309,20 @@ export const runsService = {
               receivedConclusionError = true;
               onConclusionError?.();
             } else if (data["type"] === "done") {
-              // Send the appropriate terminal status based on what we received
+              // Send the appropriate terminal status based on what we received.
+              // When conclusion was received, gate `completed` on Firestore save.
               if (receivedConclusion) {
-                onComplete("completed");
+                onComplete("saving_memo");
+                if (conclusionSavePromise) {
+                  try {
+                    const saved = await conclusionSavePromise;
+                    onComplete(saved ? "completed" : "memo_failed");
+                  } catch {
+                    onComplete("memo_failed");
+                  }
+                } else {
+                  onComplete("completed");
+                }
               } else if (receivedCheckpoint) {
                 onComplete("checkpoint");
               } else if (receivedConclusionError) {

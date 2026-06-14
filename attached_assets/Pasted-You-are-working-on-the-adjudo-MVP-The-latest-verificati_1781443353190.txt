@@ -1,0 +1,266 @@
+You are working on the adjudo MVP.
+
+The latest verification report says the app is READY FOR INTERNAL COMPARISON ONLY, but NOT ready for one external user yet.
+
+Please implement the minimum fixes required to move from internal comparison to one external user test.
+
+Do not add new features.
+Do not refactor broadly.
+Fix only the blockers below.
+
+==================================================
+P0-1: Deploy / add Firestore security rules
+==================================================
+
+Current issue:
+Firestore rules are only documented in docs/firestore-rules-required.md.
+There is no firestore.rules file in the repo, and rules are not deployed.
+
+This is not acceptable for external users.
+
+Please do one of the following:
+
+Option A:
+Add a firestore.rules file to the repo and make it deployable.
+
+Option B:
+If rules cannot be deployed from this environment, create the exact Firebase Console rules text and clearly mark it as REQUIRED MANUAL DEPLOYMENT.
+
+Minimum rules must enforce:
+
+- users can read/write only their own user profile
+- normal users cannot update role, status, accessStatus, or admin fields
+- projects can be read/written only by owner
+- rooms can be read/written only by owner
+- messages can be read/written only by owner
+- decisionMemos can be read/written only by owner
+- coupons can be created/updated only by admins
+- couponRedemptions can be created only through safe redemption flow
+- waitlist can accept public create but not public read
+- feedback can be created by users, read/update by admins
+- admin data can be accessed only by users with role === "admin"
+
+Important:
+If the app uses ownerId/userId fields, align rules with the actual field names.
+
+Also fix data models if needed:
+- rooms should include ownerId or userId consistently
+- decisionMemos must include userId
+- projects must include ownerId or userId consistently
+
+Please report whether rules were:
+- added only
+- deployed
+- or require manual Firebase Console deployment
+
+==================================================
+P0-2: Fix completed-before-Firestore-save race condition
+==================================================
+
+Current issue:
+RoomDetailPage starts decisionMemosService.save() asynchronously after conclusion SSE.
+But run status becomes completed when done SSE arrives, without waiting for Firestore save.
+
+This creates a race:
+- user sees completed
+- Firestore save may still be in-flight
+- if save fails, completed already happened
+
+Expected behavior:
+Run status must become completed only after:
+
+1. Final Decision Memo is generated.
+2. Decision Memo is saved to Firestore.
+3. UI can display the memo.
+
+Please implement one of these approaches:
+
+Preferred approach:
+Add a status:
+- saving_memo
+
+Expected lifecycle:
+running
+→ checkpoint or checkpoint_ready
+→ generating_conclusion
+→ saving_memo
+→ completed
+
+If Firestore save fails:
+- set status to memo_failed or memo_save_failed
+- show a clear error
+- do not mark completed
+
+Implementation guidance:
+- Store the Firestore save Promise when conclusion is received.
+- When done SSE arrives, await the save Promise before setting completed.
+- If conclusion arrives after done due to stream timing, handle gracefully.
+- Do not rely on localStorage as source of truth for completed.
+- localStorage may remain as cache/fallback, but Firestore save must be the completion gate.
+
+Expected:
+completed cannot happen before Firestore save succeeds.
+
+==================================================
+P0-3: Save provider / model / userEmail in decisionMemos
+==================================================
+
+Current issue:
+Firestore decisionMemos currently save:
+
+provider: null
+model: null
+userEmail: null
+
+Expected:
+Save real metadata.
+
+Please propagate provider/model from server to client.
+
+Server:
+- discuss.ts should include provider/model in conclusion SSE event.
+- For FinalMemo, use the actual provider/model used for generation.
+- For JSONRepair, if repair was used, optionally store repairProvider/repairModel too.
+
+Client:
+- ConclusionData type should include provider/model.
+- decisionMemosService.save() should write provider/model to Firestore.
+- userEmail should be user?.email ?? null instead of hardcoded null.
+
+Expected Firestore fields:
+- provider: "anthropic"
+- model: "claude-opus-4-5"
+- userEmail: authenticated user's email or null
+
+==================================================
+P1: Remove remaining plan architecture text from Settings
+==================================================
+
+Current text:
+"Pro and Connect plans are coming soon. The Free plan is available now."
+
+Please remove or replace this with simpler Early Access wording.
+
+Do not mention:
+- Free plan
+- Pro plan
+- Connect plan
+- API keys
+- BYOK
+- model settings
+
+Suggested replacement:
+
+English:
+"Your current access is managed through Early Access or invite codes."
+
+Japanese:
+"現在の利用権限は、Early Accessまたは招待コードによって管理されています。"
+
+Keep it minimal.
+
+==================================================
+P1: Add parseErrorMessage if easy
+==================================================
+
+Current:
+parseError boolean and rawText are saved.
+
+If low risk, also save:
+- parseErrorMessage: string | null
+
+This is helpful for debugging.
+
+==================================================
+Manual QA
+==================================================
+
+After implementation, verify:
+
+1. Firestore rules
+- firestore.rules exists or manual deployment instructions are explicit.
+- rules match actual fields.
+- normal users cannot read/write other users' decisionMemos.
+- normal users cannot change role/accessStatus.
+- admin-only data is protected.
+
+2. Completion lifecycle
+- Run a messy Japanese PR prompt.
+- Confirm generating_conclusion appears.
+- Confirm saving_memo appears if implemented.
+- Confirm completed appears only after Firestore save success.
+- Simulate Firestore save failure if possible.
+- Confirm completed does not appear on save failure.
+
+3. Firestore memo
+- Confirm decisionMemos document is created.
+- Confirm fields:
+  - userId
+  - userEmail
+  - projectId
+  - roomId
+  - runId
+  - memo
+  - rawText
+  - parseError
+  - provider
+  - model
+  - createdAt
+  - updatedAt
+- Confirm provider/model are not null.
+- Confirm userEmail is not null when auth email exists.
+
+4. Refresh / cross-session
+- Refresh page after completed.
+- Confirm memo loads from Firestore.
+- Open same account in another browser/session if possible.
+- Confirm memo loads.
+
+5. UI cleanup
+- Confirm no Free/Pro/Connect/API/BYOK/model text remains in Settings or Room.
+
+==================================================
+Expected Report
+==================================================
+
+Please report:
+
+## 1. Summary
+
+## 2. Files changed
+
+## 3. Firestore rules
+- added/deployed/manual required
+- rule summary
+- remaining risk
+
+## 4. Completion lifecycle
+- exact status flow
+- how completed is blocked until Firestore save
+- save failure behavior
+
+## 5. DecisionMemo metadata
+- provider/model/userEmail values
+- Firestore example document
+
+## 6. Settings cleanup
+
+## 7. Manual QA result
+
+## 8. Remaining risks
+
+==================================================
+Important
+==================================================
+
+Do not implement:
+- BYOK
+- API key UI
+- model selection UI
+- billing
+- Pro/Connect plan UI
+- drag-and-drop
+- complex team permissions
+
+Goal:
+Make adjudo safe enough for one external user to test one real decision.

@@ -102,8 +102,8 @@ function FreePlanCard() {
       <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
         <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
           {isJa
-            ? "Pro / Connect は近日公開予定です。現在は Free プランのみ提供中です。"
-            : "Pro and Connect plans are coming soon. The Free plan is available now."}
+            ? "現在の利用権限は、Early Accessまたは招待コードによって管理されています。"
+            : "Your current access is managed through Early Access or invite codes."}
         </p>
       </div>
     </section>

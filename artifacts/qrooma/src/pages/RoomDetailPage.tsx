@@ -377,7 +377,7 @@ export default function RoomDetailPage() {
         params,
         onMessage,
         // onConclusion — always called automatically after all rounds (Decision Memo auto-generated)
-        (conc) => {
+        (conc): Promise<boolean> => {
           const enriched: ConclusionData = {
             ...conc,
             runId,
@@ -390,13 +390,16 @@ export default function RoomDetailPage() {
           setConclusions(messagesService.getConclusions(roomId));
           setConclusionStatus("final");
           setMemoSaveError(false);
-          decisionMemosService.save(
+          return decisionMemosService.save(
             enriched,
             user?.id ?? "",
-            null,
+            user?.email ?? null,
             roomId,
             room?.projectId ?? null,
-          ).then((id) => { if (!id) setMemoSaveError(true); });
+          ).then((id) => {
+            if (!id) { setMemoSaveError(true); return false; }
+            return true;
+          }).catch(() => { setMemoSaveError(true); return false; });
         },
         (status) => {
           onStatus(status);
@@ -571,7 +574,7 @@ export default function RoomDetailPage() {
     const cancel = runsService.realRun(
       params,
       () => {},
-      (conc) => {
+      (conc): Promise<boolean> => {
         const enriched: ConclusionData = {
           ...conc, runId, runNumber: runCount,
           isProvisional: false, isFinal: true, parseError: conc.parseError,
@@ -580,9 +583,12 @@ export default function RoomDetailPage() {
         setConclusions(messagesService.getConclusions(roomId));
         setConclusionStatus("final");
         setMemoSaveError(false);
-        decisionMemosService.save(enriched, user?.id ?? "", null, roomId, room?.projectId ?? null)
-          .then((id) => { if (!id) setMemoSaveError(true); });
-        setRunStatus("completed");
+        return decisionMemosService.save(enriched, user?.id ?? "", user?.email ?? null, roomId, room?.projectId ?? null)
+          .then((id) => {
+            if (!id) { setMemoSaveError(true); return false; }
+            return true;
+          })
+          .catch(() => { setMemoSaveError(true); return false; });
       },
       (status) => {
         setRunStatus(status);
@@ -697,15 +703,18 @@ export default function RoomDetailPage() {
       params,
       onMsg,
       // onConclusion — auto-generated after all continuation rounds
-      (conc) => {
+      (conc): Promise<boolean> => {
         const enriched: ConclusionData = { ...conc, runId, runNumber: nextCount, isProvisional: false, isFinal: true, parseError: conc.parseError };
         messagesService.saveConclusion(roomId, enriched);
         setConclusions(messagesService.getConclusions(roomId));
         setConclusionStatus("final");
         setMemoSaveError(false);
-        decisionMemosService.save(enriched, user?.id ?? "", null, roomId, room?.projectId ?? null)
-          .then((id) => { if (!id) setMemoSaveError(true); });
-        setRunStatus("completed");
+        return decisionMemosService.save(enriched, user?.id ?? "", user?.email ?? null, roomId, room?.projectId ?? null)
+          .then((id) => {
+            if (!id) { setMemoSaveError(true); return false; }
+            return true;
+          })
+          .catch(() => { setMemoSaveError(true); return false; });
       },
       (status) => {
         if (status !== "checkpoint") setRunStatus(status);
