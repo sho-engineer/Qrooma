@@ -1217,7 +1217,9 @@ router.post("/discuss", discussLimiter, requireUser, async (req, res) => {
     projectContext?: string;
   };
 
-  // Free plan sends empty apiKeys {}; fall back to server-side env vars for all providers.
+  // Free plan sends empty apiKeys {}; fall back to server-side env vars.
+  // NOTE: OpenAI fallback is intentionally NOT provided here — adjudo runs on Claude Opus.
+  // If ANTHROPIC_API_KEY is missing, we fail fast with a clear error.
   const apiKeys = {
     openai:    clientApiKeys.openai    || process.env["OPENAI_API_KEY"]    || undefined,
     anthropic: clientApiKeys.anthropic || process.env["ANTHROPIC_API_KEY"] || undefined,
@@ -1237,6 +1239,19 @@ router.post("/discuss", discussLimiter, requireUser, async (req, res) => {
     googleKeyDetected:    !!apiKeys.google,
     isFallback,
   }, "discuss call started");
+
+  // Fail fast before SSE starts — if any required provider key is missing, return a clear error.
+  const missingProviders = [...new Set(agentConfig.map((a) => a.provider))]
+    .filter((p) => !apiKeys[p as keyof typeof apiKeys]);
+  if (missingProviders.length > 0) {
+    const missingAnthropicMsg =
+      missingProviders.includes("anthropic")
+        ? "Claude OpusのAPIキーがサーバーに設定されていません。管理者に確認してください。 / Claude Opus is not configured on the server. Please contact the administrator."
+        : `API key missing for: ${missingProviders.join(", ")}`;
+    req.log.error({ runId, roomId, missingProviders }, "discuss blocked — required API key(s) missing");
+    res.status(400).json({ error: missingAnthropicMsg });
+    return;
+  }
 
   if (activeSseStreams >= MAX_SSE_STREAMS) {
     res.status(503).json({ error: "Server busy, please try again later." });

@@ -1,0 +1,219 @@
+You are working on the adjudo MVP.
+
+The latest verification report says the app currently uses:
+
+* openai / gpt-4o-mini
+
+This is wrong.
+
+The correct intended runtime for adjudo MVP is:
+
+* anthropic / claude-opus-4-5
+
+Please fix the implementation so Builder / Breaker / Operator / Final Memo / JSON Repair all use Claude Opus as the default model.
+
+Do not add new features.
+Do not refactor broadly.
+Fix only the model/provider configuration and related error handling.
+
+==================================================
+
+1. Required model configuration
+    ==================================================
+
+Set the default roles to:
+
+Builder:
+provider: “anthropic”
+model: “claude-opus-4-5”
+
+Breaker:
+provider: “anthropic”
+model: “claude-opus-4-5”
+
+Operator:
+provider: “anthropic”
+model: “claude-opus-4-5”
+
+Final Memo:
+provider: “anthropic”
+model: “claude-opus-4-5”
+
+JSON Repair:
+provider: “anthropic”
+model: “claude-opus-4-5”
+
+Expected:
+
+* DEFAULT_ROLES must use anthropic / claude-opus-4-5
+* FinalMemo must use the same provider/model
+* JSONRepair must use the same provider/model
+* Firestore decisionMemos.provider should save “anthropic”
+* Firestore decisionMemos.model should save “claude-opus-4-5”
+
+==================================================
+2. Remove GPT-4o-mini as the default
+
+Please find and remove/revert any recent change that made Free plan or DEFAULT_ROLES use:
+
+* openai
+* gpt-4o-mini
+
+GPT-4o-mini should not be used as the default adjudo comparison/runtime model.
+
+If OpenAI fallback remains in the code, it must NOT silently replace Claude Opus during normal runs.
+
+Expected behavior:
+
+* If ANTHROPIC_API_KEY is missing, show a clear runtime error.
+* Do not silently fallback to OpenAI/gpt-4o-mini.
+* Do not make the app appear successful while using the wrong model.
+
+==================================================
+3. Environment variable requirement
+
+The server must require:
+
+ANTHROPIC_API_KEY
+
+for normal adjudo runs.
+
+Please verify:
+
+* ANTHROPIC_API_KEY is read server-side
+* API keys are never exposed to the client
+* Missing ANTHROPIC_API_KEY produces a clear error
+
+Suggested error copy:
+
+Japanese:
+Claude OpusのAPIキーがサーバーに設定されていません。管理者に確認してください。
+
+English:
+Claude Opus is not configured on the server. Please contact the administrator.
+
+==================================================
+4. Runtime logging
+
+Please keep or add logs that confirm the actual runtime provider/model.
+
+For each call, log:
+
+* runId
+* roomId
+* role
+* provider
+* model
+* isFallback
+* success/failure
+* durationMs
+
+Do not log:
+
+* API keys
+* full user prompt
+
+Expected logs during a normal run:
+
+* Builder → anthropic / claude-opus-4-5
+* Breaker → anthropic / claude-opus-4-5
+* Operator → anthropic / claude-opus-4-5
+* FinalMemo → anthropic / claude-opus-4-5
+* JSONRepair → anthropic / claude-opus-4-5 if triggered
+
+==================================================
+5. SSE stall timeout should still remain
+
+Do not remove the SSE stall timeout fix.
+
+Expected:
+
+* If the stream stalls, the client times out gracefully.
+* The app does not stay stuck in running forever.
+* The user can re-run.
+
+==================================================
+6. UI requirement
+
+Normal users should NOT see model/provider names.
+
+Do not expose:
+
+* Claude Opus
+* Anthropic
+* OpenAI
+* GPT-4o mini
+* model selector
+* API key settings
+* BYOK
+* Connect plan
+
+Provider/model should appear only in logs and Firestore metadata, not in normal UI.
+
+==================================================
+7. Manual QA
+
+After implementation, test a normal mobile run with this prompt:
+
+adjudoのPRで何からやればいいか分からない。まだMVPで、ほとんど誰も知らない。XもLinkedInもフォロワーが少なくて、投稿してもほぼ反応がない。LPもあるけど、今のままで刺さるか分からない。まず欲しいのは大量のユーザーではなく、1人でいいから実際のビジネス判断にadjudoを使ってもらうこと。その人に「ChatGPTやClaudeに直接聞くより、adjudoの方が意思決定しやすい」と感じてもらえるかを確認したい。今迷っている選択肢は、XやLinkedInで投稿を続ける、Founderや個人開発者にDMする、ChatGPT/Claudeとの比較記事を書く、LPを直す、無料で1件Decision Memoを作る、まずプロダクトをもっと直す、自分の意思決定でadjudoを使って事例を作る、など。時間は限られている。今週やることを1つか2つに絞りたい。単なるマーケ施策のアイデア出しではなく、どの選択肢を採用して、どれを捨てるべきか、理由とリスクも含めて整理してほしい。最後に、今週の具体的なアクションに落として。
+
+Verify:
+
+1. Builder returns.
+2. Breaker returns.
+3. Operator returns.
+4. Final Memo returns.
+5. Status goes:
+    running
+    → generating_conclusion
+    → saving_memo
+    → completed
+6. Decision Memo appears.
+7. Firestore decisionMemos document saves:
+    provider: “anthropic”
+    model: “claude-opus-4-5”
+8. Logs confirm Claude Opus was used.
+9. No GPT-4o-mini is used.
+10. If ANTHROPIC_API_KEY is missing, the app shows a clear error instead of silently using OpenAI.
+
+==================================================
+8. Expected report
+
+Please return:
+
+1. Summary
+
+2. Files changed
+
+3. Current runtime configuration
+
+* Builder provider/model
+* Breaker provider/model
+* Operator provider/model
+* FinalMemo provider/model
+* JSONRepair provider/model
+
+4. What happened to GPT-4o-mini
+
+* removed as default / still available only as non-default fallback / fully removed
+
+5. Environment readiness
+
+* ANTHROPIC_API_KEY detected: yes/no
+* OPENAI_API_KEY required: yes/no
+
+6. Runtime log evidence
+
+7. Firestore metadata evidence
+
+* provider
+* model
+
+8. Manual QA result
+
+9. Remaining risks
+
+Final judgment:
+
+* Can we run adjudo vs ChatGPT vs Claude internal comparison test?
+* Can we let one external user try adjudo for one real decision?

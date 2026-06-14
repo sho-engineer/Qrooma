@@ -63362,6 +63362,13 @@ router2.post("/discuss", discussLimiter, requireUser, async (req, res) => {
     googleKeyDetected: !!apiKeys.google,
     isFallback
   }, "discuss call started");
+  const missingProviders = [...new Set(agentConfig.map((a) => a.provider))].filter((p) => !apiKeys[p]);
+  if (missingProviders.length > 0) {
+    const missingAnthropicMsg = missingProviders.includes("anthropic") ? "Claude Opus\u306EAPI\u30AD\u30FC\u304C\u30B5\u30FC\u30D0\u30FC\u306B\u8A2D\u5B9A\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002\u7BA1\u7406\u8005\u306B\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002 / Claude Opus is not configured on the server. Please contact the administrator." : `API key missing for: ${missingProviders.join(", ")}`;
+    req.log.error({ runId, roomId, missingProviders }, "discuss blocked \u2014 required API key(s) missing");
+    res.status(400).json({ error: missingAnthropicMsg });
+    return;
+  }
   if (activeSseStreams >= MAX_SSE_STREAMS) {
     res.status(503).json({ error: "Server busy, please try again later." });
     return;

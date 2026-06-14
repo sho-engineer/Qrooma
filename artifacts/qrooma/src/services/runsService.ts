@@ -211,8 +211,18 @@ export const runsService = {
         });
 
         if (!response.ok || !response.body) {
-          const text = await response.text().catch(() => "");
-          throw new Error(`API error ${response.status}: ${text}`);
+          // Try to surface a human-readable error (e.g. missing ANTHROPIC_API_KEY message).
+          let userMsg = `API error ${response.status}`;
+          try {
+            const json = await response.json() as { error?: string };
+            if (json?.error) userMsg = json.error;
+          } catch {
+            const text = await response.text().catch(() => "");
+            if (text) userMsg = text;
+          }
+          onAgentError?.("system", userMsg);
+          onComplete("error");
+          return;
         }
 
         const reader  = response.body.getReader();
@@ -226,8 +236,21 @@ export const runsService = {
         let receivedConclusionError = false;
         let conclusionSavePromise: Promise<boolean> | undefined;
 
+        // SSE stall timeout: if no data arrives for 120 s, abort and show error.
+        const SSE_STALL_MS = 120_000;
+        let stallId: ReturnType<typeof setTimeout> | null = null;
+        function readWithStallTimeout(): Promise<ReadableStreamReadResult<Uint8Array>> {
+          return new Promise((resolve, reject) => {
+            stallId = setTimeout(
+              () => reject(new Error("SSE_STALL_TIMEOUT")),
+              SSE_STALL_MS,
+            );
+            reader.read().then((r) => { if (stallId) { clearTimeout(stallId); stallId = null; } resolve(r); }, reject);
+          });
+        }
+
         while (true) {
-          const { done, value } = await reader.read();
+          const { done, value } = await readWithStallTimeout();
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
@@ -356,8 +379,15 @@ export const runsService = {
           }
         }
       } catch (err: unknown) {
+        if (stallId) { clearTimeout(stallId); stallId = null; }
         if (controller.signal.aborted) return;
-        console.error("realRun fetch error:", err);
+        const isStall = err instanceof Error && err.message === "SSE_STALL_TIMEOUT";
+        if (isStall) {
+          console.warn("[runsService] SSE stall timeout — no data for 120 s");
+          onAgentError?.("system", "応答がタイムアウトしました。もう一度お試しください。 / Request timed out. Please try again.");
+        } else {
+          console.error("realRun fetch error:", err);
+        }
         onComplete("error");
       }
     })();
