@@ -47,9 +47,9 @@ const AGENT_SIDE: Record<string, "A" | "B" | "C"> = {
 };
 
 // Free plan: fixed 2-agent config (no API keys required)
-const FREE_SIDES: Array<{ provider: "openai"; model: string }> = [
-  { provider: "openai", model: "gpt-4o-mini" },
-  { provider: "openai", model: "gpt-4o-mini" },
+const FREE_SIDES: Array<{ provider: "anthropic"; model: string }> = [
+  { provider: "anthropic", model: "claude-opus-4-5" },
+  { provider: "anthropic", model: "claude-opus-4-5" },
 ];
 
 function hasApiKeyFor(provider: string, settings: { openaiApiKey: string; anthropicApiKey: string }): boolean {

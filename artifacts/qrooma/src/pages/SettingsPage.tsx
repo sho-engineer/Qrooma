@@ -76,12 +76,12 @@ function FreePlanCard() {
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#10a37f] shrink-0" />
             <span className="text-[11px] text-foreground/70">{isJa ? "Builder（候補提案）" : "Builder"}</span>
-            <span className="ml-auto text-[11px] font-mono text-muted-foreground/60">GPT-4o mini</span>
+            <span className="ml-auto text-[11px] font-mono text-muted-foreground/60">Claude Opus</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#d97706] shrink-0" />
             <span className="text-[11px] text-foreground/70">{isJa ? "Breaker（検証・反証）" : "Breaker"}</span>
-            <span className="ml-auto text-[11px] font-mono text-muted-foreground/60">GPT-4o mini</span>
+            <span className="ml-auto text-[11px] font-mono text-muted-foreground/60">Claude Opus</span>
           </div>
         </div>
 
@@ -372,13 +372,6 @@ export default function SettingsPage() {
               <InviteCodeSection />
             </div>
           </section>
-
-          {/* ══ CLAUDE API ═══════════════════════════════════════════════ */}
-          <ClaudeSection
-            settings={settings}
-            updateSettings={updateSettings}
-            locale={locale}
-          />
 
           {/* ══ DISPLAY ══════════════════════════════════════════════════ */}
           <section>
