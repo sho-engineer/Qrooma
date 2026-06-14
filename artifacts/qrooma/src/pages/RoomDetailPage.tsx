@@ -887,6 +887,11 @@ export default function RoomDetailPage() {
           runCount={runCount}
           conclusions={conclusions}
           conclusionStatus={conclusionStatus}
+          completedButMemoMissing={
+            conclusionStatus === "unresolved" &&
+            runStatus === "completed" &&
+            conclusions.length === 0
+          }
           onRerun={rerun}
           onContinue={rerun}
           onProvisional={handleProvisional}

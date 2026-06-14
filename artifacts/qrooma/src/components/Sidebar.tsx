@@ -235,15 +235,22 @@ function RoomContextMenu({
       ref={menuRef}
       className="absolute right-0 top-7 z-50 w-48 rounded-xl border border-border bg-card shadow-xl py-1 text-sm"
     >
-      {!isArchived && hasProjects && onMoveRequest && (
+      {!isArchived && onMoveRequest && (
         <>
-          <button
-            onClick={handleMoveClick}
-            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent transition-colors text-left text-xs"
-          >
-            <MoveRightIcon size={12} className="text-muted-foreground" />
-            <span>{locale === "ja" ? "プロジェクトに移動" : "Move to project"}</span>
-          </button>
+          {hasProjects ? (
+            <button
+              onClick={handleMoveClick}
+              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent transition-colors text-left text-xs"
+            >
+              <MoveRightIcon size={12} className="text-muted-foreground" />
+              <span>{locale === "ja" ? "プロジェクトに移動" : "Move to project"}</span>
+            </button>
+          ) : (
+            <div className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs text-muted-foreground/40 cursor-default select-none">
+              <MoveRightIcon size={12} />
+              <span>{locale === "ja" ? "プロジェクトを先に作成" : "Create a project first"}</span>
+            </div>
+          )}
           <div className="my-1 border-t border-border/40" />
         </>
       )}
@@ -554,8 +561,8 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
                             <Link
                               href={`/rooms/${room.id}`}
                               onClick={handleRoomClick}
-                              className={`flex-1 min-w-0 px-2 py-1 text-xs truncate ${
-                                isActive ? "text-foreground" : "text-sidebar-foreground/70 hover:text-foreground"
+                              className={`flex-1 min-w-0 px-2 py-1 text-sm truncate ${
+                                isActive ? "text-foreground font-medium" : "text-sidebar-foreground/70 hover:text-foreground"
                               }`}
                             >
                               {room.name}

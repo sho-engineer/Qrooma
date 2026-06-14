@@ -1,0 +1,188 @@
+You are working on the adjudo MVP.
+
+The latest verification report says the app is READY FOR INTERNAL COMPARISON ONLY.
+
+Please implement only the remaining issues needed to make the app safe enough for one external user test.
+
+Do not add new features.
+Do not do a broad refactor.
+
+==================================================
+P0-1: Fix completed + missing Decision Memo recovery UI
+
+Current issue:
+If room.lastRunStatus === “completed” but neither localStorage nor Firestore has a conclusion/memo, the UI shows “未確定 / Unresolved”.
+
+This is misleading.
+
+“Unresolved” should mean the discussion did not reach a decision.
+But this case means:
+
+* the room is marked completed
+* the Decision Memo should exist
+* but it could not be loaded or is missing
+
+Expected behavior:
+If status is completed but no structured memo and no rawText exists, show a dedicated recovery state.
+
+Japanese:
+Title:
+Decision Memoが見つかりません
+
+Body:
+このルームは完了済みですが、保存されたDecision Memoを読み込めませんでした。再実行してください。
+
+Button:
+再実行
+
+English:
+Title:
+Decision Memo not found
+
+Body:
+This room is marked as completed, but the saved Decision Memo could not be loaded. Please re-run this room.
+
+Button:
+Re-run
+
+Important:
+Do not show:
+
+* 未確定
+* Unresolved
+* ラウンドを続ける
+* 暫定結論を出す
+* 条件を追加する
+
+for this case.
+
+Implementation guidance:
+
+* Add a distinct state/prop to ConclusionCard, for example:
+    * missingCompletedMemo
+    * completedButMemoMissing
+* RoomDetailPage should detect:
+    * room.lastRunStatus === “completed” or runStatus === “completed”
+    * no conclusion data
+    * no rawText fallback
+* Then render the dedicated missing memo UI.
+* The only primary action should be Re-run.
+
+==================================================
+P0-2: Prevent completed if conclusionSavePromise is undefined
+
+Current theoretical edge:
+In runsService.ts, if receivedConclusion === true but conclusionSavePromise is undefined, the code can still call onComplete(“completed”).
+
+Even if this is unlikely due to SSE ordering, completed should never happen without a confirmed save path.
+
+Expected:
+If receivedConclusion === true but conclusionSavePromise is missing:
+
+* do not mark completed
+* mark memo_failed or error
+* log a warning
+
+Suggested behavior:
+onComplete(“memo_failed”)
+
+Log:
+“received conclusion but no conclusion save promise; refusing to mark completed”
+
+==================================================
+P1-1: Typography consistency for room names
+
+Current issue:
+Project nested rooms and standalone rooms use different font sizes:
+
+* project nested rooms: text-xs
+* standalone rooms: text-sm
+
+Expected:
+Room names should use the same base size whether nested under a project or standalone.
+
+Please standardize:
+
+* Room name: same size for nested and standalone rooms
+* Status/metadata: smaller and muted
+* Project name: slightly stronger than room name
+* Selected room: clear highlight
+
+Do not make major visual redesigns.
+Just clean up the size mismatch and hierarchy.
+
+==================================================
+P1-2: Optional if very low risk — Move to project discoverability
+
+Current issue:
+Move to project only appears if hasProjects is true.
+
+This is logically fine, but if the user has no projects, there is no hint that rooms can be organized into projects.
+
+If low risk, add a disabled/helpful menu item:
+
+* “Create a project first”
+    or
+* “プロジェクトを先に作成してください”
+
+Only do this if it does not complicate the UI.
+
+==================================================
+Manual QA
+
+Please verify:
+
+1. Completed + memo missing
+
+* Simulate or create a completed room with no memo.
+* Confirm it does NOT show Unresolved.
+* Confirm it shows “Decision Memo not found”.
+* Confirm only Re-run is shown.
+
+2. Normal completed room
+
+* Run a decision.
+* Confirm saving_memo appears.
+* Confirm completed appears only after memo save.
+* Confirm Conclusion / Decision Memo appears.
+* Refresh.
+* Confirm memo still appears.
+
+3. Missing save promise edge
+
+* Confirm completed cannot happen if conclusionSavePromise is undefined.
+* Confirm memo_failed/error is used instead.
+
+4. Sidebar typography
+
+* Confirm nested room and standalone room name sizes are consistent.
+* Confirm status metadata is smaller/muted.
+* Confirm selected room is clearly highlighted.
+
+==================================================
+Expected report
+
+Please return:
+
+1. Summary
+
+2. Files changed
+
+3. Missing completed memo UI
+
+* detection logic
+* Japanese/English copy
+* action behavior
+
+4. Completion safety fix
+
+* what happens if conclusionSavePromise is undefined
+
+5. Typography cleanup
+
+6. Manual QA result
+
+7. Remaining risks
+
+Goal:
+Move from READY FOR INTERNAL COMPARISON ONLY to READY FOR ONE EXTERNAL USER TEST.

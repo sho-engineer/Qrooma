@@ -13,6 +13,9 @@ interface Props {
   runCount:           number;
   conclusions:        ConclusionData[];
   conclusionStatus:   ConclusionStatus;
+  /** True when the room is completed but the Decision Memo could not be loaded from
+   *  localStorage or Firestore. Shows a dedicated recovery UI instead of "Unresolved". */
+  completedButMemoMissing?: boolean;
   onRerun?:           () => void;
   onContinue?:        () => void;
   onProvisional?:     () => void;
@@ -529,6 +532,7 @@ export default function ConclusionCard({
   runCount,
   conclusions,
   conclusionStatus,
+  completedButMemoMissing = false,
   onRerun,
   onContinue,
   onProvisional,
@@ -577,12 +581,15 @@ export default function ConclusionCard({
   const hasConc      = !!current && !!current.summary?.trim();
   const isLoading    = conclusionStatus === "loading";
   const isError      = conclusionStatus === "error";
-  const isUnresolved = conclusionStatus === "unresolved";
+  const isUnresolved = conclusionStatus === "unresolved" && !completedButMemoMissing;
+  const isMissingMemo = completedButMemoMissing;
   const isProvisional = conclusionStatus === "provisional";
   const isFinal       = conclusionStatus === "final";
 
   // Card header title
-  const titleLabel = isProvisional
+  const titleLabel = isMissingMemo
+    ? (locale === "ja" ? "Decision Memoが見つかりません" : "Decision Memo not found")
+    : isProvisional
     ? t.provisionalConclusion
     : isFinal
     ? t.finalConclusion
@@ -593,6 +600,8 @@ export default function ConclusionCard({
     ? (locale === "ja" ? "生成中" : "Generating")
     : isError
     ? (locale === "ja" ? "エラー" : "Error")
+    : isMissingMemo
+    ? undefined
     : isUnresolved
     ? (locale === "ja" ? "未確定" : "Unresolved")
     : isProvisional
@@ -615,13 +624,14 @@ export default function ConclusionCard({
         <div className="flex items-center gap-2 text-foreground">
           <span className={`text-base leading-none select-none ${isLoading ? "animate-spin" : ""} ${
             isError ? "text-rose-400/70"
+            : isMissingMemo ? "text-orange-400/80"
             : isUnresolved ? "text-amber-400/70"
             : isProvisional ? "text-violet-400/70"
             : isFinal ? "text-emerald-500/80"
             : isNewlyUpdated ? "text-emerald-500/70"
             : "text-foreground/30"
           }`}>
-            {isError ? "!" : isUnresolved ? "◎" : isProvisional ? "◐" : "◈"}
+            {isError || isMissingMemo ? "!" : isUnresolved ? "◎" : isProvisional ? "◐" : "◈"}
           </span>
           <span className="text-sm font-semibold">{titleLabel}</span>
           {badgeLabel && (
@@ -667,6 +677,28 @@ export default function ConclusionCard({
             <ConclusionLoadingSkeleton isProvisional />
           ) : isError ? (
             <ConclusionErrorState onRerun={onRerun} />
+          ) : isMissingMemo ? (
+            <div className="px-5 py-7 text-center space-y-3">
+              <p className="text-sm font-semibold text-foreground">
+                {locale === "ja"
+                  ? "Decision Memoが見つかりません"
+                  : "Decision Memo not found"}
+              </p>
+              <p className="text-[12px] text-muted-foreground/70 leading-relaxed max-w-xs mx-auto">
+                {locale === "ja"
+                  ? "このルームは完了済みですが、保存されたDecision Memoを読み込めませんでした。再実行してください。"
+                  : "This room is marked as completed, but the saved Decision Memo could not be loaded. Please re-run this room."}
+              </p>
+              {onRerun && (
+                <button
+                  onClick={onRerun}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium bg-muted hover:bg-accent border border-border transition-colors"
+                >
+                  <RotateCcwIcon size={11} />
+                  {locale === "ja" ? "再実行" : "Re-run"}
+                </button>
+              )}
+            </div>
           ) : isUnresolved ? (
             <ConclusionUnresolvedState
               onContinue={onContinue}

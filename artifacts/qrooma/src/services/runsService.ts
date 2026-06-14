@@ -321,7 +321,11 @@ export const runsService = {
                     onComplete("memo_failed");
                   }
                 } else {
-                  onComplete("completed");
+                  console.warn(
+                    "[runsService] received conclusion event but conclusionSavePromise is undefined; " +
+                    "refusing to mark completed — marking memo_failed instead.",
+                  );
+                  onComplete("memo_failed");
                 }
               } else if (receivedCheckpoint) {
                 onComplete("checkpoint");
