@@ -1,0 +1,410 @@
+You are working on the adjudo MVP.
+
+Please verify the latest fixes after the mobile test issues.
+
+Do not add new features.
+Do not do a broad refactor.
+This is a verification task only.
+
+The previous issues were:
+
+1. Builder never returned / AI may not be running.
+2. Conclusion / unresolved card colors did not match the Adjudo brand.
+3. Project label and Project hierarchy text were too small.
+4. Rooms nested inside Projects could not be deleted or managed.
+5. Duplicate rooms may have been created accidentally under the same Project.
+
+Please inspect the code, run the app in Replit Preview if possible, and report PASS / PARTIAL / FAIL for each item.
+
+==================================================
+Check 1: AI runtime / Builder returns
+
+This is the most important check.
+
+Previous issue:
+After submitting a prompt, the app stayed in running/generating state and Builder output never appeared.
+
+Please verify:
+
+1. Is /api/discuss called from the client?
+2. Is the Firebase ID token attached correctly?
+3. Does the server accept the request?
+4. Is ANTHROPIC_API_KEY detected in the server environment?
+5. Is Anthropic actually called?
+6. Is the model name valid?
+7. Does Builder output return?
+8. Does Breaker output return?
+9. Does Operator output return?
+10. Does Final Memo generation run?
+11. Are SSE events received by the client?
+12. If an API error happens, does the UI show an error instead of waiting forever?
+13. Is there a timeout or failure handling for long-running calls?
+
+Expected:
+
+* Builder output appears within a reasonable time.
+* The app does not stay in “実行中” forever.
+* If Anthropic/API/SSE fails, the UI shows a clear error.
+* Replit Preview should be enough to test AI runtime unless env vars differ from deployment.
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* /api/discuss called: YES / NO
+* Firebase token attached: YES / NO
+* ANTHROPIC_API_KEY detected: YES / NO
+* Anthropic called: YES / NO
+* SSE received: YES / NO
+* Builder output appears: YES / NO
+* Breaker output appears: YES / NO
+* Operator output appears: YES / NO
+* Root cause if it failed:
+* Files/logs checked:
+* Remaining risk:
+
+==================================================
+Check 2: AI loading / error UX
+
+Please verify the UI does not leave the user stuck.
+
+Expected status behavior:
+
+running
+→ Builder appears
+→ Breaker appears
+→ Operator appears
+→ generating_conclusion
+→ saving_memo
+→ completed
+
+Failure behavior:
+
+* If AI call fails, show error / memo_failed.
+* If SSE disconnects, show error.
+* If API key is missing, show a clear error.
+* Do not leave input disabled forever.
+* Stop button should work if implemented.
+
+Please check:
+
+1. Can the user recover from a failed run?
+2. Does the Stop button actually stop/cancel or at least unlock the UI?
+3. Does the input become usable again after failure?
+4. Is the error visible on mobile?
+5. Are errors logged without exposing API keys or full prompt?
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Failure UI:
+* Stop button behavior:
+* Input unlock behavior:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 3: Brand color consistency
+
+Previous issue:
+The Conclusion / unresolved card used yellow/orange/purple/green accents that did not match the Adjudo brand.
+
+Adjudo brand direction:
+
+* Minimal
+* Black / white / gray
+* Decision workspace feel
+* Avoid colorful AI-tool feeling
+* Primary actions should be black background / white text
+* Status colors should be subtle
+* Error can use muted red only when truly needed
+
+Please verify:
+
+1. “結論 未確定” card no longer uses strong yellow/orange.
+2. Action icons/buttons no longer use strong purple/green unless truly needed.
+3. Primary action uses black/white.
+4. Secondary actions use neutral border/gray.
+5. Running/completed/pending statuses are visually subtle.
+6. Error states remain visible but not overly loud.
+7. Mobile appearance feels consistent with the Adjudo logo/brand.
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Remaining off-brand colors:
+* Screens checked:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 4: Project typography / hierarchy
+
+Previous issue:
+The Project label and Project hierarchy text were too small.
+The user could not easily understand Project → Room hierarchy.
+
+Expected:
+
+* Section label can be small, but readable.
+* Project name should be clearly readable.
+* Room name under project should be same readable size as standalone room.
+* Project and Room hierarchy should be visually obvious.
+* Status/metadata should be smaller and muted.
+* Selected room should be clearly highlighted.
+
+Please check:
+
+1. “PROJECTS” / “プロジェクト” label is readable.
+2. Project name is not too small.
+3. Nested Room name is readable.
+4. Standalone Room name and nested Room name are consistent.
+5. Project count is readable.
+6. “+ New room” is visible enough.
+7. Selected room is clearly highlighted.
+8. Mobile sidebar looks balanced.
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Typography issues remaining:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 5: Nested Project Room menu / delete behavior
+
+Previous issue:
+Standalone Rooms had a “…” menu, but Rooms inside Projects could not be deleted or managed.
+
+Expected:
+Every Room should have a management menu, whether standalone or nested inside a Project.
+
+Nested Project Room menu should support at least:
+
+* Rename if available
+* Move to project / Change project
+* Remove from project if implemented
+* Delete or Archive
+
+Please verify:
+
+1. Nested Project Rooms have a “…” menu or equivalent.
+2. Delete/Archive works for nested Rooms.
+3. Move/Change Project works for nested Rooms.
+4. If the currently open Room is deleted, the app redirects safely.
+5. Deleted/archived Room disappears from Project.
+6. Project room count updates.
+7. Standalone Room menu still works.
+8. Mobile menu is tappable and not hidden/cut off.
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Nested room menu actions:
+* Delete/archive behavior:
+* Move behavior:
+* Route after delete:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 6: Duplicate Room prevention
+
+Previous screenshot showed duplicate “PR方法” Rooms under the same Project.
+
+Please verify:
+
+1. Does clicking “+ New room” multiple times rapidly create duplicates?
+2. Is the button disabled while room creation is in progress?
+3. Is there a loading state while creating?
+4. Does each new Room get a unique id?
+5. Is accidental double creation prevented?
+6. If duplicate titles are allowed intentionally, is that acceptable?
+7. Is there any double-submit issue on mobile taps?
+
+Expected:
+
+* No accidental duplicate creation from double tap.
+* If two rooms have same title by user intent, that is acceptable, but not from one action firing twice.
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Duplicate prevention behavior:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 7: Completed / Conclusion regression
+
+Please verify the previous P0 fix did not regress.
+
+Expected:
+
+* completed is shown only after Decision Memo is generated, saved, and visible.
+* completed never appears with a blank Conclusion.
+* completed + missing memo shows “Decision Memo not found”, not “Unresolved”.
+* memo_failed appears if memo save fails.
+* saving_memo appears before completed.
+
+Please check:
+
+1. Normal run reaches completed with visible conclusion.
+2. Refresh keeps conclusion visible.
+3. Missing memo recovery UI works.
+4. No blank conclusion panel appears.
+5. Mobile displays conclusion correctly.
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Completed without conclusion possible: YES / NO
+* Missing memo UI:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 8: Mobile E2E
+
+Please run or simulate this full mobile E2E flow in Replit Preview.
+
+Test prompt:
+
+adjudoのPRで何からやればいいか分からない。まだMVPで、ほとんど誰も知らない。XもLinkedInもフォロワーが少なくて、投稿してもほぼ反応がない。LPもあるけど、今のままで刺さるか分からない。まず欲しいのは大量のユーザーではなく、1人でいいから実際のビジネス判断にadjudoを使ってもらうこと。その人に「ChatGPTやClaudeに直接聞くより、adjudoの方が意思決定しやすい」と感じてもらえるかを確認したい。今迷っている選択肢は、XやLinkedInで投稿を続ける、Founderや個人開発者にDMする、ChatGPT/Claudeとの比較記事を書く、LPを直す、無料で1件Decision Memoを作る、まずプロダクトをもっと直す、自分の意思決定でadjudoを使って事例を作る、など。時間は限られている。今週やることを1つか2つに絞りたい。単なるマーケ施策のアイデア出しではなく、どの選択肢を採用して、どれを捨てるべきか、理由とリスクも含めて整理してほしい。最後に、今週の具体的なアクションに落として。
+
+E2E steps:
+
+1. Open app on mobile width.
+2. Login.
+3. Open sidebar.
+4. Open or create a Project.
+5. Create a new Room under that Project.
+6. Confirm Room appears nested under Project.
+7. Submit the Japanese PR prompt.
+8. Confirm Builder output appears.
+9. Confirm Breaker output appears.
+10. Confirm Operator output appears.
+11. Confirm メモ生成中 appears.
+12. Confirm メモ保存中 appears.
+13. Confirm 完了 appears only after conclusion is visible.
+14. Confirm Decision Memo appears.
+15. Refresh page.
+16. Confirm Decision Memo still appears.
+17. Open sidebar.
+18. Confirm Room remains under correct Project.
+19. Confirm nested Room menu can delete/archive/move.
+20. Confirm no Free/API/BYOK/Connect/model UI appears.
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* What worked:
+* What failed:
+* Runtime logs:
+* Screenshots if available:
+* Remaining risk:
+
+==================================================
+Check 9: Environment readiness
+
+Please verify environment variables and deployment assumptions.
+
+Check:
+
+1. ANTHROPIC_API_KEY exists in Replit Secrets.
+2. VITE_FIREBASE_API_KEY exists.
+3. VITE_FIREBASE_AUTH_DOMAIN exists.
+4. VITE_FIREBASE_PROJECT_ID exists.
+5. VITE_FIREBASE_APP_ID exists.
+6. Firestore rules are deployed or still manual pending.
+7. Replit Preview and deployed environment use the same required secrets.
+8. If Preview works but Deploy might not, clearly report the difference.
+
+Please report:
+
+* Status: PASS / PARTIAL / FAIL
+* Missing env vars:
+* Firestore rules deployed: YES / NO / UNKNOWN
+* Preview vs Deploy differences:
+* Remaining risk:
+
+==================================================
+Final Report Format
+
+Please return the report in this structure:
+
+1. Executive Summary
+
+Overall status:
+
+* READY FOR EXTERNAL 1-USER TEST
+    or
+* READY FOR INTERNAL COMPARISON ONLY
+    or
+* NOT READY
+
+Short explanation.
+
+2. Status Table
+
+Check	Status	Priority	Notes
+AI runtime / Builder returns	PASS/PARTIAL/FAIL	P0	…
+AI loading / error UX	PASS/PARTIAL/FAIL	P0	…
+Brand color consistency	PASS/PARTIAL/FAIL	P1	…
+Project typography	PASS/PARTIAL/FAIL	P1	…
+Nested Room menu/delete	PASS/PARTIAL/FAIL	P1	…
+Duplicate Room prevention	PASS/PARTIAL/FAIL	P1	…
+Completed / Conclusion regression	PASS/PARTIAL/FAIL	P0	…
+Mobile E2E	PASS/PARTIAL/FAIL	P0	…
+Environment readiness	PASS/PARTIAL/FAIL	P0	…
+
+3. Remaining P0 Issues
+
+List only true blockers for internal comparison or external one-user test.
+
+4. Remaining P1 Issues
+
+List important but non-blocking issues.
+
+5. Evidence
+
+Include:
+
+* files checked
+* functions/components checked
+* runtime logs
+* API/SSE result
+* env var presence without exposing values
+* screenshots if available
+
+6. Go / No-Go Judgment
+
+Answer both:
+
+1. Can we run adjudo vs ChatGPT vs Claude internal comparison test?
+
+* GO / NO-GO
+
+2. Can we let one external user try adjudo for one real decision?
+
+* GO / NO-GO
+
+Explain why.
+
+==================================================
+Important
+
+Do not mark PASS just because code exists.
+Mark PASS only if behavior works.
+
+If Builder does not return, mark AI runtime as FAIL.
+
+If the app stays in running forever, mark AI loading/error UX as FAIL.
+
+If completed appears without a visible Conclusion, mark Completed/Conclusion as FAIL.
+
+If nested Project Rooms cannot be deleted or managed, mark Nested Room menu/delete as FAIL or PARTIAL.
+
+If Replit Preview cannot call Anthropic due to missing env vars, mark Environment readiness as FAIL.
+
+Do not expose API key values in the report.
