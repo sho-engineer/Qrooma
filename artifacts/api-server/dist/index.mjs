@@ -63208,7 +63208,7 @@ router2.post("/check-ambiguity", ambiguityLimiter, requireUser, async (req, res)
     return res.json({ needsClarification: false, questions: [], assumptions: [] });
   }
   const apiKeys = {
-    openai: clientApiKeys.openai || void 0,
+    openai: clientApiKeys.openai || process.env["OPENAI_API_KEY"] || void 0,
     google: clientApiKeys.google || void 0,
     anthropic: clientApiKeys.anthropic || void 0
   };
@@ -63342,12 +63342,26 @@ router2.post("/discuss", discussLimiter, requireUser, async (req, res) => {
     projectContext = ""
   } = req.body;
   const apiKeys = {
-    openai: clientApiKeys.openai || void 0,
+    openai: clientApiKeys.openai || process.env["OPENAI_API_KEY"] || void 0,
     anthropic: clientApiKeys.anthropic || process.env["ANTHROPIC_API_KEY"] || void 0,
-    google: clientApiKeys.google || void 0
+    google: clientApiKeys.google || process.env["GOOGLE_API_KEY"] || void 0
   };
-  const isFallback = !clientApiKeys.anthropic && !!process.env["ANTHROPIC_API_KEY"];
-  req.log.info({ runId, roomId, isFallback, agentCount: agentConfig.length, mode }, "discuss call started");
+  const isFallback = {
+    openai: !clientApiKeys.openai && !!process.env["OPENAI_API_KEY"],
+    anthropic: !clientApiKeys.anthropic && !!process.env["ANTHROPIC_API_KEY"],
+    google: !clientApiKeys.google && !!process.env["GOOGLE_API_KEY"]
+  };
+  req.log.info({
+    runId,
+    roomId,
+    mode,
+    agentCount: agentConfig.length,
+    providers: agentConfig.map((a) => `${a.provider}/${a.model}`),
+    openaiKeyDetected: !!apiKeys.openai,
+    anthropicKeyDetected: !!apiKeys.anthropic,
+    googleKeyDetected: !!apiKeys.google,
+    isFallback
+  }, "discuss call started");
   if (activeSseStreams >= MAX_SSE_STREAMS) {
     res.status(503).json({ error: "Server busy, please try again later." });
     return;

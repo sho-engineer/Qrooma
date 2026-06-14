@@ -336,9 +336,9 @@ export const FREETALK_POOL = [
 export const DEFAULT_SETTINGS: Settings = {
   openaiApiKey:    "",
   anthropicApiKey: "",
-  sideA: { side: "A", provider: "anthropic", model: "claude-opus-4-5"    },
-  sideB: { side: "B", provider: "anthropic", model: "claude-opus-4-5"    },
-  sideC: { side: "C", provider: "anthropic", model: "claude-opus-4-5"    },
+  sideA: { side: "A", provider: "openai", model: "gpt-4o-mini" },
+  sideB: { side: "B", provider: "openai", model: "gpt-4o-mini" },
+  sideC: { side: "C", provider: "openai", model: "gpt-4o-mini" },
   defaultMode: "structured-debate",
   agentCount: 2,
   writingStyle: {

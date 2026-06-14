@@ -295,6 +295,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
   /** Inline "new room inside project" state */
   const [newRoomForProjectId,   setNewRoomForProjectId]   = useState<string | null>(null);
   const [newRoomForProjectName, setNewRoomForProjectName] = useState("");
+  const creatingRoomRef = useRef(false);
   /** Target room pending deletion — lifted here so the confirmation dialog
    *  survives the RoomContextMenu unmount (mousedown race condition fix). */
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -342,16 +343,20 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
   }
 
   function createRoomInProject(projectId: string) {
-    if (!newRoomForProjectName.trim()) {
+    if (creatingRoomRef.current) return;
+    const name = newRoomForProjectName.trim();
+    if (!name) {
       setNewRoomForProjectId(null);
       setNewRoomForProjectName("");
       return;
     }
-    const room = addRoom(newRoomForProjectName.trim(), { projectId });
+    creatingRoomRef.current = true;
     setNewRoomForProjectId(null);
     setNewRoomForProjectName("");
+    const room = addRoom(name, { projectId });
     setLocation(`/rooms/${room.id}`);
     onClose();
+    setTimeout(() => { creatingRoomRef.current = false; }, 800);
   }
 
   /** Called by RoomContextMenu when user picks Move to project */
@@ -495,7 +500,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
         {activeProjects.length > 0 && (
           <div className="mb-1">
             <div className="flex items-center justify-between px-2 pt-1 pb-0.5">
-              <span className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+              <span className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-wider">
                 {locale === "ja" ? "プロジェクト" : "Projects"}
               </span>
               <button
@@ -531,16 +536,16 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
                 <div key={proj.id} className="mb-0.5">
                   <button
                     onClick={() => setExpandedProjectId(isExpanded ? null : proj.id)}
-                    className="w-full flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg hover:bg-sidebar-accent/60 transition-colors text-left"
+                    className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg hover:bg-sidebar-accent/60 transition-colors text-left"
                   >
                     {isExpanded
-                      ? <FolderOpenIcon size={11} className="text-muted-foreground/60 shrink-0" />
-                      : <FolderIcon     size={11} className="text-muted-foreground/60 shrink-0" />
+                      ? <FolderOpenIcon size={13} className="text-muted-foreground/70 shrink-0" />
+                      : <FolderIcon     size={13} className="text-muted-foreground/70 shrink-0" />
                     }
-                    <span className="flex-1 truncate text-sidebar-foreground/80 font-medium text-[11px]">
+                    <span className="flex-1 truncate text-sidebar-foreground font-semibold text-xs">
                       {proj.name}
                     </span>
-                    <span className="text-[9px] text-muted-foreground/40">{projRooms.length}</span>
+                    <span className="text-[10px] text-muted-foreground/50">{projRooms.length}</span>
                     <ChevronDownIcon
                       size={9}
                       className={`text-muted-foreground/30 transition-transform duration-150 ${isExpanded ? "" : "-rotate-90"}`}
@@ -576,7 +581,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, onClose }: Props) 
                                 className={`p-1.5 rounded transition-all touch-manipulation ${
                                   menuOpen
                                     ? "opacity-100 text-foreground bg-sidebar-accent"
-                                    : "opacity-0 group-hover:opacity-70 text-muted-foreground hover:text-foreground"
+                                    : "opacity-70 sm:opacity-0 sm:group-hover:opacity-70 text-muted-foreground hover:text-foreground"
                                 }`}
                               >
                                 <MoreHorizontalIcon size={12} />

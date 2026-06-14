@@ -1,2 +1,3 @@
-- [Free plan API key fix](free-plan-key.md) — free plan sends empty apiKeys {}; server must fall back to process.env.ANTHROPIC_API_KEY or agents silently skip
+- [Free plan API key fix](free-plan-key.md) — free plan sends empty apiKeys {}; server must fall back to process.env for all providers (OPENAI + ANTHROPIC + GOOGLE)
 - [Run lifecycle states](run-lifecycle.md) — RunStatus now has generating_conclusion + memo_failed; onGeneratingConclusion is 10th param of runsService.realRun
+- [DEFAULT_ROLES location](default-roles.md) — Free plan agent config is in RoomDetailPage.tsx (not dummy.ts); currently openai/gpt-4o-mini; OPENAI_API_KEY available server-side

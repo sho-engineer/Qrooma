@@ -101,17 +101,17 @@ function isProvisionalFormat(text: string): boolean {
 // ─── Section meta ──────────────────────────────────────────────────────────────
 
 const FINAL_SECTION_META = {
-  adopted:  { icon: "✓", color: "text-emerald-700 dark:text-emerald-400", bg: "border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20" },
-  rejected: { icon: "✗", color: "text-rose-600 dark:text-rose-400",       bg: "border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-950/20" },
-  open:     { icon: "?", color: "text-amber-600 dark:text-amber-400",      bg: "border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20" },
-  next:     { icon: "→", color: "text-foreground/60",                       bg: "border-border bg-muted/30" },
+  adopted:  { icon: "✓", color: "text-foreground/70",         bg: "border-border bg-muted/30" },
+  rejected: { icon: "✗", color: "text-rose-600 dark:text-rose-400", bg: "border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-950/20" },
+  open:     { icon: "?", color: "text-muted-foreground/70",    bg: "border-border bg-muted/20" },
+  next:     { icon: "→", color: "text-foreground/60",           bg: "border-border bg-muted/30" },
 };
 
 const PROVISIONAL_SECTION_META = {
-  leading:   { icon: "✦", color: "text-violet-600 dark:text-violet-400",  bg: "border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20" },
-  reasoning: { icon: "→", color: "text-foreground/60",                     bg: "border-border bg-muted/30" },
-  open:      { icon: "?", color: "text-amber-600 dark:text-amber-400",    bg: "border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20" },
-  clarify:   { icon: "↻", color: "text-indigo-600 dark:text-indigo-400",  bg: "border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/20" },
+  leading:   { icon: "✦", color: "text-foreground/70",         bg: "border-border bg-muted/30" },
+  reasoning: { icon: "→", color: "text-foreground/60",          bg: "border-border bg-muted/30" },
+  open:      { icon: "?", color: "text-muted-foreground/70",   bg: "border-border bg-muted/20" },
+  clarify:   { icon: "↻", color: "text-muted-foreground/70",   bg: "border-border bg-muted/20" },
   changed:   { icon: "↕", color: "text-slate-500 dark:text-slate-400",    bg: "border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/20" },
 };
 
@@ -179,15 +179,15 @@ function ConclusionUnresolvedState({
   const { t, locale } = useLocale();
   return (
     <div className="px-5 py-5 space-y-4">
-      <div className="rounded-xl border border-amber-200/60 dark:border-amber-800/40 bg-amber-50/40 dark:bg-amber-950/20 px-4 py-3.5">
-        <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">{t.conclusionUnresolved}</p>
-        <p className="text-xs text-amber-700/70 dark:text-amber-400/60 leading-relaxed">{t.conclusionUnresolvedDesc}</p>
+      <div className="rounded-xl border border-border bg-muted/20 px-4 py-3.5">
+        <p className="text-xs font-semibold text-foreground/70 mb-1">{t.conclusionUnresolved}</p>
+        <p className="text-xs text-muted-foreground/70 leading-relaxed">{t.conclusionUnresolvedDesc}</p>
       </div>
       <div className="space-y-2">
         {onContinue && (
-          <button onClick={onContinue} className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-card transition-colors text-left">
-            <div className="shrink-0 w-6 h-6 rounded-lg bg-violet-100 dark:bg-violet-950/60 flex items-center justify-center">
-              <PlayIcon size={10} className="text-violet-600 dark:text-violet-400" />
+          <button onClick={onContinue} className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-muted/40 transition-colors text-left">
+            <div className="shrink-0 w-6 h-6 rounded-lg bg-muted flex items-center justify-center">
+              <PlayIcon size={10} className="text-foreground/60" />
             </div>
             <div>
               <p className="text-xs font-semibold text-foreground">{t.conclusionContinue}</p>
@@ -211,9 +211,9 @@ function ConclusionUnresolvedState({
           </button>
         )}
         {onAddCondition && (
-          <button onClick={onAddCondition} className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-card transition-colors text-left">
-            <div className="shrink-0 w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center">
-              <PlayIcon size={10} className="text-emerald-600 dark:text-emerald-400" />
+          <button onClick={onAddCondition} className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-background hover:bg-muted/40 transition-colors text-left">
+            <div className="shrink-0 w-6 h-6 rounded-lg bg-muted flex items-center justify-center">
+              <PlayIcon size={10} className="text-foreground/60" />
             </div>
             <div>
               <p className="text-xs font-semibold text-foreground">{t.conclusionAddCondition}</p>
@@ -278,7 +278,7 @@ function CheckpointActions({
         <div className="flex gap-2">
           <button
             onClick={submitContinue}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 active:scale-[0.98] transition-all"
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-foreground text-background text-xs font-semibold hover:opacity-80 active:scale-[0.98] transition-all"
           >
             <PlayIcon size={11} />
             {direction.trim()
@@ -306,25 +306,25 @@ function CheckpointActions({
         {onEndHere && (
           <button
             onClick={onEndHere}
-            className="flex flex-col items-start gap-1 px-3.5 py-3 rounded-xl border border-border bg-background hover:bg-card active:scale-[0.98] transition-all text-left"
+            className="flex flex-col items-start gap-1 px-3.5 py-3 rounded-xl border border-foreground/20 bg-foreground text-background hover:opacity-90 active:scale-[0.98] transition-all text-left"
           >
             <div className="flex items-center gap-1.5">
-              <CheckCircleIcon size={12} className="text-emerald-500 shrink-0" />
-              <span className="text-xs font-semibold text-foreground">{t.endHere}</span>
+              <CheckCircleIcon size={12} className="text-background/70 shrink-0" />
+              <span className="text-xs font-semibold text-background">{t.endHere}</span>
             </div>
-            <p className="text-[10px] text-muted-foreground/50 leading-snug">{t.endHereDesc}</p>
+            <p className="text-[10px] text-background/50 leading-snug">{t.endHereDesc}</p>
           </button>
         )}
         {onContinueDiscussion && (
           <button
             onClick={handleContinueClick}
-            className="flex flex-col items-start gap-1 px-3.5 py-3 rounded-xl border border-violet-200/70 dark:border-violet-800/40 bg-violet-50/40 dark:bg-violet-950/20 hover:bg-violet-50/70 dark:hover:bg-violet-950/30 active:scale-[0.98] transition-all text-left"
+            className="flex flex-col items-start gap-1 px-3.5 py-3 rounded-xl border border-border bg-background hover:bg-muted/40 active:scale-[0.98] transition-all text-left"
           >
             <div className="flex items-center gap-1.5">
-              <PlayIcon size={12} className="text-violet-500 shrink-0" />
-              <span className="text-xs font-semibold text-violet-700 dark:text-violet-300">{t.continueDiscussion}</span>
+              <PlayIcon size={12} className="text-foreground/50 shrink-0" />
+              <span className="text-xs font-semibold text-foreground/80">{t.continueDiscussion}</span>
             </div>
-            <p className="text-[10px] text-violet-600/50 dark:text-violet-400/40 leading-snug">{t.continueDiscussionDesc}</p>
+            <p className="text-[10px] text-muted-foreground/50 leading-snug">{t.continueDiscussionDesc}</p>
           </button>
         )}
       </div>
@@ -495,11 +495,7 @@ function PastConclusionRow({
             {locale === "ja" ? `結論 v${versionNum}` : `Conclusion v${versionNum}`}
           </span>
           {badge && (
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
-              isProvis
-                ? "bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400"
-                : "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
-            }`}>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground/70">
               {badge}
             </span>
           )}
@@ -619,16 +615,16 @@ export default function ConclusionCard({
           isOpen
             ? "border-b-0 rounded-t-2xl bg-card border-border/60"
             : "rounded-2xl bg-card border-border/60 hover:border-foreground/15 hover:shadow-[0_2px_12px_rgba(0,0,0,0.05)] active:scale-[0.99]"
-        } ${isNewlyUpdated ? "ring-2 ring-emerald-400/50 ring-offset-0" : ""}`}
+        } ${isNewlyUpdated ? "ring-2 ring-foreground/20 ring-offset-0" : ""}`}
       >
         <div className="flex items-center gap-2 text-foreground">
           <span className={`text-base leading-none select-none ${isLoading ? "animate-spin" : ""} ${
             isError ? "text-rose-400/70"
-            : isMissingMemo ? "text-orange-400/80"
-            : isUnresolved ? "text-amber-400/70"
-            : isProvisional ? "text-violet-400/70"
-            : isFinal ? "text-emerald-500/80"
-            : isNewlyUpdated ? "text-emerald-500/70"
+            : isMissingMemo ? "text-foreground/60"
+            : isUnresolved ? "text-muted-foreground/50"
+            : isProvisional ? "text-muted-foreground/60"
+            : isFinal ? "text-foreground/70"
+            : isNewlyUpdated ? "text-foreground/70"
             : "text-foreground/30"
           }`}>
             {isError || isMissingMemo ? "!" : isUnresolved ? "◎" : isProvisional ? "◐" : "◈"}
@@ -637,16 +633,16 @@ export default function ConclusionCard({
           {badgeLabel && (
             <span className={`text-[11px] font-normal ${
               isError ? "text-rose-500/70"
-              : isUnresolved ? "text-amber-500/70"
+              : isUnresolved ? "text-muted-foreground/50"
               : isLoading ? "text-muted-foreground/50"
-              : isProvisional ? "text-violet-500/70"
+              : isProvisional ? "text-muted-foreground/60"
               : "text-muted-foreground/50"
             }`}>
               {badgeLabel}
             </span>
           )}
           {isNewlyUpdated && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-medium animate-pulse">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-foreground/60 font-medium animate-pulse">
               {locale === "ja" ? "更新" : "Updated"}
             </span>
           )}

@@ -48,11 +48,11 @@ const AGENT_SIDE: Record<string, "A" | "B" | "C"> = {
 };
 
 // Default 3-agent config for Free plan (Builder / Breaker / Operator).
-// All use server-side Anthropic key — no user key required.
-const DEFAULT_ROLES: Array<{ provider: "anthropic"; model: string }> = [
-  { provider: "anthropic", model: "claude-opus-4-5" },
-  { provider: "anthropic", model: "claude-opus-4-5" },
-  { provider: "anthropic", model: "claude-opus-4-5" },
+// Uses server-side OPENAI_API_KEY — no user key required.
+const DEFAULT_ROLES: Array<{ provider: "openai"; model: string }> = [
+  { provider: "openai", model: "gpt-4o-mini" },
+  { provider: "openai", model: "gpt-4o-mini" },
+  { provider: "openai", model: "gpt-4o-mini" },
 ];
 
 function hasApiKeyFor(provider: string, settings: { openaiApiKey: string; anthropicApiKey: string }): boolean {
