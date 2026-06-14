@@ -1,0 +1,441 @@
+You are working on the adjudo MVP.
+
+Before implementing anything new, please inspect the current codebase and report how much of the expected Decision Room / AI output / language / settings behavior is actually implemented.
+
+Do not modify files yet.
+First, investigate and report findings.
+
+==================================================
+Context
+==================================================
+
+adjudo is an AI-assisted Decision Workspace.
+
+The product should turn messy business decision inputs into structured decision outputs:
+
+- Recommended next move
+- Rejected options
+- Assumptions
+- Risks
+- What to validate
+- What to do now
+- What not to do now
+- Next actions
+- Decision Memo
+- Handoff-ready output
+
+The MVP should use three roles:
+
+- Builder
+- Breaker
+- Operator
+
+The expected behavior is:
+1. User enters a messy decision prompt.
+2. Builder proposes a practical path.
+3. Breaker critiques assumptions and risks.
+4. Operator synthesizes into a structured Decision Memo.
+5. Final Conclusion / Decision Memo is saved and displayed.
+6. UI language follows the user’s Settings language.
+7. API key / BYOK / Free mode / model settings are not shown to users.
+
+==================================================
+Current Observed Problems
+==================================================
+
+Screenshots show these issues:
+
+1. Run status shows Completed, but the Conclusion section still says:
+   "Will appear after a completed run."
+
+2. Builder and Breaker only return very short, shallow comments.
+
+3. Operator does not appear.
+   The UI shows only:
+   - Builder
+   - Breaker
+
+4. Free mode / API key UI is still visible:
+   - "Free mode"
+   - "Try without API keys. Set keys for full access."
+   - "Set up in Settings"
+   - "2 agents, fixed models — try it out"
+
+5. User has selected Japanese in Settings, but the Room UI still shows English:
+   - Completed
+   - Debate Mode
+   - Builder
+   - Breaker
+   - Conclusion
+   - Will appear after a completed run.
+   - Free mode
+   - Prompt Mode
+   - Ask the team something...
+
+6. Settings previously showed:
+   - FIXED 2-AGENT CONFIG
+   - Builder: GPT-4o mini
+   - Breaker: GPT-4o mini
+
+This conflicts with the current MVP direction.
+
+==================================================
+Investigation Tasks
+==================================================
+
+Please inspect the codebase and answer the following.
+
+Do not implement fixes yet.
+
+==================================================
+A. Decision Room Run Flow
+==================================================
+
+Check the full run lifecycle.
+
+Please identify:
+
+1. Where a run is created.
+2. Where run status is set to waiting / running / completed / failed.
+3. Whether Completed can be set before the final conclusion is generated.
+4. Whether errors during conclusion generation are swallowed.
+5. Whether a run can complete with only Builder / Breaker messages.
+6. Whether there is any retry / rerun logic.
+7. Whether the runId is correctly linked to:
+   - room
+   - messages
+   - decisionMemo / conclusion
+
+Please report:
+- files involved
+- current data flow
+- likely root cause of “Completed but no Conclusion”
+- risk level
+
+==================================================
+B. Conclusion / Decision Memo Storage
+==================================================
+
+Please inspect how the final Conclusion / Decision Memo is generated, saved, and displayed.
+
+Check:
+
+1. Is a final conclusion actually generated?
+2. Is it saved to Firestore?
+3. Which collection stores it?
+   - decisionMemos?
+   - rooms?
+   - messages?
+   - something else?
+4. What document fields are used?
+5. Does the UI query the correct Firestore location?
+6. Does the UI query by roomId, runId, memoId, or latest memo?
+7. Does the UI display stale or missing data after refresh?
+8. Is there a mismatch between generated data structure and UI expectations?
+
+Please report:
+- current Firestore structure used by the code
+- actual expected fields
+- mismatch if any
+- root cause hypothesis
+
+==================================================
+C. AI Role Implementation
+==================================================
+
+Please inspect the AI role implementation.
+
+Expected roles:
+- Builder
+- Breaker
+- Operator
+
+Check:
+
+1. Are all three roles implemented?
+2. Is Operator missing entirely, disabled, or just hidden from UI?
+3. Is the app currently configured as 2-agent only?
+4. Where are roles defined?
+5. Are role prompts hardcoded?
+6. Are role names localized?
+7. Does Operator generate the final Decision Memo, or is that a separate process?
+8. Is there any old “2-agent config” still active?
+
+Please report:
+- current role list
+- whether Operator exists
+- where to add or restore Operator
+- whether the header/status UI is derived from actual role config or hardcoded
+
+==================================================
+D. AI Output Quality / Prompting
+==================================================
+
+The current output is too shallow.
+
+Example current output:
+- Builder: one generic paragraph
+- Breaker: one generic paragraph
+- no structured final memo
+
+Expected:
+For a messy PR / GTM decision, the system should produce:
+
+- Recommended next move
+- Why
+- Rejected options
+- Assumptions
+- Risks
+- What to validate
+- 7-day next actions
+- Decision Memo
+
+Please inspect:
+
+1. Where the system prompts are defined.
+2. Whether prompts instruct the AI to produce structured decision outputs.
+3. Whether prompts differ by role.
+4. Whether prompts include product context for adjudo.
+5. Whether prompts are too short or generic.
+6. Whether the AI call uses max tokens that are too low.
+7. Whether streaming/truncation may be cutting output short.
+8. Whether only a stub/mock response is being used.
+9. Whether the app is actually calling the intended LLM provider.
+
+Please report:
+- prompt files
+- model/provider used
+- token settings
+- whether outputs are mock/stub or real API calls
+- likely cause of shallow output
+
+==================================================
+E. LLM Provider / Claude Opus Status
+==================================================
+
+We need to know whether Claude Opus is actually being used.
+
+Please check:
+
+1. Is ANTHROPIC_API_KEY referenced?
+2. Is Anthropic SDK/client installed?
+3. Is Claude actually called anywhere?
+4. Which model is currently used?
+5. Is the app still using GPT-4o mini?
+6. Are model names hardcoded?
+7. Is there fallback from Claude to OpenAI?
+8. Are model/provider settings exposed to users?
+9. Are model names displayed in Settings or Room UI?
+
+Expected MVP behavior:
+- Normal users should not see model names.
+- Normal users should not see model/provider settings.
+- Backend can use Claude / OpenAI / Gemini, but UI should show roles, not models.
+
+Please report:
+- actual provider currently used
+- actual model currently used
+- where configured
+- whether Claude Opus is implemented
+- whether UI still has stale GPT-4o mini display
+
+==================================================
+F. Free Mode / API Key / BYOK UI
+==================================================
+
+The following should not appear in MVP:
+
+- Free mode
+- API key warning
+- Set keys for full access
+- Set up in Settings
+- Connect plan
+- BYOK
+- API key settings
+- model selection
+- fixed model config
+- agent count settings
+- default mode
+
+Please inspect:
+
+1. Which components render these texts.
+2. Whether they are hardcoded.
+3. Whether Settings still includes API/BYOK/model sections.
+4. Whether Room input area still shows Free mode.
+5. Whether any logic depends on API key existence.
+6. Whether removing this UI would break execution.
+
+Please report:
+- files/components containing these legacy UI elements
+- whether they can safely be removed
+- any dependencies or risks
+
+==================================================
+G. Language / i18n Behavior
+==================================================
+
+Current issue:
+User selected Japanese in Settings, but Room UI is still English.
+
+Please inspect:
+
+1. Where user language setting is stored.
+2. Whether Settings writes the language to:
+   - Firestore
+   - localStorage
+   - context/provider
+   - URL
+3. Whether Room page reads the same setting.
+4. Whether Room components are hardcoded in English.
+5. Whether there is an i18n dictionary.
+6. Whether Japanese translations exist for Room UI.
+7. Whether user setting overrides browser language.
+8. Whether language changes require refresh.
+9. Whether generated AI output language follows user input or UI language.
+
+Expected:
+If user language is Japanese, Room UI should show Japanese labels.
+
+Examples:
+- Completed -> 完了
+- Running -> 実行中
+- Waiting -> 待機中
+- Debate Mode -> ディベートモード
+- Conclusion -> 結論
+- Will appear after a completed run. -> 実行完了後に表示されます
+- Re-run -> 再実行
+- Prompt Mode -> プロンプトモード
+- Ask the team something... -> チームに質問する...
+- Enter to send, Shift+Enter for newline -> Enterで送信、Shift+Enterで改行
+
+Please report:
+- current language architecture
+- root cause of English labels
+- missing translations
+- files/components needing i18n updates
+
+==================================================
+H. Project → Room Flow
+==================================================
+
+Also inspect whether the Project → Room flow is fully implemented.
+
+Expected:
+- User can create a new Room directly under a Project.
+- The new room has projectId.
+- Project detail page lists rooms under that project.
+- Room count is correct.
+- Existing room can eventually be assigned/moved to a project.
+
+Please check:
+
+1. Can a room be created from a project detail page?
+2. Does rooms/{roomId}.projectId exist?
+3. Does the project room list query by projectId?
+4. Does room count still show 0 incorrectly?
+5. Are standalone rooms supported?
+6. Is there any move-to-project feature?
+7. Are permissions enforced by ownerId?
+
+Please report:
+- implementation status
+- missing parts
+- risks
+
+==================================================
+I. Admin / Coupon / Waitlist Impact
+==================================================
+
+Please briefly check whether these features are affected by the same issues:
+
+1. Admin role system
+2. Admin menu visibility
+3. Admin users page
+4. Coupon issuance
+5. Coupon redemption
+6. Waitlist storage
+7. Login → coupon page → login flow
+
+We do not need full implementation now, but please report whether current code appears to support them or whether they are missing/stubbed.
+
+==================================================
+J. Security / Data Integrity Concerns
+==================================================
+
+Please inspect for obvious security/data risks:
+
+1. Can normal users access other users’ rooms/projects?
+2. Can normal users update their own role/status/accessStatus?
+3. Can normal users create/update coupons?
+4. Can normal users read admin data?
+5. Are Firestore rules implemented and aligned with app logic?
+6. Are sensitive API keys ever exposed to the client?
+7. Are admin-only features protected server-side or only hidden in UI?
+
+Please report urgent concerns.
+
+==================================================
+Expected Report Format
+==================================================
+
+Please return a structured report with:
+
+## 1. Executive Summary
+Short overall assessment:
+- Working
+- Partially working
+- Not working
+
+## 2. Implementation Status Table
+Use this table:
+
+| Area | Status | Notes | Priority |
+|---|---|---|---|
+| Decision Room run flow | Working / Partial / Broken | ... | P0/P1 |
+| Conclusion / Decision Memo | Working / Partial / Broken | ... | P0 |
+| Builder / Breaker / Operator | Working / Partial / Broken | ... | P0 |
+| AI output quality | Working / Partial / Broken | ... | P0 |
+| Claude Opus/provider | Working / Partial / Broken | ... | P0/P1 |
+| Free/API legacy UI removal | Working / Partial / Broken | ... | P0 |
+| Japanese i18n | Working / Partial / Broken | ... | P1 |
+| Project → Room | Working / Partial / Broken | ... | P0/P1 |
+| Admin/Coupon/Waitlist | Working / Partial / Broken | ... | P1 |
+| Security rules | Working / Partial / Broken | ... | P0/P1 |
+
+## 3. Root Cause Hypotheses
+Explain likely causes for:
+- Completed but no Conclusion
+- Shallow AI output
+- Operator missing
+- Japanese setting ignored
+- Free/API UI still visible
+
+## 4. Files to Change Later
+List files/components/services likely needing changes.
+
+## 5. Do-First Fix Plan
+Propose the smallest safe fix plan in order:
+
+1. ...
+2. ...
+3. ...
+
+Do not implement yet.
+
+## 6. Risks / Concerns
+List any additional issues found.
+
+## 7. Questions for Product Owner
+Ask any needed clarification before implementing.
+
+==================================================
+Important
+==================================================
+
+Do not implement yet.
+Do not refactor broadly.
+Do not add new features.
+This task is investigation only.
+
+After this report, we will decide what to fix first.
