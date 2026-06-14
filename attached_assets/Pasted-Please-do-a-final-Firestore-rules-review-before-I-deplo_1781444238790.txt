@@ -1,0 +1,82 @@
+Please do a final Firestore rules review before I deploy them.
+
+The implementation report says firestore.rules was added, but I want to make sure the rules are safe and actually compatible with current Firestore data shapes.
+
+Please inspect firestore.rules and fix only rule-level issues.
+
+Specific concerns:
+
+1. users update rule
+
+Current rule appears to block updates if "role", "accessStatus", or "plan" exist in request.resource.data.
+
+In Firestore rules, request.resource.data represents the full document after update, not only changed fields.
+
+Please update the rule so normal users can update allowed profile fields, but cannot change:
+- role
+- status
+- accessStatus
+- plan
+- isAdmin
+- admin-related fields
+
+Use diff().affectedKeys() or equality checks against resource.data.
+
+2. Owner field immutability
+
+For projects, rooms, messages, and decisionMemos, ensure normal users cannot change ownership fields after creation.
+
+Ownership fields:
+- projects: userId
+- rooms: ownerId or userId, depending on current schema
+- messages: userId
+- decisionMemos: userId
+
+Rules should allow update only if ownership field remains unchanged.
+
+3. Create rules
+
+Ensure create rules use request.resource.data, not resource.data.
+
+4. Existing data compatibility
+
+Check actual fields used by the app:
+- projects use userId?
+- rooms currently localStorage only, but future Firestore rules use ownerId
+- messages use userId?
+- decisionMemos use userId
+
+If rules depend on fields not currently written by the app, report it clearly.
+
+5. Admin access
+
+Confirm isAdmin() works based on:
+users/{uid}.role == "admin"
+
+Confirm this does not create circular access problems for reading the user's own user doc.
+
+6. Waitlist public create
+
+Keep public waitlist create if needed, but restrict fields if possible:
+- email
+- createdAt
+- source
+- status
+
+Do not allow public read.
+
+7. Coupons
+
+Confirm normal users cannot create/update coupons.
+Normal users can read active coupon data only if necessary for validation.
+
+8. Final output
+
+Please return:
+- updated firestore.rules
+- what changed
+- any fields the app must write consistently
+- whether rules are safe to deploy
+- exact deploy command
+
+Do not change app code unless absolutely required for rule compatibility.
