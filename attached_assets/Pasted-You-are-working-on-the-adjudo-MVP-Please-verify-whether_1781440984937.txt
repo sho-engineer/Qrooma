@@ -1,0 +1,440 @@
+You are working on the adjudo MVP.
+
+Please verify whether the latest fixes are actually implemented and working.
+
+Do not implement new features unless a check clearly fails.
+First, inspect the code and run/manual-test the app behavior.
+Then report the current status.
+
+==================================================
+Context
+
+adjudo is an AI-assisted Decision Workspace.
+
+The expected Decision Room flow is:
+
+1. User enters a messy business decision.
+2. Builder proposes a practical path.
+3. Breaker critiques assumptions and risks.
+4. Operator synthesizes the discussion.
+5. Final Decision Memo / Conclusion is generated.
+6. Decision Memo is saved.
+7. Decision Memo is displayed.
+8. Run status becomes completed only after the memo is saved/displayable.
+
+The MVP should not show:
+
+* Free mode
+* API key warnings
+* BYOK
+* Connect plan
+* model settings
+* fixed model config
+* Side A/B/C
+* agent count settings
+
+The UI language should follow the user’s Settings language.
+
+==================================================
+Check 1: Run status lifecycle
+
+Please verify the run lifecycle.
+
+Expected lifecycle:
+
+running
+→ checkpoint_ready
+→ generating_conclusion
+→ completed
+
+or equivalent logic where completed happens only after the final Decision Memo is saved.
+
+Please check:
+
+1. Is there a dedicated generating_conclusion status?
+2. If not, is there equivalent logic preventing premature completed status?
+3. Can completed be set before the final memo is generated?
+4. Can completed be set before the final memo is saved?
+5. Can completed be set when decisionMemo is undefined?
+6. What happens if conclusion generation fails?
+7. Is the run marked failed / memo_failed / error instead of completed?
+
+Result format:
+
+* Status: PASS / PARTIAL / FAIL
+* Evidence:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 2: Decision Memo / Conclusion display
+
+Please verify that the Decision Memo actually appears after a completed run.
+
+Test with this messy Japanese prompt:
+
+adjudoのPRで何からやればいいか分からない。まだ誰も知らないし、投稿しても反応ない。でも、1人でもいいから実際に使ってもらいたい。Xやるのか、DMするのか、比較記事作るのか、LP直すのか、無料で使ってもらうのか、まずプロダクト直すのか迷ってる。今週やるべきことを決めたい。ちゃんと次のアクションに落として。
+
+Expected final memo sections:
+
+* 推奨アクション
+* 判断理由
+* 棄却した選択肢
+* 前提
+* リスク
+* 検証すること
+* 今やること
+* 今やらないこと
+* 次のアクション
+
+Please check:
+
+1. Does the Conclusion / Decision Memo appear after the run?
+2. Does it remain after page refresh?
+3. Is it linked to the correct roomId and runId?
+4. Is it stored in Firestore?
+5. Which collection/document stores it?
+6. Does the UI query the correct location?
+7. Does the old message “Will appear after a completed run.” disappear after completion?
+
+Result format:
+
+* Status: PASS / PARTIAL / FAIL
+* Evidence:
+* Firestore location:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 3: JSON parse retry / repair
+
+Please verify whether JSON parse failure handling has been implemented.
+
+Expected behavior:
+
+1. LLM generates Decision Memo JSON.
+2. If JSON parsing fails, raw output is logged.
+3. App attempts one repair pass.
+4. Repaired JSON is validated.
+5. If repair fails, show a clear fallback state.
+6. Do not silently treat undefined decisionMemo as a successful structured memo.
+
+Please check:
+
+1. Is JSON parsing wrapped safely?
+2. Is there a repair/retry pass?
+3. Is there schema validation?
+4. Is parseError metadata stored?
+5. Does UI clearly show fallback if structured memo parsing fails?
+6. Does completed status still happen if structured memo fails?
+
+Result format:
+
+* Status: PASS / PARTIAL / FAIL
+* Evidence:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 4: Builder / Breaker / Operator
+
+Please verify all 3 roles are active.
+
+Expected roles:
+
+* Builder
+* Breaker
+* Operator
+
+Please check:
+
+1. Does Builder run?
+2. Does Breaker run?
+3. Does Operator run?
+4. Does Operator appear in the UI or contribute to the final memo?
+5. Is the system still using old 2-agent config anywhere?
+6. Are Side A/B/C or FREE_SIDES still used?
+7. If internal names remain, are they hidden from users?
+
+Result format:
+
+* Status: PASS / PARTIAL / FAIL
+* Evidence:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 5: AI output quality
+
+Please verify that the AI output is no longer shallow.
+
+Using the same messy Japanese PR prompt, the output should not be only 1 short paragraph per role.
+
+Expected behavior:
+
+Builder:
+
+* proposes a practical path
+* identifies the decision
+* explains why
+
+Breaker:
+
+* challenges assumptions
+* surfaces risks
+* rejects weak/comfortable options
+
+Operator / Final Memo:
+
+* synthesizes into structured decision output
+* gives a clear next action
+* includes what not to do
+* includes 7-day action plan or concrete next actions
+
+Please check:
+
+1. Are role prompts sufficiently detailed?
+2. Are max tokens high enough?
+3. Is output truncated?
+4. Is mock/stub response still being used?
+5. Is the final memo actionable?
+
+Result format:
+
+* Status: PASS / PARTIAL / FAIL
+* Evidence:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 6: Claude / Anthropic runtime
+
+Please verify whether Claude is actually used at runtime.
+
+Expected:
+
+* If Claude Opus is configured, actual runtime calls should use Anthropic.
+* Normal users should not see provider/model names.
+* UI should show roles, not model names.
+
+Please check:
+
+1. Is ANTHROPIC_API_KEY referenced?
+2. Is Anthropic SDK/client used?
+3. Which provider is used for Builder?
+4. Which provider is used for Breaker?
+5. Which provider is used for Operator?
+6. Which provider is used for final Decision Memo?
+7. Is there fallback to OpenAI?
+8. Are any model names like GPT-4o mini still displayed?
+9. Are model names hidden from Settings and Room UI?
+
+Result format:
+
+* Status: PASS / PARTIAL / FAIL
+* Runtime provider:
+* Runtime model:
+* Fallback behavior:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 7: Remove Free mode / API key UI
+
+Please verify that all old API/BYOK/Free mode UI is removed from normal user screens.
+
+The following should not appear:
+
+* Free mode
+* Try without API keys
+* Set keys for full access
+* Set up in Settings
+* API key warning
+* Connect plan
+* BYOK
+* API key settings
+* model selection
+* fixed model config
+* 2 agents, fixed models
+* Side A/B/C
+* default mode
+* agent count settings
+
+Please check:
+
+1. Decision Room screen
+2. Settings screen
+3. Mobile view
+4. Desktop view
+5. Any footer/status bar near the input area
+
+Result format:
+
+* Status: PASS / PARTIAL / FAIL
+* Remaining visible legacy text:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 8: Japanese language setting
+
+Please verify Japanese i18n behavior.
+
+Expected:
+If Settings language is Japanese, Room UI should show Japanese labels.
+
+Examples:
+
+Completed -> 完了
+Running -> 実行中
+Waiting -> 待機中
+Debate Mode -> ディベートモード
+Conclusion -> 結論
+Will appear after a completed run. -> 実行完了後に表示されます
+Re-run -> 再実行
+Prompt Mode -> プロンプトモード
+Ask the team something… -> チームに質問する…
+Enter to send, Shift+Enter for newline -> Enterで送信、Shift+Enterで改行
+
+Please check:
+
+1. Where language setting is stored.
+2. Whether Settings correctly saves Japanese.
+3. Whether Room reads the same setting.
+4. Whether Room UI labels are hardcoded English.
+5. Whether user setting overrides browser language.
+6. Whether language changes require refresh.
+7. Whether generated AI output follows the input/user language.
+
+Result format:
+
+* Status: PASS / PARTIAL / FAIL
+* Evidence:
+* Missing translations:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 9: Project → Room flow
+
+Please verify Project → Room lifecycle.
+
+Expected:
+
+1. User can create a Room directly under a Project.
+2. New Room has projectId.
+3. Project detail page lists Rooms under that Project.
+4. Room count is correct.
+5. User cannot access other users’ rooms.
+
+Please check:
+
+1. Can a new Room be created from Project detail?
+2. Is rooms/{roomId}.projectId set?
+3. Does Project page query rooms by projectId?
+4. Does room count update correctly?
+5. Can existing rooms be moved/assigned to a project?
+6. Are permissions enforced by ownerId?
+
+Result format:
+
+* Status: PASS / PARTIAL / FAIL
+* Evidence:
+* Files checked:
+* Remaining risk:
+
+==================================================
+Check 10: Security basics
+
+Please verify obvious security issues.
+
+Check:
+
+1. Can normal users read other users’ rooms?
+2. Can normal users read other users’ projects?
+3. Can normal users update their own role?
+4. Can normal users update their own accessStatus?
+5. Can normal users create/update coupons?
+6. Can normal users read admin data?
+7. Are admin pages protected by role, not just hidden in UI?
+8. Are API keys ever exposed to the client?
+
+Result format:
+
+* Status: PASS / PARTIAL / FAIL
+* Urgent concerns:
+* Files/rules checked:
+* Remaining risk:
+
+==================================================
+Final Report Format
+
+Please return the result in this structure:
+
+1. Executive Summary
+
+Overall status:
+
+* Ready for comparison test / Not ready yet
+
+Short explanation.
+
+2. Status Table
+
+Check	Status	Priority	Notes
+Run lifecycle	PASS/PARTIAL/FAIL	P0	…
+Decision Memo display	PASS/PARTIAL/FAIL	P0	…
+JSON repair	PASS/PARTIAL/FAIL	P0/P1	…
+3 roles	PASS/PARTIAL/FAIL	P0	…
+AI output quality	PASS/PARTIAL/FAIL	P0	…
+Claude runtime	PASS/PARTIAL/FAIL	P0/P1	…
+Free/API UI removal	PASS/PARTIAL/FAIL	P0	…
+Japanese i18n	PASS/PARTIAL/FAIL	P1	…
+Project → Room	PASS/PARTIAL/FAIL	P0/P1	…
+Security basics	PASS/PARTIAL/FAIL	P0/P1	…
+
+3. Remaining P0 Issues
+
+List only true blockers.
+
+4. Remaining P1 Issues
+
+List important but non-blocking issues.
+
+5. Evidence
+
+Include:
+
+* files checked
+* relevant functions/components
+* Firestore collections/fields
+* runtime provider/model
+* screenshots or logs if available
+
+6. Go / No-Go Judgment
+
+Answer:
+
+Can we now run the adjudo vs ChatGPT vs Claude comparison test using the messy PR prompt?
+
+* GO
+    or
+* NO-GO
+
+Explain why.
+
+==================================================
+Important
+
+Do not simply say “implemented.”
+Verify behavior.
+
+If something is only partially implemented, mark it PARTIAL.
+
+If a feature exists in code but does not work in the UI, mark it FAIL or PARTIAL depending on severity.
+
+If completed can still happen without a displayed Decision Memo, mark Run lifecycle as FAIL.
+
+If Free mode/API key UI is still visible to normal users, mark Free/API UI removal as FAIL.
+
+If Japanese setting does not affect Room UI, mark Japanese i18n as FAIL or PARTIAL.
