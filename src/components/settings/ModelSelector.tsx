@@ -53,7 +53,6 @@ export function ModelSelector({ roomId, initial, activeAgentCount, onSave }: Pro
   const t = useT()
   const [config, setConfig] = useState(initial)
   const [saveState, setSaveState] = useState<SaveState>('idle')
-  const [dupeError, setDupeError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const SIDES: Array<'a' | 'b' | 'c'> = ['a', 'b', 'c']
@@ -63,23 +62,11 @@ export function ModelSelector({ roomId, initial, activeAgentCount, onSave }: Pro
     c: t.sideC,
   }
 
-  /** Returns the set of "provider:model" used by all OTHER active sides */
-  function usedCombos(excludeSide: 'a' | 'b' | 'c'): Set<string> {
-    const activeSides = (activeAgentCount === 2 ? (['a', 'b'] as const) : (['a', 'b', 'c'] as const))
-    return new Set(
-      activeSides
-        .filter((s) => s !== excludeSide)
-        .map((s) => `${config[`side_${s}`].provider}:${config[`side_${s}`].model}`)
-    )
-  }
-
   function handleChange(
     side: 'a' | 'b' | 'c',
     field: 'provider' | 'model',
     value: string
   ) {
-    setDupeError(null)
-
     const updated = { ...config }
     if (field === 'provider') {
       updated[`side_${side}`] = {
@@ -88,13 +75,6 @@ export function ModelSelector({ roomId, initial, activeAgentCount, onSave }: Pro
       }
     } else {
       updated[`side_${side}`] = { ...updated[`side_${side}`], model: value }
-    }
-
-    // Duplicate check against active sides
-    const combo = `${updated[`side_${side}`].provider}:${updated[`side_${side}`].model}`
-    if (usedCombos(side).has(combo)) {
-      setDupeError(t.duplicateModel)
-      return // Don't save
     }
 
     setConfig(updated)
@@ -124,17 +104,10 @@ export function ModelSelector({ roomId, initial, activeAgentCount, onSave }: Pro
         {saveState === 'error' && <span className="text-xs text-red-500">{t.saveFailed}</span>}
       </div>
 
-      {dupeError && (
-        <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
-          {dupeError}
-        </p>
-      )}
-
       {SIDES.map((side) => {
         const key = `side_${side}` as const
         const { provider, model } = config[key]
         const disabled = side === 'c' && activeAgentCount === 2
-        const combosUsedByOthers = usedCombos(side)
 
         return (
           <div
@@ -182,14 +155,11 @@ export function ModelSelector({ roomId, initial, activeAgentCount, onSave }: Pro
                   disabled={isPending || disabled}
                   className="w-full text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-white"
                 >
-                  {MODELS_BY_PROVIDER[provider].map((m) => {
-                    const isDupe = combosUsedByOthers.has(`${provider}:${m}`)
-                    return (
-                      <option key={m} value={m} disabled={isDupe}>
-                        {isDupe ? `${m} ✕` : m}
-                      </option>
-                    )
-                  })}
+                  {MODELS_BY_PROVIDER[provider].map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

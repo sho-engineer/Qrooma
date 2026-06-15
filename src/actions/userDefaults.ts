@@ -23,12 +23,12 @@ export interface UserDefaults {
 const FACTORY_DEFAULTS: UserDefaults = {
   mode: 'structured_debate',
   active_agent_count: 3,
-  side_a_provider: 'openai',
-  side_a_model: DEFAULT_MODELS.openai,
+  side_a_provider: 'anthropic',
+  side_a_model: DEFAULT_MODELS.anthropic,
   side_b_provider: 'anthropic',
   side_b_model: DEFAULT_MODELS.anthropic,
-  side_c_provider: 'google',
-  side_c_model: DEFAULT_MODELS.google,
+  side_c_provider: 'anthropic',
+  side_c_model: DEFAULT_MODELS.anthropic,
 }
 
 export async function getOrCreateUserDefaults(): Promise<UserDefaults> {
